@@ -1,0 +1,17 @@
+sudo mkdir -p /Library/Logs/KommunalBIT/
+sudo mkdir -p /Library/Logs/KommunalBIT/Archiv
+
+nano /usr/local/bin/assetcache_logger.sh
+
+sudo chown root:wheel /usr/local/bin/assetcache_logger.sh
+chmod 755 /usr/local/bin/assetcache_logger.sh
+
+sudo nano /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
+
+sudo chown root:wheel /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
+sudo chmod 644 /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
+
+sudo launchctl bootstrap system /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
+sudo launchctl kickstart -k
+
+
