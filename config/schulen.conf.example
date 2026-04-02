@@ -1,0 +1,18 @@
+# schulen.conf – Beispielkonfiguration
+#
+# Zuordnung von Schulkürzeln zu iPad-Anzahl (SuS-Geräte).
+# Wird vom Monitoring-Skript gelesen für die ClientsCnt-Prozentberechnung.
+#
+# Format:   KÜRZEL<TAB>ANZAHL
+# Ablageort auf dem Mac Mini: /etc/kommunalbit/schulen.conf
+#
+# Hinweis: Diese Datei enthält keine echten Standortdaten.
+#          Die produktive Datei wird über Relution MDM verteilt.
+#
+# Zeilen mit # werden ignoriert. Leere Zeilen werden ignoriert.
+# Trennzeichen ist ein Tab (kein Leerzeichen).
+
+# Beispieleinträge:
+ABC	120
+DEF	80
+GHI	48

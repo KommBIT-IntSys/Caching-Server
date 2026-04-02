@@ -149,13 +149,15 @@ Das Kürzel wird aus dem Hostnamen extrahiert (erster Teil vor `-`). Fehlt die D
 
 | Datei | Beschreibung |
 |---|---|
-| `AssetCache_Monitoring_1.6.1.sh` | Hauptskript |
-| `deploy_assetcache_logger.sh` | Deploy-Vorlage für Relution (ohne Schultabelle) |
-| `uninstall_assetcache_logger.sh` | Deinstaller |
-| `LaunchDaemon.txt` | LaunchDaemon-plist als Referenz |
-| `BefehIe zum Installieren.txt` | Manuelle Installationsbefehle als Referenz |
+| `scripts/assetcache_logger.sh` | Monitoring-Skript (stabiler Name, Version via Git-Tag) |
+| `scripts/deploy_assetcache_logger.sh` | Deploy-Vorlage für Relution (ohne Schultabelle) |
+| `scripts/uninstall_assetcache_logger.sh` | Deinstaller |
+| `launchd/de.kommunalbit.assetcachelogger.plist` | LaunchDaemon-plist als Referenz |
+| `docs/Befehle_zum_Installieren.txt` | Manuelle Installationsbefehle als Referenz |
+| `config/schulen.conf.example` | Beispielformat für die Schultabelle |
 | `README.md` | Kurzübersicht für GitHub |
-| `# Asset Cache Monitoring.md` | Diese Datei |
+| `CHANGELOG.md` | Änderungshistorie |
+| `docs/AssetCache_Monitoring.md` | Diese Datei |
 
 ---
 
