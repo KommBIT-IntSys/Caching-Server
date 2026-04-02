@@ -11,43 +11,79 @@
 #   5. Bootstraps and starts the daemon
 #
 # Requirements: Runs as root (standard for Relution MDM scripts)
+# Debug log:    /var/tmp/assetcache_deploy.log
 # =============================================================================
 
-set -euo pipefail
+# --- Logging setup (all output goes to log file since Relution is silent) ----
+DEPLOY_LOG="/var/tmp/assetcache_deploy.log"
+exec > >(tee -a "${DEPLOY_LOG}") 2>&1
+echo ""
+echo "========================================================"
+echo "AssetCache Logger Deployment – $(date '+%Y-%m-%d %H:%M:%S')"
+echo "========================================================"
 
 # --- Configuration -----------------------------------------------------------
-SCRIPT_URL="https://raw.githubusercontent.com/jens-siegfried/caching-server/main/AssetCache%20Monitoring%201.6.0.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/Jens-Siegfried/Caching-Server/main/AssetCache%20Monitoring%201.6.0.sh"
 INSTALL_PATH="/usr/local/bin/assetcache_logger.sh"
 PLIST_PATH="/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist"
 DAEMON_LABEL="de.kommunalbit.assetcachelogger"
 LOG_DIR="/Library/Logs/KommunalBIT"
 ARCHIVE_DIR="${LOG_DIR}/Archiv"
+TMP_SCRIPT="/var/tmp/assetcache_logger_download.sh"
 
 # --- Helpers -----------------------------------------------------------------
-log() { echo "[deploy] $*"; }
-die() { echo "[deploy] ERROR: $*" >&2; exit 1; }
+log()  { echo "[$(date '+%H:%M:%S')] $*"; }
+fail() { echo "[$(date '+%H:%M:%S')] FAILED: $*"; exit 1; }
 
 # --- 1. Verify running as root -----------------------------------------------
-[[ $EUID -eq 0 ]] || die "This script must run as root."
+[[ $EUID -eq 0 ]] || fail "Must run as root."
+log "Running as root – OK"
 
 # --- 2. Create log directories -----------------------------------------------
 log "Creating log directories..."
-mkdir -p "${LOG_DIR}" "${ARCHIVE_DIR}"
+mkdir -p "${LOG_DIR}" "${ARCHIVE_DIR}" || fail "Could not create log directories."
 chown root:wheel "${LOG_DIR}" "${ARCHIVE_DIR}"
 chmod 755 "${LOG_DIR}" "${ARCHIVE_DIR}"
+log "Directories ready: ${LOG_DIR}, ${ARCHIVE_DIR}"
 
-# --- 3. Download monitoring script -------------------------------------------
+# --- 3. Download monitoring script to temp file ------------------------------
 log "Downloading assetcache_logger.sh from GitHub..."
-curl --silent --show-error --fail --location \
-     --max-time 30 \
-     --output "${INSTALL_PATH}" \
-     "${SCRIPT_URL}" \
-  || die "Download failed. Check network connectivity and the URL:\n  ${SCRIPT_URL}"
+log "URL: ${SCRIPT_URL}"
 
-# --- 4. Set permissions on monitoring script ---------------------------------
-log "Setting permissions on ${INSTALL_PATH}..."
+rm -f "${TMP_SCRIPT}"
+HTTP_CODE=$(curl \
+  --silent --show-error \
+  --location \
+  --max-time 30 \
+  --write-out "%{http_code}" \
+  --output "${TMP_SCRIPT}" \
+  "${SCRIPT_URL}" 2>&1)
+CURL_EXIT=$?
+
+log "curl exit code: ${CURL_EXIT}, HTTP status: ${HTTP_CODE}"
+
+if [[ ${CURL_EXIT} -ne 0 ]]; then
+  fail "curl failed (exit ${CURL_EXIT}). Check network connectivity."
+fi
+
+if [[ "${HTTP_CODE}" != "200" ]]; then
+  fail "Server returned HTTP ${HTTP_CODE}. URL may be wrong or repo may be private."
+fi
+
+FILESIZE=$(wc -c < "${TMP_SCRIPT}" | tr -d ' ')
+log "Downloaded ${FILESIZE} bytes."
+
+if [[ ${FILESIZE} -lt 100 ]]; then
+  fail "Downloaded file is too small (${FILESIZE} bytes) – likely empty or an error page."
+fi
+
+# --- 4. Install monitoring script --------------------------------------------
+log "Installing to ${INSTALL_PATH}..."
+cp "${TMP_SCRIPT}" "${INSTALL_PATH}" || fail "Could not copy script to ${INSTALL_PATH}."
+rm -f "${TMP_SCRIPT}"
 chown root:wheel "${INSTALL_PATH}"
 chmod 755 "${INSTALL_PATH}"
+log "Script installed."
 
 # --- 5. Write LaunchDaemon plist ---------------------------------------------
 log "Writing LaunchDaemon plist to ${PLIST_PATH}..."
@@ -82,23 +118,29 @@ EOF
 
 chown root:wheel "${PLIST_PATH}"
 chmod 644 "${PLIST_PATH}"
+log "Plist written."
 
 # --- 6. Load / restart the LaunchDaemon -------------------------------------
 log "Loading LaunchDaemon..."
 
-# Unload gracefully if already loaded (ignore errors if not loaded)
 if launchctl list "${DAEMON_LABEL}" &>/dev/null; then
   log "Daemon already loaded – unloading first..."
-  launchctl bootout system "${PLIST_PATH}" 2>/dev/null || true
-  sleep 1
+  launchctl bootout system "${PLIST_PATH}" 2>&1 || true
+  sleep 2
 fi
 
-launchctl bootstrap system "${PLIST_PATH}" \
-  || die "launchctl bootstrap failed."
+launchctl bootstrap system "${PLIST_PATH}" 2>&1
+BOOT_EXIT=$?
 
-# Verify it loaded
+if [[ ${BOOT_EXIT} -ne 0 ]]; then
+  fail "launchctl bootstrap failed (exit ${BOOT_EXIT})."
+fi
+
+sleep 1
 if launchctl list "${DAEMON_LABEL}" &>/dev/null; then
-  log "Daemon '${DAEMON_LABEL}' is running. Deployment complete."
+  log "Daemon '${DAEMON_LABEL}' is running."
 else
-  die "Daemon did not appear in launchctl list after bootstrap."
+  fail "Daemon not found in launchctl list after bootstrap."
 fi
+
+log "Deployment complete."
