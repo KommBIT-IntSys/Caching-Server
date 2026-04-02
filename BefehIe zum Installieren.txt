@@ -12,6 +12,6 @@ sudo chown root:wheel /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.pli
 sudo chmod 644 /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
 
 sudo launchctl bootstrap system /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
-sudo launchctl kickstart -k
+sudo launchctl kickstart -k system/de.kommunalbit.assetcachelogger
 
 
