@@ -1,0 +1,119 @@
+#!/bin/sh
+
+# Asset Cache Monitoring - Relution Cleanup / Deinstaller
+# Version 1.6.4
+# Entfernt:
+# - Relution-Installationen
+# - manuelle v1.x-Installationen
+# - historische Altlasten (_plist / _csv / assetcache.csv)
+# - projektbezogene State-/Debug-Dateien
+
+STATUS_FILE="/var/tmp/assetcache_relution_cleanup_status.txt"
+
+log() {
+  printf '%s\n' "$*" >> "$STATUS_FILE"
+}
+
+fail() {
+  log "RESULT=FAIL"
+  log "REASON=$*"
+  exit 1
+}
+
+ok() {
+  log "RESULT=OK"
+  exit 0
+}
+
+SCRIPT_NAME="assetcache_relution_cleanup_v1.6.4"
+
+DOT='.'
+PLIST_EXT="$(printf '%s%s' "$DOT" 'plist')"
+CSV_EXT="$(printf '%s%s' "$DOT" 'csv')"
+
+PLIST_LABEL="de.kommunalbit.assetcachelogger"
+PLIST_PATH="/Library/LaunchDaemons/${PLIST_LABEL}${PLIST_EXT}"
+PLIST_PATH_BAD="/Library/LaunchDaemons/${PLIST_LABEL}_plist"
+SCRIPT_PATH="/usr/local/bin/assetcache_logger.sh"
+LOG_DIR="/Library/Logs/KommunalBIT"
+ARCHIV_DIR="${LOG_DIR}/Archiv"
+
+HOST="$(/usr/sbin/scutil --get HostName 2>/dev/null || /usr/sbin/scutil --get LocalHostName 2>/dev/null || /bin/hostname -s 2>/dev/null || echo unknown)"
+PREFIX="$(printf '%s' "$HOST" | /usr/bin/awk -F'-' '{print $1}')"
+
+# Alte Statusdatei zuerst loeschen, damit der neue Lauf sauber beginnt
+/bin/rm -f "$STATUS_FILE" 2>/dev/null || true
+: > "$STATUS_FILE" 2>/dev/null || exit 1
+
+log "SCRIPT=${SCRIPT_NAME}"
+log "TIME=$(date '+%F %T')"
+log "HOST=${HOST}"
+log "PREFIX=${PREFIX}"
+log "PLIST_EXT=${PLIST_EXT}"
+log "CSV_EXT=${CSV_EXT}"
+log "RESULT=RUNNING"
+
+# Eventuell geladene Jobs entladen
+/bin/launchctl bootout system "$PLIST_PATH" >> "$STATUS_FILE" 2>&1 || true
+/bin/launchctl bootout system "$PLIST_PATH_BAD" >> "$STATUS_FILE" 2>&1 || true
+/bin/sleep 1
+
+# Installierte Dateien entfernen
+/bin/rm -f "$PLIST_PATH" >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f "$PLIST_PATH_BAD" >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f "$SCRIPT_PATH" >> "$STATUS_FILE" 2>&1 || true
+
+# Log-/CSV-Dateien entfernen
+# aktuelle / versionierte Dateien
+/bin/rm -f "${LOG_DIR}"/*AssetCache*"${CSV_EXT}" >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f "${ARCHIV_DIR}"/*AssetCache*"${CSV_EXT}" >> "$STATUS_FILE" 2>&1 || true
+
+# historische Altlasten aus defekten Relution-Laeufen
+/bin/rm -f "${LOG_DIR}"/*_csv >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f "${ARCHIV_DIR}"/*_csv >> "$STATUS_FILE" 2>&1 || true
+
+# ganz alte Ein-Datei-Variante / manuelle Altinstallation
+/bin/rm -f "${LOG_DIR}/assetcache${CSV_EXT}" >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f "${ARCHIV_DIR}/assetcache${CSV_EXT}" >> "$STATUS_FILE" 2>&1 || true
+
+# projektbezogene tmp-/State-/Debug-Dateien entfernen
+/bin/rm -f /var/tmp/assetcache_relution_installer_status.txt >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_relution_cleanup_status.txt >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_logger_state.tsv >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_iosupdates_hu_state.tsv >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_gdmf_state.tsv >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_gdmf_debug.log >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_archive_state_*.tsv >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_logger.out >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_logger.err >> "$STATUS_FILE" 2>&1 || true
+
+# Log-Verzeichnisse entfernen, wenn leer
+/bin/rmdir "$ARCHIV_DIR" >> "$STATUS_FILE" 2>&1 || true
+/bin/rmdir "$LOG_DIR" >> "$STATUS_FILE" 2>&1 || true
+
+# Verifikation: es sollen keine Kern-Artefakte mehr da sein
+if [ -e "$PLIST_PATH" ]; then
+  fail "Korrekte plist ist noch vorhanden: $PLIST_PATH"
+fi
+
+if [ -e "$PLIST_PATH_BAD" ]; then
+  fail "Falsche _plist ist noch vorhanden: $PLIST_PATH_BAD"
+fi
+
+if [ -e "$SCRIPT_PATH" ]; then
+  fail "Monitoring-Skript ist noch vorhanden: $SCRIPT_PATH"
+fi
+
+if /bin/launchctl list 2>/dev/null | /usr/bin/grep -q "$PLIST_LABEL"; then
+  fail "LaunchDaemon ist laut launchctl noch geladen."
+fi
+
+# Optional: pruefen, ob im Logpfad noch Reste uebrig sind
+if [ -d "$LOG_DIR" ]; then
+  REMAINS="$(/bin/ls -A "$LOG_DIR" 2>/dev/null)"
+  if [ -n "$REMAINS" ]; then
+    log "REMAINS_IN_LOG_DIR=$REMAINS"
+  fi
+fi
+
+ok
