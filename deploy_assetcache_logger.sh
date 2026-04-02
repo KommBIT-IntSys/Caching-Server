@@ -81,6 +81,7 @@ fi
 
 # --- 4. Install monitoring script --------------------------------------------
 log "Installing to ${INSTALL_PATH}..."
+mkdir -p /usr/local/bin
 cp "${TMP_SCRIPT}" "${INSTALL_PATH}" || fail "Could not copy script to ${INSTALL_PATH}."
 rm -f "${TMP_SCRIPT}"
 chown root:wheel "${INSTALL_PATH}"
