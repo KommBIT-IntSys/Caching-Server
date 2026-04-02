@@ -2,7 +2,7 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.6 (KommunalBIT)
+# Version 1.6.1 (KommunalBIT)
 #
 # Final characteristics:
 # - ClientsCnt RAW = active/total (e.g. 4/122), or just active if site unknown
@@ -11,7 +11,7 @@ set -u
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 # - No extra columns added; existing schema preserved
 
-SCRIPT_VER="1.6"
+SCRIPT_VER="1.6.1"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
