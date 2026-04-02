@@ -59,8 +59,8 @@ if [[ ! -f "${SCHULEN_CONF}" ]]; then
 # SuS-Tabelle – KommunalBIT AssetCache Monitoring
 # Format: KÜRZEL<TAB>ANZAHL  (eine Zeile pro Schule)
 # Beispiel:
-# EIC	133
-# BRL	80
+# ABC	120
+# DEF	80
 SCHULEN_EOF
   chown root:wheel "${SCHULEN_CONF}"
   chmod 644 "${SCHULEN_CONF}"

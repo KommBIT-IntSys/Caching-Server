@@ -117,9 +117,9 @@ Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl aus:
 
 ```
 # Beispiel
-EIC	133
-BRL	80
-GSW	171
+ABC	120
+DEF	80
+GHI	48
 ```
 
 Das Kürzel wird aus dem Hostnamen extrahiert (erster Teil vor `-`). Fehlt die Datei oder ist ein Standort nicht eingetragen, wird `ClientsCnt` ohne Prozentwert ausgegeben.
