@@ -1,242 +1,206 @@
-# Asset Cache Monitoring
+# Asset Cache Monitoring – KommunalBIT
 
-Monitoring und Logging des Content Caching unserer Mac Minis in den Schulen.
+Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
+**Aktuelle Version: 1.6.1**
 
-Es dient dazu, den Betrieb des Content Caching auf unseren Mac Minis nachvollziehbar zu beobachten, relevante Metriken regelmäßig (aktuell: jede Viertelsunde) zu erfassen und in Form einer CSV-Datei für technische Analyse und standortbezogene Bewertung bereitzustellen.
-
-Der Schwerpunkt liegt nicht auf dem reinem Sammeln von Zahlen, sondern auf der Frage, ob Verzögerungen bei den iPad-/iOS-Updates eher auf infrastrukturelle Probleme oder eher auf organisatorische bzw. lokale Nutzungsgewohnheiten zurückzuführen ist.
+---
 
 ## Motivation
 
-In einer Umgebung mit vielen schulisch genutzten iPads ist Apple Content Caching ein wichtiger technischer Baustein, um Last, Bandbreite und Updateverteilung sinnvoll zu steuern.
-Da Verzögerungen bei der Installation der letzten iOS-Updates sehr oft ein Sicherheitsrisiko darstellen, ist uns daran gelegen, an jeder Schule die bestmöglichen Vorraussetzungen zu schaffen,
-um so viele iPads so schnell wie möglich zu aktualisieren. 
+In einer Umgebung mit vielen schulisch genutzten iPads ist Apple Content Caching ein wichtiger technischer Baustein, um Last, Bandbreite und Updateverteilung sinnvoll zu steuern. Da Verzögerungen bei der Installation aktueller iOS-Updates ein Sicherheitsrisiko darstellen, ist es das Ziel, an jeder Schule die bestmöglichen Voraussetzungen zu schaffen, um so viele Geräte wie möglich zeitnah zu aktualisieren.
 
+Die entscheidenden Fragen:
 
-Die entscheidenden Fragen, die man einem Cache stellen kann:
-
-- Wird er tatsächlich genutzt?
+- Wird der Cache tatsächlich genutzt?
 - Wird er zum richtigen Zeitpunkt genutzt?
 - Passt die Aktivität zur bekannten Geräteanzahl eines Standorts?
-- Deuten Auffälligkeiten auf Struktur- oder Konfigurationsprobleme hin, oder liegt die Ursache eher vor Ort, etwa beim Handling der iPads bzgl. Ladezustand der Akkus und Ort der Lagerung / Erreichbarkeit des WLAN.
+- Deuten Auffälligkeiten auf Infrastruktur- oder Konfigurationsprobleme hin – oder liegt die Ursache eher vor Ort, etwa beim Handling der iPads bzgl. Ladezustand und WLAN-Erreichbarkeit?
 
-Dieses Projekt soll dafür belastbare Daten liefern.
+Der Schwerpunkt liegt nicht auf dem reinen Sammeln von Zahlen, sondern auf datenbasierter Einordnung. Das Ziel ist Risikoreduktion und Resilienz – nicht Kontrolle oder Schuldzuweisung.
 
-## Zielbild
+---
 
-Das Projekt soll Standorte identifizierbar machen, die bei iOS-/iPadOS-Updates deutlich hinterherhinken oder sich im Cache-Verhalten auffällig verhalten.
+## Funktionsweise
 
-Dabei gilt als Grundprinzip:
+Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in zwei CSV-Dateien.
 
-- technische Ursachen zuerst auf eigener Seite prüfen
-- zuerst zentrale Infrastrukturprobleme beheben
-- organisatorische Ursachen nicht spekulativ, sondern datenbasiert ansprechen
-- Ggf. Unterstützung konstruktiv und faktenbasiert anbieten
+---
 
-Das Ziel ist Risikoreduktion und Resilienz aller Komponenten, nicht Kontrolle oder Schuldzuweisung.
+## Ausgabeformat
 
-## Kernfunktionen
+Pro Host werden zwei parallele CSV-Dateien geschrieben, jeweils unter `/Library/Logs/KommunalBIT/`:
 
-Das Logger-Skript erfasst in regelmäßigen Intervallen unter anderem:
+| Datei | Zweck |
+|---|---|
+| `<HOST>_RAW.csv` | Maschinenlesbar – reine Zahlenwerte, leere Felder, ISO-8601-Zeitstempel mit Zeitzone |
+| `<HOST>_HU.csv` | Menschenlesbar – Einheiten (GB, %, ms, dB), `n/a` für fehlende Werte |
 
-- Summenwerte wie TotalBytesReturnedToClients
-- Summenwerte wie TotalBytesStoredFromOrigin
-- Intervall-Deltas aus kumulativen Zählern
-- CacheUsed
-- MaxCachePressureLast1Hour (CachePr)
-- CacheDetails mit Fokus auf iOS Software
-- Peer-Erkennung
-- Netzwerkstatus der beiden Interfaces von en0 / en1 (in aller Regel LAN / WLAN)
-- Default Interface
-- Gateway-IP
-- DNS-Resolve-Check für Apple-Ziele
-- HTTPS-/Erreichbarkeitstest gegen Apple-CDN
-- AppleTTFB als einfacher Antwortindikator
-- GDMF-basierte iOS-/iPadOS-Updateinformationen
-- optional standortbezogene Zusatzinformation wie bekannte Gerätekapazität bzw. ClientsCnt
+**Grundregel:** RAW ist die fachliche Quelle. HU ist die komfortable Ableitung für die Sichtprüfung.
 
-## Ausgabeformate
+Bei Erkennung einer neuen iOS-Version werden die bisherigen CSV-Dateien automatisch in `/Library/Logs/KommunalBIT/Archiv/` verschoben.
 
-Die Ausgabe erfolgt bewusst in zwei getrennten CSV-Dateien:
+---
 
-### Raw
+## CSV-Felder (23 Spalten)
 
-Die Raw-Datei ist die primäre, maschinenlesbare Quelle.
+### Identifikation & Zeit
 
-Merkmale:
+| Feld | RAW | HU | Beschreibung |
+|---|---|---|---|
+| `Hostname` | Hostname des Mac Mini | = RAW | Vollständiger Hostname laut `scutil` |
+| `Timestamp` | ISO-8601 mit Zeitzone (`2026-04-02T10:15:00+02:00`) | Lokal ohne Offset (`2026-04-02 10:15:00`) | Zeitpunkt der Messung |
+| `TotalsSince` | Epochensekunden (`1743588000`) | Lesbares Datum (`2026-02-01`) | Zeitpunkt, seit dem die kumulativen Zähler laufen (Neustart des Caching-Dienstes) |
 
-- stabile Struktur
-- möglichst roh und eindeutig
-- leere Felder statt kosmetischer Platzhalter
-- ISO-8601-Zeitstempel mit Zeitzone
-- numerische Werte ohne dekorative Zusätze
-- für Parsing, Weiterverarbeitung und spätere Analyse gedacht
+### Cache-Aktivität
 
-### Hu
+| Feld | RAW | HU | Beschreibung |
+|---|---|---|---|
+| `TotReturned` | Bytes (Integer) | z. B. `142.3 GB` | Kumulativ: gesamte an Clients ausgelieferte Datenmenge seit `TotalsSince` |
+| `TotOrigin` | Bytes (Integer) | z. B. `18.7 GB` | Kumulativ: gesamte von Apple-Servern geladene Datenmenge seit `TotalsSince` |
+| `ServedDelta` | Bytes (Integer) | z. B. `1.2 GB` | **Im letzten Intervall** an Clients ausgeliefert (Differenz zum vorherigen Lauf) |
+| `OriginDelta` | Bytes (Integer) | z. B. `240 MB` | **Im letzten Intervall** von Apple-Servern geladen (Differenz zum vorherigen Lauf) |
+| `CacheUsed` | Bytes (Integer) | z. B. `85.4 GB` | Aktuell belegter Cache-Speicher |
+| `CachePr` | Integer (0–100) | z. B. `42%` | `MaxCachePressureLast1Hour` – Verdrängungsdruck im Cache der letzten Stunde |
+| `iOSBytes` | Bytes (Integer) | z. B. `74.2 GB` | Im Cache gehaltene Datenmenge für iOS-/iPadOS-Software |
 
-Die Hu-Datei ist die menschenlesbare Variante.
+### Clients
 
-Merkmale:
+| Feld | RAW | HU | Beschreibung |
+|---|---|---|---|
+| `ClientsCnt` | `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv` wenn Standort unbekannt | Prozentsatz (z. B. `3.3%`) oder nur `aktiv` wenn Standort unbekannt | Aktive Clients der letzten ~16 Minuten aus dem Systemlog, bezogen auf den bekannten Gerätebestand des Standorts aus `schulen.conf` |
 
-- kompakter und schneller erfassbar
-- Werte teilweise in lesbarer Form formatiert
-- Einheiten wie %, ms, oder GB
-- gedacht für die schnelle Sichtprüfung und ad-hoc-Einschätzung
+### iOS-Updates
 
-Die Grundregel lautet:
+| Feld | RAW | HU | Beschreibung |
+|---|---|---|---|
+| `iOSUpdates` | Versionsliste (z. B. `18.4;18.3.2`) | = RAW, aber für 19 Zeilen nach einer Änderung leer (Rauschunterdrückung) | Aktuelle iOS-/iPadOS-Versionen laut Apple GDMF API; Änderungen lösen CSV-Archivierung aus |
 
-Raw ist die fachliche Quelle.  
-Hu ist die komfortable Ableitung.
+### Peers
 
-## Typischer Einsatz
+| Feld | RAW | HU | Beschreibung |
+|---|---|---|---|
+| `Peers` | Semikolon-getrennte IP-Adressen (z. B. `10.1.2.3;10.1.2.4`) | Anzahl (z. B. `2`) | Andere erkannte Asset-Cache-Server im lokalen Netz |
 
-Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und wird periodisch durch einen LauchDaemon ausgeführt.
+### Netzwerk
 
-Aktuell ist der periodische Betrieb auf ein Intervall von 900 Sekunden (aka Viertelstunde) ausgelegt.
+| Feld | RAW | HU | Beschreibung |
+|---|---|---|---|
+| `EN0` | IP-Adresse oder Status (`down` / `noip` / `active`) | = RAW | Netzwerkinterface en0 (in der Regel LAN) |
+| `EN1` | IP-Adresse oder Status | = RAW | Netzwerkinterface en1 (in der Regel WLAN) |
+| `GatewayIP` | IP-Adresse des Default-Gateways | = RAW | Aus `route -n get default` |
+| `DefaultIf` | Interface-Name (z. B. `en0`) | = RAW | Aktuell genutztes Default-Interface |
+| `DNSRes` | `1` (erfolgreich) / `0` (fehlgeschlagen) | `yes` / `no` | DNS-Auflösung von `swcdn.apple.com` via `dscacheutil` |
+| `AppleReach` | `1` / `0` | `yes` / `no` | HTTPS-Erreichbarkeit des Apple CDN (HTTP 2xx–4xx = erreichbar) |
+| `AppleTTFB` | Millisekunden (Integer) | z. B. `38ms` | Time To First Byte gegen Apple CDN; leer wenn nicht erreichbar |
 
-Wichtige Betriebsartefakte:
+### WLAN (via `wdutil`)
 
-- Skript: /usr/local/bin/assetcache_logger.sh
-- LaunchDaemon: /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
-- Logs / CSV: /Library/Logs/KommunalBIT/
-- State-Datei: /var/tmp/assetcache_logger_state.tsv
+| Feld | RAW | HU | Beschreibung |
+|---|---|---|---|
+| `WiFiSNR` | Integer (dB) | z. B. `42dB` | Signal-Rausch-Abstand (RSSI minus Noise); höher = besser |
+| `WifiNoise` | Integer (dBm, negativ) | z. B. `-92dBm` | Rauschpegel; typisch –95 bis –75 dBm |
+| `WifiCCA` | Integer (0–100) | z. B. `18%` | Clear Channel Assessment – Kanalauslastung; hohe Werte deuten auf WLAN-Überlastung hin |
 
-## Projektbestandteile
+> WLAN-Felder sind leer, wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist.
 
-Dieses Repository enthält:
+---
 
-- den Logger aka das Skript, das mitliest und in eine CSV-Datei schreibt
-- Installer-/Deploy-Skripte für Relution
-- Cleanup-/Deinstaller-Skripte
-- LaunchDaemon-Definition
-- Dokumentation zu CSV-Feldern, Rollout und Troubleshooting
-- Beispielkonfigurationen
-- anonymisierte Beispieldaten
+## Standortkonfiguration (`schulen.conf`)
 
-## Repository-Struktur
+Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl aus:
 
-Empfohlene Struktur:
+```
+/etc/kommunalbit/schulen.conf
+```
 
-- `scripts/`  
-  Enthält Logger, Installer, Cleanup und ggf. gemeinsame Hilfsfunktionen.
+**Format:** Eine Zeile pro Schule, Kürzel und Anzahl durch **Tab** getrennt. Zeilen mit `#` werden ignoriert.
 
-- `launchd/`  
-  Enthält die LaunchDaemon-`plist`.
+```
+# Beispiel
+EIC	133
+BRL	80
+GSW	171
+```
 
-- `config/`  
-  Enthält Beispielkonfigurationen, aber keine sensiblen produktiven Standortdaten.
+Das Kürzel wird aus dem Hostnamen extrahiert (erster Teil vor `-`). Fehlt die Datei oder ist ein Standort nicht eingetragen, wird `ClientsCnt` ohne Prozentwert ausgegeben.
 
-- `docs/`  
-  Enthält technische und fachliche Dokumentation.
+**Diese Datei ist nicht im Repository** – sie wird über Relution MDM auf die Mac Minis verteilt und enthält keine öffentlich veröffentlichungswürdigen Informationen.
 
-- `examples/`  
-  Enthält anonymisierte Beispiel-CSV-Dateien oder Musterausgaben.
+---
 
-## Deployment über Relution
+## Betriebsartefakte
 
-Die Verteilung erfolgt über Relution.
+| Pfad | Beschreibung |
+|---|---|
+| `/usr/local/bin/assetcache_logger.sh` | Monitoring-Skript |
+| `/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist` | LaunchDaemon (900 s Intervall) |
+| `/Library/Logs/KommunalBIT/` | CSV-Ausgabe |
+| `/Library/Logs/KommunalBIT/Archiv/` | Archiv bei iOS-Versionsänderung |
+| `/etc/kommunalbit/schulen.conf` | Schultabelle (nicht im Repo) |
+| `/var/tmp/assetcache_logger_state.tsv` | State-Datei für Delta-Berechnung |
+| `/var/tmp/assetcache_iosupdates_hu_state.tsv` | State-Datei für HU-Sichtbarkeitsblock |
+| `/var/tmp/assetcache_gdmf_state.tsv` | GDMF-Cache (SHA256 + letzte Versionsliste) |
+| `/var/tmp/assetcache_gdmf_debug.log` | GDMF-Debuglog (max. 1000 Zeilen) |
+| `/var/tmp/assetcache_logger.out` / `.err` | stdout/stderr des LaunchDaemon |
 
-Grundprinzip:
+---
 
-1. Ein Installer-Skript wird per Relution auf dem Zielsystem mit Root-Rechten ausgeführt.
-2. Das Skript installiert oder aktualisiert Logger und LaunchDaemon.
-3. Der LaunchDaemon übernimmt den periodischen Betrieb.
-4. Die .CSV-Dateien werden lokal auf dem Zielsystem geschrieben.
-5. Bei Bedarf bereinigt ein Cleanup-/Deinstaller-Skript ältere oder fehlerhafte Stände.
+## Repository-Inhalt
 
-Relution ist dabei der Verteilmechanismus, nicht die eigentliche Fachlogik des Projekts.
+| Datei | Beschreibung |
+|---|---|
+| `AssetCache_Monitoring_1.6.1.sh` | Hauptskript |
+| `deploy_assetcache_logger.sh` | Deploy-Vorlage für Relution (ohne Schultabelle) |
+| `uninstall_assetcache_logger.sh` | Deinstaller |
+| `LaunchDaemon.txt` | LaunchDaemon-plist als Referenz |
+| `BefehIe zum Installieren.txt` | Manuelle Installationsbefehle als Referenz |
+| `README.md` | Kurzübersicht für GitHub |
+| `# Asset Cache Monitoring.md` | Diese Datei |
 
-## Aktueller Fokus
+---
 
-Der aktuelle Fokus liegt auf:
+## Deployment via Relution MDM
 
-- stabilem Logging
-- robuster Verteilung
-- sauberer Versionierung
-- nachvollziehbarer Dokumentation
-- belastbarer Auswertbarkeit
-- schrittweiser Trennung von Code und standortbezogener Konfiguration
+### Reihenfolge
 
-## Wichtige Messgrößen im Überblick
+1. **Deinstallieren** (`uninstall_assetcache_logger.sh`) auf dem Zielgerät ausführen  
+   → Prüfen: `cat /var/tmp/assetcache_uninstall.log` → `RESULT=OK`
 
-Einige zentrale Felder:
+2. **Installieren** (Relution-Version von `deploy_assetcache_logger.sh`, ergänzt um `schulen.conf`-Heredoc in Schritt 3)  
+   → Prüfen: `cat /var/tmp/assetcache_deploy.log` → `Deployment complete.`
 
-- `ServedDelta`  
-  Datenmenge, die im letzten Intervall an Clients ausgeliefert wurde.
+3. **Erste CSV-Ausgabe** erscheint nach dem ersten Lauf (bis zu 15 Minuten)  
+   → Prüfen: `ls /Library/Logs/KommunalBIT/`
 
-- `OriginDelta`  
-  Datenmenge, die im letzten Intervall von Apples Update-Servern geladen wurde.
+### Bekannter Relution-Bug
 
-- `CachePr`  
-  Verdichteter Hinweis auf Speicherdruck bzw. Verdrängungsdruck im Cache.
+Relution ersetzt in bestimmten String-Mustern Punkte durch Unterstriche:  
+`raw.githubusercontent.com` → `raw_githubusercontent.com`
 
-- `AppleTTFB`  
-  Time To First Byte gegen ein Apple-Ziel; grober Indikator für Erreichbarkeit und Reaktionsverhalten.
+Das Deploy-Skript enthält bereits einen Workaround (`printf '\x2e'`). Beim Bearbeiten des Scripts in Relution immer den Deploy-Log auf die korrekte URL prüfen.
 
-- `Peers`  
-  Erkannte andere Cache-Server im Netz.
+Gleiches gilt für Dateinamen mit Punkten (z. B. `.csv` → `_csv`), was in früheren Script-Versionen zu falsch benannten CSV-Dateien geführt hat.
 
-- `ClientsCnt`  
-  Verhältnis der erkannten Nachfragen von iPads zum bekannten Gerätebestand eines Standorts.
+---
 
-- `iOSUpdates`  
-  GDMF-basierte Sicht auf aktuelle relevante iOS-/iPadOS-Versionen.
+## Wichtige Messgrößen für die Praxis
 
-Die vollständige Feldbeschreibung steht in `docs/csv-fields.md`.
+| Metrik | Aussage |
+|---|---|
+| `ServedDelta` hoch, `OriginDelta` niedrig | Cache wird gut genutzt – Geräte holen Updates lokal |
+| `ServedDelta` und `OriginDelta` beide hoch | Cache lädt aktiv nach – Update-Welle läuft gerade |
+| `ServedDelta` ≈ 0 | Keine Cache-Nutzung im Intervall – Geräte nicht aktiv oder nicht im WLAN |
+| `CachePr` > 50 | Cache unter Speicherdruck – ggf. Cache-Größe anpassen |
+| `ClientsCnt` weit unter Erwartung | Geräte nicht aktiv, nicht am Laden oder nicht im WLAN |
+| `AppleReach` = 0 | Keine Verbindung zu Apple CDN – Netzwerkproblem prüfen |
+| `WifiCCA` > 50 % | WLAN-Kanal überlastet – lokales WLAN-Problem |
+| `Peers` = 0 | Kein Redundanz-Cache im Netz vorhanden |
 
-## Warum dieses Projekt nicht nur "Monitoring" ist
-
-Das Projekt ist kein Selbstzweck und kein bloßes Sammeln relevanter Kennzahlen.
-
-Es soll helfen, nach relevanten Releases zeitnah und belastbar zu beantworten:
-
-- Welche Standorte zeigen plausibles Verhalten?
-- Welche nicht?
-- Wo muss technisch eingegriffen werden?
-- Wo sollte organisatorisch angesetzt werden?
-- Wo lohnt sich gezielte Beratung?
-
-## Konfiguration und sensible Daten
-
-Produktive Standortdaten, Zuordnungstabellen, Host-spezifische Sonderlogik und andere sensible Informationen sollen nicht unkontrolliert in den allgemeinen Projektkern gelangen.
-
-Deshalb gilt:
-
-- Im Repository liegen nur Beispiel- oder anonymisierte Konfigurationen.
-- Echte Standortdaten gehören in lokale oder private Konfigurationsdateien.
-- Veröffentlichbare und interne Projektanteile sollen sauber getrennt bleiben.
+---
 
 ## Versionierung
 
-Dieses Projekt soll versionssauber geführt werden.
-
-Das bedeutet insbesondere:
-
-- Änderungen werden nachvollziehbar dokumentiert.
-- Ausrollbare Stände erhalten klare Versionsnummern.
-- Produktive und experimentelle Stände werden getrennt gehalten.
-- Dokumentation und Code sollen denselben fachlichen Stand widerspiegeln.
-
-Weitere Details stehen in `docs/versioning-policy.md`.
-
-## Dokumentation
-
-Weiterführende Dokumentation befindet sich in:
-
-- `docs/overview.md`
-- `docs/csv-fields.md`
-- `docs/rollout-relution.md`
-- `docs/troubleshooting.md`
-- `docs/versioning-policy.md`
-
-## Status
-
-Aktiver Entwicklungs- und Betriebsstand.
-
-Referenz für den aktuellen Rollout-Stand ist derzeit die konsistente Versionierung von Installer und Cleanup im Bereich `v1.6.4`.
-
-## Hinweis
-
-Dieses Repository bildet den technischen Kern des Projekts ab.
-
-Nicht allgemein veröffentlichungsfähige Betriebsdetails, echte Standortdaten und lokale Sonderkonfigurationen sollten getrennt gehalten werden.
+| Version | Änderung |
+|---|---|
+| 1.6.0 | Initiale Version mit vollständigem CSV-Schema (23 Felder) |
+| 1.6.1 | Schultabelle aus Skript ausgelagert nach `/etc/kommunalbit/schulen.conf` |
