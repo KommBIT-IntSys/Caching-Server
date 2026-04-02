@@ -24,13 +24,20 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ### Changed
 - Hauptskript im Repository auf stabilen Dateinamen `assetcache_logger.sh` umgestellt
+- Hauptskript von standortspezifischer Konfiguration getrennt
+- produktive Schultabelle aus dem veröffentlichten Skript entfernt und in externe Konfiguration überführt
 - Deploy-/Uninstall-Skripte in `scripts/` einsortiert
 - LaunchDaemon in `launchd/` abgelegt
 - README auf neue Repository-Struktur und Projektbeschreibung angepasst
 
 ### Fixed
-- Öffentlicher Projektkern klarer von produktiven Standortdaten getrennt
-- Frühere flache Root-Struktur des Repositories aufgeräumt
+- öffentlicher Projektkern klarer von produktiven Standortdaten getrennt
+- frühere flache Root-Struktur des Repositories aufgeräumt
+
+### Notes
+- Diese Version markiert die veröffentlichbare Hauptlinie des Projekts.
+- Frühere 1.6.4-Artefakte dienten primär der Umgehung eines Relution-Deploy-Bugs und sind nicht als fachlich führender Stand des Monitorings zu verstehen.
+- Fachlicher Kern und Messlogik des Hauptskripts entsprechen weiterhin dem 1.6.0-Stand; 1.6.1 fokussiert auf Veröffentlichbarkeit, Strukturtrennung und Dokumentation.
 
 ---
 
