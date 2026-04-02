@@ -19,11 +19,13 @@ DEPLOY_LOG="/var/tmp/assetcache_deploy.log"
 exec > >(tee -a "${DEPLOY_LOG}") 2>&1
 echo ""
 echo "========================================================"
-echo "AssetCache Logger Deployment – $(date '+%Y-%m-%d %H:%M:%S')"
+echo "AssetCache Logger Deployment v3 – $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================================"
 
 # --- Configuration -----------------------------------------------------------
-SCRIPT_URL="https://raw.githubusercontent.com/Jens-Siegfried/Caching-Server/main/AssetCache_Monitoring_1.6.0.sh"
+# Build URL in parts – Relution mangles "raw.githubusercontent.com" to "raw_githubusercontent.com"
+_GH_RAW="raw$(printf '\x2e')githubusercontent$(printf '\x2e')com"
+SCRIPT_URL="https://${_GH_RAW}/Jens-Siegfried/Caching-Server/main/AssetCache_Monitoring_1.6.0.sh"
 INSTALL_PATH="/usr/local/bin/assetcache_logger.sh"
 PLIST_PATH="/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist"
 DAEMON_LABEL="de.kommunalbit.assetcachelogger"
