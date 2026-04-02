@@ -8,7 +8,7 @@ set -u
 # - ClientsCnt RAW = active/total (e.g. 4/122), or just active if site unknown
 # - ClientsCnt HU  = percentage only (e.g. 3.3%), or just active if site unknown
 # - CSV output is fully quoted / CSV-safe, including header
-# - Built-in SuS table is based on device names containing "SuS"
+# - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 # - No extra columns added; existing schema preserved
 
 SCRIPT_VER="1.6"
@@ -25,41 +25,18 @@ IOSUPD_BLOCK_LEN=19
 GDMF_STATEFILE="/var/tmp/assetcache_gdmf_state.tsv"   # SIG<TAB>VER
 GDMF_DEBUGLOG="/var/tmp/assetcache_gdmf_debug.log"    # trimmed to last 1000 lines
 
-# ---------- Static SuS table (>30 devices; source: Geräte_Global_2026-03-11_1242.csv) ----------
+# ---------- SuS table – loaded from external config file ----------
 # Rule: only devices whose name contains "SuS" are counted as SuS base for ClientsCnt.
-# Moved near the top on purpose for easier maintenance.
+# Format: one entry per line:  KÜRZEL<TAB>ANZAHL  (lines starting with # are ignored)
+# The file is managed via MDM and is not part of this script.
 typeset -A SUS_TOTAL_BY_SITE
-SUS_TOTAL_BY_SITE=(
-  ASGS 122
-  BRL 80
-  BUE 114
-  BUN 48
-  CEG 64
-  DEC 80
-  EIC 133
-  ELT 99
-  EPS 66
-  FRA 96
-  FRS 62
-  GSN 48
-  GSW 171
-  GYF 79
-  HGS 44
-  HHS-N 63
-  HHS-W 81
-  HKS 64
-  LOS 81
-  MJS 32
-  MPS 80
-  MTG 48
-  OGY 36
-  OPS1 64
-  OPS2 32
-  PES 80
-  RAE 55
-  SFK 49
-  TEN 99
-)
+SCHULEN_CONF="/etc/kommunalbit/schulen.conf"
+if [[ -f "${SCHULEN_CONF}" ]]; then
+  while IFS=$'\t' read -r _site _count; do
+    [[ "${_site}" == \#* || -z "${_site}" ]] && continue
+    [[ -n "${_count}" ]] && SUS_TOTAL_BY_SITE[${_site}]=${_count}
+  done < "${SCHULEN_CONF}"
+fi
 
 CSV_HEADER_FIELDS=(
   "Hostname" "Timestamp" "TotalsSince" "Peers" "ClientsCnt" "iOSUpdates" "iOSBytes"

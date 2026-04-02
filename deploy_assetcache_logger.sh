@@ -32,6 +32,7 @@ DAEMON_LABEL="de.kommunalbit.assetcachelogger"
 LOG_DIR="/Library/Logs/KommunalBIT"
 ARCHIVE_DIR="${LOG_DIR}/Archiv"
 TMP_SCRIPT="/var/tmp/assetcache_logger_download.sh"
+SCHULEN_CONF="/etc/kommunalbit/schulen.conf"
 
 # --- Helpers -----------------------------------------------------------------
 log()  { echo "[$(date '+%H:%M:%S')] $*"; }
@@ -48,7 +49,27 @@ chown root:wheel "${LOG_DIR}" "${ARCHIVE_DIR}"
 chmod 755 "${LOG_DIR}" "${ARCHIVE_DIR}"
 log "Directories ready: ${LOG_DIR}, ${ARCHIVE_DIR}"
 
-# --- 3. Download monitoring script to temp file ------------------------------
+# --- 3. Create schulen.conf (only if not already present) --------------------
+# The actual school data is written by the Relution version of this script.
+# This GitHub version only creates an empty placeholder on first install.
+log "Checking schulen.conf..."
+mkdir -p /etc/kommunalbit
+if [[ ! -f "${SCHULEN_CONF}" ]]; then
+  cat > "${SCHULEN_CONF}" << 'SCHULEN_EOF'
+# SuS-Tabelle – KommunalBIT AssetCache Monitoring
+# Format: KÜRZEL<TAB>ANZAHL  (eine Zeile pro Schule)
+# Beispiel:
+# EIC	133
+# BRL	80
+SCHULEN_EOF
+  chown root:wheel "${SCHULEN_CONF}"
+  chmod 644 "${SCHULEN_CONF}"
+  log "schulen.conf Vorlage angelegt (bitte mit echten Daten befüllen)."
+else
+  log "schulen.conf bereits vorhanden – wird nicht überschrieben."
+fi
+
+# --- 4. Download monitoring script to temp file ------------------------------
 log "Downloading assetcache_logger.sh from GitHub..."
 log "URL: ${SCRIPT_URL}"
 
@@ -79,7 +100,7 @@ if [[ ${FILESIZE} -lt 100 ]]; then
   fail "Downloaded file is too small (${FILESIZE} bytes) – likely empty or an error page."
 fi
 
-# --- 4. Install monitoring script --------------------------------------------
+# --- 5. Install monitoring script --------------------------------------------
 log "Installing to ${INSTALL_PATH}..."
 mkdir -p /usr/local/bin
 cp "${TMP_SCRIPT}" "${INSTALL_PATH}" || fail "Could not copy script to ${INSTALL_PATH}."
@@ -88,7 +109,7 @@ chown root:wheel "${INSTALL_PATH}"
 chmod 755 "${INSTALL_PATH}"
 log "Script installed."
 
-# --- 5. Write LaunchDaemon plist ---------------------------------------------
+# --- 6. Write LaunchDaemon plist ---------------------------------------------
 log "Writing LaunchDaemon plist to ${PLIST_PATH}..."
 cat > "${PLIST_PATH}" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -123,7 +144,7 @@ chown root:wheel "${PLIST_PATH}"
 chmod 644 "${PLIST_PATH}"
 log "Plist written."
 
-# --- 6. Load / restart the LaunchDaemon -------------------------------------
+# --- 7. Load / restart the LaunchDaemon -------------------------------------
 log "Loading LaunchDaemon..."
 
 if launchctl list "${DAEMON_LABEL}" &>/dev/null; then
