@@ -354,7 +354,7 @@ Schneller Nachweis, ob die Namensauflösung für relevante Apple-Ziele grundsät
 ### AppleReach
 
 **Bedeutung:**  
-Ergebnis eines einfachen Erreichbarkeitstests zum Apple CDN.
+Ergebnis eines einfachen Erreichbarkeitstests zum Apple CDN (Content Delivery Network).
 
 **Nutzen:**  
 Ergänzt den DNS-Check um die Frage, ob das Ziel nicht nur auflösbar, sondern auch erreichbar ist.
@@ -468,18 +468,18 @@ Diese Kombination beantwortet oft schon die Kernfrage:
 
 ## Einordnung der CSV insgesamt
 
-Die CSV ist kein Selbstzweck. Sie dient dazu, bei Schulstandorten datenbasiert zu unterscheiden zwischen:
+Die CSV ist kein Selbstzweck. Sie dient dazu, für die Schulen datenbasiert zu unterscheiden zwischen:
 
 - wenig Aktivität, weil gerade schlicht nichts los ist
 - wenig Aktivität trotz relevantem Update-Anlass
 - technischer Unauffälligkeit bei organisatorischem Rückstand
 - technischer Auffälligkeit mit möglichem Infrastrukturbezug
 
-Wertvoll wird eine Monitoring-CSV Datei in Kombination
+Noch wertvoll wird eine Monitoring-CSV Datei aber in Kombination
 - mit den Werten der anderen Caching-Server
-- mit einer geeigneten Auswertung vom MDM Relution - Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
+- mit einer geeigneten Auswertung aller SuS-iPads in Relution - Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 
-Verknüpft man all diese Dateien ein oder zwei Wochen naxh einem OS-Update auf intelligente Art, ergibt sich schnell eine klare Handlungsperspektive für jeden einzelnen Standort.
+Verknüpft man all diese Dateien ein oder zwei Wochen nach einem OS-Update auf intelligente Art, ergibt sich schnell eine klare Handlungsperspektive für jeden einzelnen Standort.
 
 Genau darin liegt ihr Wert: Sie macht aus verstreuten Cache-Metriken eine lesbare Geschichte.
 
