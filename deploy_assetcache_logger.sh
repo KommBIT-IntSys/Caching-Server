@@ -23,7 +23,7 @@ echo "AssetCache Logger Deployment – $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================================"
 
 # --- Configuration -----------------------------------------------------------
-SCRIPT_URL="https://raw.githubusercontent.com/Jens-Siegfried/Caching-Server/main/AssetCache%20Monitoring%201.6.0.sh"
+SCRIPT_URL="https://raw.githubusercontent.com/Jens-Siegfried/Caching-Server/main/AssetCache_Monitoring_1.6.0.sh"
 INSTALL_PATH="/usr/local/bin/assetcache_logger.sh"
 PLIST_PATH="/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist"
 DAEMON_LABEL="de.kommunalbit.assetcachelogger"
