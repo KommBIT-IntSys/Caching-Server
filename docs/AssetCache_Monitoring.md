@@ -41,67 +41,441 @@ Bei Erkennung einer neuen iOS-Version werden die bisherigen CSV-Dateien automati
 
 ---
 
+## Grundprinzip der CSV-Ausgaben
+
+Das Monitoring erzeugt zwei CSV-Dateien mit weitgehend identischem fachlichem Inhalt, aber unterschiedlicher Zielrichtung:
+
+- **RAW-CSV**: für maschinelle Auswertung, Skripte, Filter und Import in Analysewerkzeuge
+- **HU-CSV**: für schnelle Sichtprüfung durch Menschen
+
+Die **RAW-CSV** ist streng, nüchtern und möglichst verlustfrei formatiert.  
+Die **HU-CSV** ist darauf optimiert, dass man sie direkt öffnet und zügig versteht.
+
+Die Human-readable-Datei soll innerhalb weniger Sekunden Antworten auf drei Fragen geben:
+
+1. Ist der Cache grundsätzlich aktiv und liefert er Daten aus?
+2. Gibt es Hinweise auf Engpässe, Netzwerkprobleme oder Fehlkonfiguration?
+3. Passt die Aktivität grob zur erwartbaren Zahl der iPads am Standort?
+
+Sie ist also kein Rohdatenarchiv, sondern ein bewusst lesbares Diagnoseprotokoll.
+
+---
+
 ## CSV-Felder (23 Spalten)
 
-### Identifikation & Zeit
+### Hostname
 
-| Feld | RAW | HU | Beschreibung |
-|---|---|---|---|
-| `Hostname` | Hostname des Mac Mini | = RAW | Vollständiger Hostname laut `scutil` |
-| `Timestamp` | ISO-8601 mit Zeitzone (`2026-04-02T10:15:00+02:00`) | Lokal ohne Offset (`2026-04-02 10:15:00`) | Zeitpunkt der Messung |
-| `TotalsSince` | Epochensekunden (`1743588000`) | Lesbares Datum (`2026-02-01`) | Zeitpunkt, seit dem die kumulativen Zähler laufen (Neustart des Caching-Dienstes) |
+**Bedeutung:**  
+Der Name des Rechners, auf dem das Monitoring läuft.
 
-### Cache-Aktivität
+**Nutzen:**  
+Wichtig, wenn CSV-Dateien aus mehreren Schulen oder Testsystemen zusammengeführt werden. Der Hostname macht sofort sichtbar, von welchem Mac Mini ein Datensatz stammt.
 
-| Feld | RAW | HU | Beschreibung |
-|---|---|---|---|
-| `TotReturned` | Bytes (Integer) | z. B. `142.3 GB` | Kumulativ: gesamte an Clients ausgelieferte Datenmenge seit `TotalsSince` |
-| `TotOrigin` | Bytes (Integer) | z. B. `18.7 GB` | Kumulativ: gesamte von Apple-Servern geladene Datenmenge seit `TotalsSince` |
-| `ServedDelta` | Bytes (Integer) | z. B. `1.2 GB` | **Im letzten Intervall** an Clients ausgeliefert (Differenz zum vorherigen Lauf) |
-| `OriginDelta` | Bytes (Integer) | z. B. `240 MB` | **Im letzten Intervall** von Apple-Servern geladen (Differenz zum vorherigen Lauf) |
-| `CacheUsed` | Bytes (Integer) | z. B. `85.4 GB` | Aktuell belegter Cache-Speicher |
-| `CachePr` | Integer (0–100) | z. B. `42%` | `MaxCachePressureLast1Hour` – Verdrängungsdruck im Cache der letzten Stunde |
-| `iOSBytes` | Bytes (Integer) | z. B. `74.2 GB` | Im Cache gehaltene Datenmenge für iOS-/iPadOS-Software |
+**Darstellung:**
+- **RAW:** Hostname des Mac Mini
+- **HU:** identisch zu RAW
 
-### Clients
+---
 
-| Feld | RAW | HU | Beschreibung |
-|---|---|---|---|
-| `ClientsCnt` | `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv` wenn Standort unbekannt | Prozentsatz (z. B. `3.3%`) oder nur `aktiv` wenn Standort unbekannt | Aktive Clients der letzten ~16 Minuten aus dem Systemlog, bezogen auf den bekannten Gerätebestand des Standorts aus `schulen.conf` |
+### Timestamp
 
-### iOS-Updates
+**Bedeutung:**  
+Zeitpunkt der Messung.
 
-| Feld | RAW | HU | Beschreibung |
-|---|---|---|---|
-| `iOSUpdates` | Versionsliste (z. B. `18.4;18.3.2`) | = RAW, aber für 19 Zeilen nach einer Änderung leer (Rauschunterdrückung) | Aktuelle iOS-/iPadOS-Versionen laut Apple GDMF API; Änderungen lösen CSV-Archivierung aus |
+**Nutzen:**  
+Erlaubt die zeitliche Einordnung jedes Datensatzes. Zusammen mit den Delta-Werten lässt sich nachvollziehen, ob in einem bestimmten Intervall tatsächlich Cache-Aktivität stattfand.
+
+**Darstellung:**
+- **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-04-02T10:15:00+02:00`
+- **HU:** lokal lesbar ohne Offset, z. B. `2026-04-02 10:15:00`
+
+---
+
+### TotalsSince
+
+**Bedeutung:**  
+Zeitpunkt, seit dem die vom System gemeldeten kumulierten Gesamtzähler gelten.
+
+**Nutzen:**  
+Die Gesamtwerte des Content Cache sind nicht „für immer“, sondern beziehen sich auf eine Zählerbasis, die sich ändern kann, etwa nach Neustarts oder internen Resets. `TotalsSince` markiert den Startpunkt dieser Zählperiode.
+
+**Interpretation:**  
+Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorherigen Zeile verglichen werden.
+
+**Darstellung:**
+- **RAW:** Epochensekunden, z. B. `1743588000`
+- **HU:** lesbares Datum, z. B. `2026-02-01`
+
+---
+
+### TotReturned
+
+**Bedeutung:**  
+Gesamtmenge aller Daten, die der Cache seit `TotalsSince` an Clients ausgeliefert hat.
+
+**Nutzen:**  
+Das ist einer der zentralen Aktivitätsindikatoren des gesamten Systems. Er zeigt, ob der Cache tatsächlich als lokaler Verteiler arbeitet.
+
+**Darstellung:**
+- **RAW:** Bytes (Integer)
+- **HU:** z. B. `142.3 GB`
+
+---
+
+### TotOrigin
+
+**Bedeutung:**  
+Gesamtmenge aller Daten, die der Cache seit `TotalsSince` von Apple-Servern bezogen und lokal gespeichert hat.
+
+**Nutzen:**  
+Zeigt, wie viel Material der Cache „von außen“ holen musste, um es später lokal weiterzugeben.
+
+**Interpretation:**  
+Im Zusammenspiel mit `TotReturned` erkennt man grob das Verhältnis zwischen Einspeicherung und Auslieferung.
+
+**Darstellung:**
+- **RAW:** Bytes (Integer)
+- **HU:** z. B. `18.7 GB`
+
+---
+
+### ServedDelta
+
+**Bedeutung:**  
+Datenmenge, die seit der letzten verwertbaren Messung zusätzlich an Clients ausgeliefert wurde.
+
+**Nutzen:**  
+Das ist die eigentliche Aktivität im Intervall. Während `TotReturned` die Historie zeigt, sagt `ServedDelta`, was seit der letzten Zeile passiert ist.
+
+**Interpretation:**
+- `0 B`: Im letzten Intervall keine erkennbare Auslieferung
+- kleiner Wert: leichte Aktivität
+- großer Wert: aktive Nutzung, oft Update- oder Installationsphase
+
+**Darstellung:**
+- **RAW:** Bytes (Integer)
+- **HU:** z. B. `1.2 GB`
+
+---
+
+### OriginDelta
+
+**Bedeutung:**  
+Datenmenge, die der Cache seit der letzten verwertbaren Messung neu von Apple-Servern bezogen hat.
+
+**Nutzen:**  
+Ergänzt `ServedDelta`. Während `ServedDelta` die Ausgabe an Clients beschreibt, zeigt `OriginDelta`, ob der Cache im gleichen Zeitraum auch neue Inhalte von Apple nachgeladen hat.
+
+**Interpretation:**
+- **ServedDelta hoch, OriginDelta niedrig:** viel wurde aus lokal vorhandenem Cache bedient
+- **ServedDelta hoch, OriginDelta ebenfalls hoch:** Aktivität läuft, aber der Cache muss zugleich viel neu beschaffen
+- **OriginDelta hoch, ServedDelta niedrig:** der Cache füllt sich, aber es wurde noch wenig lokal weiterverteilt
+
+**Darstellung:**
+- **RAW:** Bytes (Integer)
+- **HU:** z. B. `240 MB`
+
+---
+
+### CacheUsed
+
+**Bedeutung:**  
+Aktuell belegter Speicherplatz des Content Cache.
+
+**Nutzen:**  
+Zeigt, wie viel Platz der Cache derzeit insgesamt nutzt.
+
+**Einordnung:**  
+Allein betrachtet ist dieser Wert nur begrenzt aussagekräftig. Spannend wird er vor allem zusammen mit SSD-Größe, `CachePr` und realem Aktivitätsniveau.
+
+**Darstellung:**
+- **RAW:** Bytes (Integer)
+- **HU:** z. B. `85.4 GB`
+
+---
+
+### CachePr
+
+**Bedeutung:**  
+`MaxCachePressureLast1Hour`, also ein Verdichtungs- bzw. Druckindikator des Cache innerhalb der letzten Stunde.
+
+**Nutzen:**  
+Einer der wichtigsten Gesundheitswerte des Systems. Er gibt Hinweise darauf, ob der Cache unter Platzdruck steht und Inhalte aggressiv verdrängen muss.
+
+**Grobe Einordnung:**
+- **0–30 %**: unkritisch
+- **30–70 %**: beobachten
+- **70–100 %**: deutlicher Druck, mögliche Effizienzverluste
+
+**Hinweis:**  
+Ein leerer oder fehlender Wert bedeutet nicht automatisch einen Fehler; in der HU-CSV wird ein fehlendes `0` bewusst menschenfreundlich als `0` dargestellt.
+
+**Darstellung:**
+- **RAW:** Integer (0–100)
+- **HU:** z. B. `42%`
+
+---
+
+### iOSBytes
+
+**Bedeutung:**  
+Im Cache gehaltene Datenmenge für iOS-/iPadOS-Software.
+
+**Nutzen:**  
+Hilft, allgemeine Cache-Nutzung von update-bezogener Nutzung zu unterscheiden.
+
+**Darstellung:**
+- **RAW:** Bytes (Integer)
+- **HU:** z. B. `74.2 GB`
+
+---
+
+### ClientsCnt
+
+**Bedeutung:**  
+Relation zwischen aktuell aktiven Clients und der für den Standort hinterlegten Gesamtzahl relevanter Geräte.
+
+**Nutzen:**  
+Dieses Feld verbindet technische Aktivität mit dem organisatorischen Standortkontext. Es soll nicht nur zeigen, dass etwas passiert, sondern ob die beobachtete Aktivität grob zur Größe des Standorts passt.
+
+**Sonderfall:**  
+Wenn ein Hostname keiner bekannten Schule zugeordnet ist, wird nur die erkennbare aktive Client-Zahl protokolliert, ohne Prozentbezug.
+
+**Darstellung:**
+- **RAW:** `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv`, wenn Standort unbekannt
+- **HU:** Prozentsatz (z. B. `3.3%`) oder nur `aktiv`, wenn Standort unbekannt
+
+**Quelle:**  
+Aktive Clients der letzten ca. 16 Minuten aus dem Systemlog, bezogen auf den bekannten Gerätebestand des Standorts aus `schulen.conf`.
+
+---
+
+### iOSUpdates
+
+**Bedeutung:**  
+Kurzinformation zu den aktuell relevanten iOS-/iPadOS-Versionen laut Apple GDMF API.
+
+**Nutzen:**  
+Dieses Feld macht sichtbar, ob gerade ein relevantes Update-Ereignis im Raum steht. Es verknüpft technische Aktivität mit dem äußeren Anlass.
+
+**Besonderheit:**  
+Änderungen der Versionsliste lösen CSV-Archivierung aus.
+
+**Darstellung:**
+- **RAW:** Versionsliste, z. B. `18.4;18.3.2`
+- **HU:** grundsätzlich wie RAW, aber für 19 Zeilen nach einer Änderung leer, um Rauschen zu reduzieren
+
+---
 
 ### Peers
 
-| Feld | RAW | HU | Beschreibung |
-|---|---|---|---|
-| `Peers` | Semikolon-getrennte IP-Adressen (z. B. `10.1.2.3;10.1.2.4`) | Anzahl (z. B. `2`) | Andere erkannte Asset-Cache-Server im lokalen Netz |
+**Bedeutung:**  
+Liste anderer im Netz erkannter Content-Caching-Peers.
 
-### Netzwerk
+**Nutzen:**  
+Zeigt, ob der Cache andere Caches in seiner Umgebung sieht. Das kann für Architektur, Reichweite und Redundanz relevant sein.
 
-| Feld | RAW | HU | Beschreibung |
-|---|---|---|---|
-| `EN0` | IP-Adresse oder Status (`down` / `noip` / `active`) | = RAW | Netzwerkinterface en0 (in der Regel LAN) |
-| `EN1` | IP-Adresse oder Status | = RAW | Netzwerkinterface en1 (in der Regel WLAN) |
-| `GatewayIP` | IP-Adresse des Default-Gateways | = RAW | Aus `route -n get default` |
-| `DefaultIf` | Interface-Name (z. B. `en0`) | = RAW | Aktuell genutztes Default-Interface |
-| `DNSRes` | `1` (erfolgreich) / `0` (fehlgeschlagen) | `yes` / `no` | DNS-Auflösung von `swcdn.apple.com` via `dscacheutil` |
-| `AppleReach` | `1` / `0` | `yes` / `no` | HTTPS-Erreichbarkeit des Apple CDN (HTTP 2xx–4xx = erreichbar) |
-| `AppleTTFB` | Millisekunden (Integer) | z. B. `38ms` | Time To First Byte gegen Apple CDN; leer wenn nicht erreichbar |
+**Darstellung:**
+- **RAW:** semikolon-getrennte IP-Adressen, z. B. `10.1.2.3;10.1.2.4`
+- **HU:** Anzahl, z. B. `2`
 
-### WLAN (via `wdutil`)
+---
 
-| Feld | RAW | HU | Beschreibung |
-|---|---|---|---|
-| `WiFiSNR` | Integer (dB) | z. B. `42dB` | Signal-Rausch-Abstand (RSSI minus Noise); höher = besser |
-| `WifiNoise` | Integer (dBm, negativ) | z. B. `-92dBm` | Rauschpegel; typisch –95 bis –75 dBm |
-| `WifiCCA` | Integer (0–100) | z. B. `18%` | Clear Channel Assessment – Kanalauslastung; hohe Werte deuten auf WLAN-Überlastung hin |
+### EN0
+
+**Bedeutung:**  
+Status des Netzwerkinterfaces `en0` (in der Regel LAN).
+
+**Nutzen:**  
+Sehr kompakte, aber diagnostisch starke Sicht auf die tatsächliche Netzsituation.
+
+**Darstellung:**
+- **RAW:** IP-Adresse oder Status (`down` / `noip` / `active`)
+- **HU:** identisch zu RAW
+
+---
+
+### EN1
+
+**Bedeutung:**  
+Status des Netzwerkinterfaces `en1` (in der Regel WLAN).
+
+**Nutzen:**  
+Ergänzt `EN0` und hilft, die tatsächlich aktive Netzlage des Systems zu verstehen.
+
+**Darstellung:**
+- **RAW:** IP-Adresse oder Status
+- **HU:** identisch zu RAW
+
+---
+
+### GatewayIP
+
+**Bedeutung:**  
+IP-Adresse des aktuell genutzten Default-Gateways.
+
+**Nutzen:**  
+Hilft, Netzkontext und Routinglage sichtbar zu machen.
+
+**Darstellung:**
+- **RAW:** IP-Adresse des Default-Gateways
+- **HU:** identisch zu RAW
+
+---
+
+### DefaultIf
+
+**Bedeutung:**  
+Die Netzwerkschnittstelle, über die die Standardroute läuft.
+
+**Nutzen:**  
+Hilft zusammen mit `EN0`, `EN1` und `GatewayIP`, das tatsächlich genutzte Netz zu erkennen.
+
+**Darstellung:**
+- **RAW:** Interface-Name, z. B. `en0`
+- **HU:** identisch zu RAW
+
+---
+
+### DNSRes
+
+**Bedeutung:**  
+Ergebnis eines DNS-Resolve-Checks für `swcdn.apple.com`.
+
+**Nutzen:**  
+Schneller Nachweis, ob die Namensauflösung für relevante Apple-Ziele grundsätzlich funktioniert.
+
+**Darstellung:**
+- **RAW:** `1` (erfolgreich) / `0` (fehlgeschlagen)
+- **HU:** `yes` / `no`
+
+---
+
+### AppleReach
+
+**Bedeutung:**  
+Ergebnis eines einfachen Erreichbarkeitstests zum Apple CDN.
+
+**Nutzen:**  
+Ergänzt den DNS-Check um die Frage, ob das Ziel nicht nur auflösbar, sondern auch erreichbar ist.
+
+**Interpretation:**  
+HTTP 2xx bis 4xx gilt als erreichbar.
+
+**Darstellung:**
+- **RAW:** `1` / `0`
+- **HU:** `yes` / `no`
+
+---
+
+### AppleTTFB
+
+**Bedeutung:**  
+Time To First Byte gegen das Apple CDN.
+
+**Nutzen:**  
+Ein pragmatischer Indikator für Netz- und Serverantwortverhalten aus Sicht des Standorts.
+
+**Grobe Einordnung:**
+- unter ca. 150 ms: sehr gut
+- 150–500 ms: okay bis unauffällig
+- deutlich darüber: auffällig, beobachten
+
+**Darstellung:**
+- **RAW:** Millisekunden (Integer)
+- **HU:** z. B. `38ms`
+
+**Hinweis:**  
+Leer, wenn das Ziel nicht erreichbar ist.
+
+---
+
+### WiFiSNR
+
+**Bedeutung:**  
+Signal-Rausch-Abstand des WLANs in dB.
+
+**Nutzen:**  
+Wertvoller Qualitätsindikator, falls der Mac Mini tatsächlich per WLAN arbeitet oder testweise dort positioniert ist.
+
+**Darstellung:**
+- **RAW:** Integer (dB)
+- **HU:** z. B. `42dB`
+
+---
+
+### WifiNoise
+
+**Bedeutung:**  
+Gemessener Rauschpegel des WLANs.
+
+**Nutzen:**  
+Ergänzt `WiFiSNR` und hilft bei der Einordnung gestörter Funkumgebungen.
+
+**Darstellung:**
+- **RAW:** Integer (dBm, negativ)
+- **HU:** z. B. `-92dBm`
+
+---
+
+### WifiCCA
+
+**Bedeutung:**  
+Clear Channel Assessment, vereinfacht: wie stark der Funkkanal belegt oder beschäftigt ist.
+
+**Nutzen:**  
+Hilft einzuschätzen, ob ein Standort auf WLAN-Ebene unter Konkurrenz oder Kanalstress leidet.
+
+**Darstellung:**
+- **RAW:** Integer (0–100)
+- **HU:** z. B. `18%`
 
 > WLAN-Felder sind leer, wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist.
+
+---
+
+## Warum die Human-readable-CSV bewusst anders formatiert ist
+
+Die HU-Datei ist nicht bloß eine „schönere“ RAW-Datei. Sie verfolgt ein anderes Ziel:
+
+- Byte-Werte werden lesbar skaliert
+- Zeitstempel werden menschlich dargestellt
+- fehlende Werte werden als `n/a` oder `0` so dargestellt, dass man sie beim Lesen korrekt einordnet
+- Prozent- und Diagnosefelder sollen auf einen Blick erfassbar sein
+
+Sie ist damit das operative Sichtfenster für schnelle Beurteilung, während die RAW-Datei die analytische Grundlage für spätere systematische Auswertung bleibt.
+
+---
+
+## Besonders wichtige Felder für die schnelle Lagebeurteilung
+
+Wenn man eine HU-CSV rasch überfliegt, sind diese Felder meist zuerst interessant:
+
+- `ServedDelta`
+- `OriginDelta`
+- `ClientsCnt`
+- `iOSUpdates`
+- `iOSBytes`
+- `CachePr`
+- `AppleTTFB`
+- `EN0`, `EN1`, `DefaultIf`, `GatewayIP`
+
+Diese Kombination beantwortet oft schon die Kernfrage:
+
+**Ist der Standort gerade aktiv, plausibel versorgt und technisch unauffällig?**
+
+---
+
+## Einordnung der CSV insgesamt
+
+Die CSV ist kein Selbstzweck. Sie dient dazu, bei Schulstandorten datenbasiert zu unterscheiden zwischen:
+
+- wenig Aktivität, weil gerade schlicht nichts los ist
+- wenig Aktivität trotz relevantem Update-Anlass
+- technischer Unauffälligkeit bei organisatorischem Rückstand
+- technischer Auffälligkeit mit möglichem Infrastrukturbezug
+
+Genau darin liegt ihr Wert: Sie macht aus verstreuten Cache-Metriken eine lesbare Geschichte.
 
 ---
 
@@ -109,100 +483,5 @@ Bei Erkennung einer neuen iOS-Version werden die bisherigen CSV-Dateien automati
 
 Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl aus:
 
-```
+```text
 /etc/kommunalbit/schulen.conf
-```
-
-**Format:** Eine Zeile pro Schule, Kürzel und Anzahl durch **Tab** getrennt. Zeilen mit `#` werden ignoriert.
-
-```
-# Beispiel
-ABC	120
-DEF	80
-GHI	48
-```
-
-Das Kürzel wird aus dem Hostnamen extrahiert (erster Teil vor `-`). Fehlt die Datei oder ist ein Standort nicht eingetragen, wird `ClientsCnt` ohne Prozentwert ausgegeben.
-
-**Diese Datei ist nicht im Repository** – sie wird über Relution MDM auf die Mac Minis verteilt und enthält keine öffentlichen Informationen.
-
----
-
-## Betriebsartefakte
-
-| Pfad | Beschreibung |
-|---|---|
-| `/usr/local/bin/assetcache_logger.sh` | Monitoring-Skript |
-| `/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist` | LaunchDaemon (900 s Intervall) |
-| `/Library/Logs/KommunalBIT/` | CSV-Ausgabe |
-| `/Library/Logs/KommunalBIT/Archiv/` | Archiv bei iOS-Versionsänderung |
-| `/etc/kommunalbit/schulen.conf` | Schultabelle (nicht im Repo) |
-| `/var/tmp/assetcache_logger_state.tsv` | State-Datei für Delta-Berechnung |
-| `/var/tmp/assetcache_iosupdates_hu_state.tsv` | State-Datei für HU-Sichtbarkeitsblock |
-| `/var/tmp/assetcache_gdmf_state.tsv` | GDMF-Cache (SHA256 + letzte Versionsliste) |
-| `/var/tmp/assetcache_gdmf_debug.log` | GDMF-Debuglog (max. 1000 Zeilen) |
-| `/var/tmp/assetcache_logger.out` / `.err` | stdout/stderr des LaunchDaemon |
-
----
-
-## Repository-Inhalt
-
-| Datei | Beschreibung |
-|---|---|
-| `scripts/assetcache_logger.sh` | Monitoring-Skript (stabiler Name, Version via Git-Tag) |
-| `scripts/deploy_assetcache_logger.sh` | Deploy-Vorlage für Relution (ohne Schultabelle) |
-| `scripts/uninstall_assetcache_logger.sh` | Deinstaller |
-| `launchd/de.kommunalbit.assetcachelogger.plist` | LaunchDaemon-plist als Referenz |
-| `docs/Befehle_zum_Installieren.txt` | Manuelle Installationsbefehle als Referenz |
-| `config/schulen.conf.example` | Beispielformat für die Schultabelle |
-| `README.md` | Kurzübersicht für GitHub |
-| `CHANGELOG.md` | Änderungshistorie |
-| `docs/AssetCache_Monitoring.md` | Diese Datei |
-
----
-
-## Deployment via Relution MDM
-
-### Reihenfolge
-
-1. **Deinstallieren** (`uninstall_assetcache_logger.sh`) auf dem Zielgerät ausführen  
-   → Prüfen: `cat /var/tmp/assetcache_uninstall.log` → `RESULT=OK`
-
-2. **Installieren** (Relution-Version von `deploy_assetcache_logger.sh`, ergänzt um `schulen.conf`-Heredoc in Schritt 3)  
-   → Prüfen: `cat /var/tmp/assetcache_deploy.log` → `Deployment complete.`
-
-3. **Erste CSV-Ausgabe** erscheint nach dem ersten Lauf (bis zu 15 Minuten)  
-   → Prüfen: `ls /Library/Logs/KommunalBIT/`
-
-### Bekannter Relution-Bug
-
-Relution ersetzt in bestimmten String-Mustern Punkte durch Unterstriche:  
-`raw.githubusercontent.com` → `raw_githubusercontent.com`
-
-Das Deploy-Skript enthält bereits einen Workaround (`printf '\x2e'`). Beim Bearbeiten des Scripts in Relution immer den Deploy-Log auf die korrekte URL prüfen.
-
-Gleiches gilt für Dateinamen mit Punkten (z. B. `.csv` → `_csv`), was in früheren Script-Versionen zu falsch benannten CSV-Dateien geführt hat.
-
----
-
-## Wichtige Messgrößen für die Praxis
-
-| Metrik | Aussage |
-|---|---|
-| `ServedDelta` hoch, `OriginDelta` niedrig | Cache wird gut genutzt – Geräte holen Updates lokal |
-| `ServedDelta` und `OriginDelta` beide hoch | Cache lädt aktiv nach – Update-Welle läuft gerade |
-| `ServedDelta` ≈ 0 | Keine Cache-Nutzung im Intervall – Geräte nicht aktiv oder nicht im selben Netz |
-| `CachePr` > 50 | Cache unter Speicherdruck – ggf. Cache-Größe anpassen |
-| `ClientsCnt` weit unter Erwartung | Geräte nicht aktiv, nicht im selben Netz oder Akku ist nicht ausreichend geladen |
-| `AppleReach` = 0 | Keine Verbindung zu Apple CDN – Netzwerkproblem prüfen |
-| `WifiCCA` > 50 % | WLAN-Kanal überlastet – lokales WLAN-Problem |
-| `Peers` = 0 | Kein Redundanz-Cache im Netz vorhanden |
-
----
-
-## Versionierung
-
-| Version | Änderung |
-|---|---|
-| 1.6.0 | Initiale Version mit vollständigem CSV-Schema (23 Felder) |
-| 1.6.1 | Schultabelle aus Skript ausgelagert nach `/etc/kommunalbit/schulen.conf` |
