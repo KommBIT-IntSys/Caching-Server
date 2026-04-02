@@ -475,6 +475,12 @@ Die CSV ist kein Selbstzweck. Sie dient dazu, bei Schulstandorten datenbasiert z
 - technischer Unauffälligkeit bei organisatorischem Rückstand
 - technischer Auffälligkeit mit möglichem Infrastrukturbezug
 
+Wertvoll wird eine Monitoring-CSV Datei in Kombination
+- mit den Werten der anderen Caching-Server
+- mit einer geeigneten Auswertung vom MDM Relution - Felder: Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
+
+Verknüpft man all diese Dateien ein oder zwei Wochen naxh einem OS-Update auf intelligente Art, ergibt sich schnell eine klare Handlungsperspektive für jeden einzelnen Standort.
+
 Genau darin liegt ihr Wert: Sie macht aus verstreuten Cache-Metriken eine lesbare Geschichte.
 
 ---
