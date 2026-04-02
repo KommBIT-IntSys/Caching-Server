@@ -124,7 +124,7 @@ GSW	171
 
 Das Kürzel wird aus dem Hostnamen extrahiert (erster Teil vor `-`). Fehlt die Datei oder ist ein Standort nicht eingetragen, wird `ClientsCnt` ohne Prozentwert ausgegeben.
 
-**Diese Datei ist nicht im Repository** – sie wird über Relution MDM auf die Mac Minis verteilt und enthält keine öffentlich veröffentlichungswürdigen Informationen.
+**Diese Datei ist nicht im Repository** – sie wird über Relution MDM auf die Mac Minis verteilt und enthält keine öffentlichen Informationen.
 
 ---
 
@@ -189,9 +189,9 @@ Gleiches gilt für Dateinamen mit Punkten (z. B. `.csv` → `_csv`), was in frü
 |---|---|
 | `ServedDelta` hoch, `OriginDelta` niedrig | Cache wird gut genutzt – Geräte holen Updates lokal |
 | `ServedDelta` und `OriginDelta` beide hoch | Cache lädt aktiv nach – Update-Welle läuft gerade |
-| `ServedDelta` ≈ 0 | Keine Cache-Nutzung im Intervall – Geräte nicht aktiv oder nicht im WLAN |
+| `ServedDelta` ≈ 0 | Keine Cache-Nutzung im Intervall – Geräte nicht aktiv oder nicht im selben Netz |
 | `CachePr` > 50 | Cache unter Speicherdruck – ggf. Cache-Größe anpassen |
-| `ClientsCnt` weit unter Erwartung | Geräte nicht aktiv, nicht am Laden oder nicht im WLAN |
+| `ClientsCnt` weit unter Erwartung | Geräte nicht aktiv, nicht im selben Netz oder Akku ist nicht ausreichend geladen |
 | `AppleReach` = 0 | Keine Verbindung zu Apple CDN – Netzwerkproblem prüfen |
 | `WifiCCA` > 50 % | WLAN-Kanal überlastet – lokales WLAN-Problem |
 | `Peers` = 0 | Kein Redundanz-Cache im Netz vorhanden |
