@@ -25,7 +25,7 @@ echo "========================================================"
 # --- Configuration -----------------------------------------------------------
 # Build URL in parts – Relution mangles "raw.githubusercontent.com" to "raw_githubusercontent.com"
 _GH_RAW="raw$(printf '\x2e')githubusercontent$(printf '\x2e')com"
-SCRIPT_URL="https://${_GH_RAW}/Jens-Siegfried/Caching-Server/main/AssetCache_Monitoring_1.6.0.sh"
+SCRIPT_URL="https://${_GH_RAW}/Jens-Siegfried/Caching-Server/main/AssetCache_Monitoring_1.6.1.sh"
 INSTALL_PATH="/usr/local/bin/assetcache_logger.sh"
 PLIST_PATH="/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist"
 DAEMON_LABEL="de.kommunalbit.assetcachelogger"
