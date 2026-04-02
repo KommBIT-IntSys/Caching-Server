@@ -447,7 +447,7 @@ Sie ist damit das operative Sichtfenster für schnelle Beurteilung, während die
 
 ---
 
-## Besonders wichtige Felder für die schnelle Lagebeurteilung
+## Wichtige Felder für die schnelle Lagebeurteilung
 
 Wenn man eine HU-CSV rasch überfliegt, sind diese Felder meist zuerst interessant:
 
@@ -460,7 +460,7 @@ Wenn man eine HU-CSV rasch überfliegt, sind diese Felder meist zuerst interessa
 - `AppleTTFB`
 - `EN0`, `EN1`, `DefaultIf`, `GatewayIP`
 
-Diese Kombination beantwortet oft schon die Kernfrage:
+Diese Kombination beantwortet oft die Kernfrage:
 
 **Ist der Standort gerade aktiv, plausibel versorgt und technisch unauffällig?**
 
@@ -475,11 +475,11 @@ Die CSV ist kein Selbstzweck. Sie dient dazu, für die Schulen datenbasiert zu u
 - technischer Unauffälligkeit bei organisatorischem Rückstand
 - technischer Auffälligkeit mit möglichem Infrastrukturbezug
 
-Noch wertvoll wird eine Monitoring-CSV Datei aber in Kombination
+Noch wertvoll wird eine Monitoring-CSV-Datei in Kombination
 - mit den Werten der anderen Caching-Server
 - mit einer geeigneten Auswertung aller SuS-iPads in Relution - Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 
-Verknüpft man all diese Dateien ein oder zwei Wochen nach einem OS-Update auf intelligente Art, ergibt sich schnell eine klare Handlungsperspektive für jeden einzelnen Standort.
+Verknüpft man all diese Dateien ein, zwei Wochen nach einem iOS-Update auf intelligente Art, ergibt sich schnell eine klare Handlungsperspektive für jeden einzelnen Standort.
 
 Genau darin liegt ihr Wert: Sie macht aus verstreuten Cache-Metriken eine lesbare Geschichte.
 
@@ -487,7 +487,9 @@ Genau darin liegt ihr Wert: Sie macht aus verstreuten Cache-Metriken eine lesbar
 
 ## Standortkonfiguration (`schulen.conf`)
 
-Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl aus:
+Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl lokal aus:
 
-```text
 /etc/kommunalbit/schulen.conf
+
+Die Tabelle der Schulen mit der jeweiligen Anzahl an SuS- (Schüler und Schülerinnen-) iPads wurde aus Datenschutzrechtlichen Gründen nicht in das öffentliche Repo übernommen. Die Tabelle wird über das Deploy-Script in Relution mitgegeben, wo sie für alle Admins leicht zugänglich,caber passwort-geschützt ist.
+
