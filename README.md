@@ -1,5 +1,3 @@
-Hello, I am Codex
-
 # AssetCache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
