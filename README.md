@@ -6,6 +6,8 @@ Das Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und sc
 
 **Aktuelle Version: [1.6.1](CHANGELOG.md)**
 
+> Die öffentliche Hauptlinie des Projekts ist ab Version 1.6.1 bewusst von standortspezifischer Produktivkonfiguration getrennt. Frühere 1.6.4-Artefakte dienten vor allem der Umgehung eines Relution-spezifischen Deploy-Problems.
+
 ---
 
 ## Repository-Struktur
