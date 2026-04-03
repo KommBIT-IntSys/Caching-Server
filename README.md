@@ -50,24 +50,19 @@ Ausgabe: Zwei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/` — `*_RAW
 ## Deployment via Relution MDM
 
 ### Voraussetzungen
-- Mac Mini mit aktiviertem Apple Content Caching
+- macOS-Device mit aktiviertem Apple Content Caching
 - Relution MDM mit Root-Ausführungsrecht für Skripte
 - Internetverbindung zu `raw.githubusercontent.com`
 
 ### Ablauf
 
-**1. Deinstallieren** (vor Erstinstallation oder Update)
-
-`scripts/uninstall_assetcache_logger.sh` als Relution-Skript deployen.  
-Ergebnis: `cat /var/tmp/assetcache_uninstall.log` → `RESULT=OK`
-
-**2. Installieren**
+**1. Installieren**
 
 Basiert auf `scripts/deploy_assetcache_logger.sh`, ergänzt um die produktive Schultabelle als Heredoc in Schritt 3 (nicht im Repo).
 
 Ergebnis: `cat /var/tmp/assetcache_deploy.log` → `Deployment complete.`
 
-**3. Prüfen**
+**2. Prüfen**
 
 ```sh
 # CSV-Dateien vorhanden?
@@ -101,33 +96,6 @@ Das Deploy-Script und der Uninstaller enthalten bereits Workarounds. Beim Bearbe
 | `/var/tmp/assetcache_*.tsv` | State-Dateien für Delta-Berechnung |
 
 ---
-
-## Codex als Contributor auf GitHub anzeigen
-
-Damit **Codex** bei „Contributors“ erscheint, müssen Commits einem realen GitHub-User zugeordnet werden können **und** im `main`-Branch landen.
-
-Kurzcheck:
-
-1. **Commit wirklich auf GitHub/main bringen** (`git push` und PR nach `main` mergen).
-2. **Autor-/Co-Author-E-Mail muss zu einem GitHub-Account gehören**.
-3. **Noreply-Adresse exakt aus den GitHub-Einstellungen verwenden** (kein frei erfundenes Beispiel).
-4. **Contributor-Graph aktualisiert verzögert** (meist Minuten bis Stunden).
-
-Beispiel für einen Co-Author-Trailer:
-
-```
-Co-authored-by: <GitHub-Name> <EXAKTE_GITHUB_NOREPLY_ODER_VERIFIZIERTE_EMAIL>
-```
-
-Schnelle Diagnose:
-
-```bash
-git log -1 --pretty='author=%an <%ae>'
-git branch -vv
-git remote -v
-```
-
-Wenn hier kein passender GitHub-Account hinter der E-Mail steht oder der Commit noch nicht auf `main` ist, wird Codex nicht in „Contributors“ gezählt.
 
 ## Weitere Dokumentation
 
