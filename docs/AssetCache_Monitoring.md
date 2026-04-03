@@ -491,5 +491,4 @@ Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl lokal aus:
 
 `/etc/kommunalbit/schulen.conf`
 
-Die Tabelle der Schulen mit der jeweiligen Anzahl an SuS- (Schüler und Schülerinnen-) iPads wurde aus datenschutzrechtlichen Gründen nicht in das öffentliche Repo übernommen. Die Tabelle wird stattdessen über das Monitoring Deploy-Script in Relution mitgegeben, wo sie passwort-geschützt, aber für alle Admins leicht zugänglich ist.
-
+Die Tabelle der Schulen mit der jeweiligen Anzahl an SuS- (Schüler und Schülerinnen-) iPads wurde aus datenschutzrechtlichen Gründen nicht in das öffentliche Repo übernommen. Sie enthält standortbezogene Bestandsdaten, die nur intern verwaltet werden sollen. Die Tabelle wird stattdessen über das Monitoring Deploy-Script in Relution mitgegeben, wo sie passwort-geschützt, aber für alle Admins leicht zugänglich ist.
