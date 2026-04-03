@@ -1,3 +1,5 @@
+Hello, I am Codex
+
 # AssetCache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
@@ -94,24 +96,6 @@ Das Deploy-Script und der Uninstaller enthalten bereits Workarounds. Beim Bearbe
 | `/var/tmp/assetcache_*.tsv` | State-Dateien für Delta-Berechnung |
 
 ---
-
-## Codex als Contributor auf GitHub anzeigen
-
-Wenn du möchtest, dass **Codex** in der GitHub-Ansicht „Contributors“ erscheint, müssen die Commits so bei GitHub ankommen, dass sie einem Codex-Konto zugeordnet werden können und auf dem **Default-Branch** landen.
-
-Kurzcheck:
-
-1. **Co-Author im Commit setzen** (oder Codex als Author verwenden), z. B. im Commit-Text:
-
-   ```
-   Co-authored-by: OpenAI Codex <codex-account@users.noreply.github.com>
-   ```
-
-2. **E-Mail muss zum GitHub-Account passen** (bei privaten Adressen das passende `noreply`-Format nutzen).
-3. **PR in den Default-Branch mergen** (nur dort gezählt).
-4. **Warten/neu laden**: Die Contributor-Statistik wird nicht immer sofort aktualisiert.
-
-Hinweis: Laut GitHub werden u. a. Merge-Commits und Commits außerhalb des Default-Branches für den Contributors-Graph nicht gezählt.
 
 ## Weitere Dokumentation
 
