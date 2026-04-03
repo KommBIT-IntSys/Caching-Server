@@ -48,24 +48,19 @@ Ausgabe: Zwei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/` — `*_RAW
 ## Deployment via Relution MDM
 
 ### Voraussetzungen
-- Mac Mini mit aktiviertem Apple Content Caching
+- macOS-Device mit aktiviertem Apple Content Caching
 - Relution MDM mit Root-Ausführungsrecht für Skripte
 - Internetverbindung zu `raw.githubusercontent.com`
 
 ### Ablauf
 
-**1. Deinstallieren** (vor Erstinstallation oder Update)
-
-`scripts/uninstall_assetcache_logger.sh` als Relution-Skript deployen.  
-Ergebnis: `cat /var/tmp/assetcache_uninstall.log` → `RESULT=OK`
-
-**2. Installieren**
+**1. Installieren**
 
 Basiert auf `scripts/deploy_assetcache_logger.sh`, ergänzt um die produktive Schultabelle als Heredoc in Schritt 3 (nicht im Repo).
 
 Ergebnis: `cat /var/tmp/assetcache_deploy.log` → `Deployment complete.`
 
-**3. Prüfen**
+**2. Prüfen**
 
 ```sh
 # CSV-Dateien vorhanden?
