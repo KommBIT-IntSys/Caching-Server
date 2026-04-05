@@ -11,15 +11,19 @@ set -u
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 # - No extra columns added; existing schema preserved
 
-SCRIPT_VER="1.6.1"
+SCRIPT_VER="1.6.2"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
 STATEFILE="/var/tmp/assetcache_logger_state.tsv"
 
-# HU visibility block state for iOSUpdates (19 lines after a change)
+# HU visibility block state for iOSUpdates (19 lines after a change = 20 total)
 IOSUPD_STATEFILE="/var/tmp/assetcache_iosupdates_hu_state.tsv"
 IOSUPD_BLOCK_LEN=19
+
+# HU visibility block state for TotalsSince (19 lines after a change = 20 total)
+TOTALSSINCE_HU_STATEFILE="/var/tmp/assetcache_totalssince_hu_state.tsv"
+TOTALSSINCE_BLOCK_LEN=19
 
 # GDMF caching + debug
 GDMF_STATEFILE="/var/tmp/assetcache_gdmf_state.tsv"   # SIG<TAB>VER
@@ -485,6 +489,31 @@ iosupdates_hu_value() {
   fi
 }
 
+totalssince_hu_value() {
+  local cur="${1:-}"
+  [[ -z "${cur:-}" ]] && { echo ""; return; }
+
+  local last="" count="0"
+  if [[ -f "$TOTALSSINCE_HU_STATEFILE" ]]; then
+    IFS=$'\t' read -r last count < "$TOTALSSINCE_HU_STATEFILE" 2>/dev/null || true
+  fi
+  echo "${count:-0}" | /usr/bin/grep -Eq '^[0-9]+$' || count="0"
+
+  if [[ -z "${last:-}" || "$cur" != "$last" ]]; then
+    printf "%s\t%s\n" "$cur" "$TOTALSSINCE_BLOCK_LEN" > "$TOTALSSINCE_HU_STATEFILE" 2>/dev/null || true
+    echo "$cur"
+    return
+  fi
+
+  if [[ "$count" -gt 0 ]]; then
+    local newc=$((count - 1))
+    printf "%s\t%s\n" "$last" "$newc" > "$TOTALSSINCE_HU_STATEFILE" 2>/dev/null || true
+    echo "$cur"
+  else
+    echo ""
+  fi
+}
+
 archive_csv_on_update() {
   local current_ver="${1:-}"
   [[ -z "${current_ver:-}" ]] && return
@@ -517,7 +546,7 @@ archive_csv_on_update() {
 # ---------- Core values ----------
 TotalsSince_src="$(get_key "TotalBytesAreSince")"
 TotalsSince_Raw="$(totals_since_raw "$TotalsSince_src")"
-TotalsSince_Hu="$(totals_since_hu "$TotalsSince_src")"
+TotalsSince_Hu="$(totalssince_hu_value "$(totals_since_hu "$TotalsSince_src")")"
 
 Peers="$(peers_value)"
 

@@ -80,6 +80,7 @@ log "--- CSV-Dateien entfernen ---"
 log "--- Temp-Dateien entfernen ---"
 /bin/rm -f /var/tmp/assetcache_logger_state.tsv          >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f /var/tmp/assetcache_iosupdates_hu_state.tsv   >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_totalssince_hu_state.tsv  >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f /var/tmp/assetcache_gdmf_state.tsv            >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f /var/tmp/assetcache_gdmf_debug.log            >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f /var/tmp/assetcache_archive_state_*.tsv       >> "$STATUS_FILE" 2>&1 || true
