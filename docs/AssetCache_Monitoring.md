@@ -1,7 +1,7 @@
 # Asset Cache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
-**Aktuelle Version: 1.6.1**
+**Aktuelle Version: 1.6.2**
 
 ---
 
@@ -263,7 +263,7 @@ Dieses Feld macht sichtbar, ob gerade ein relevantes Update-Ereignis im Raum ste
 
 **Darstellung:**
 - **RAW:** Versionsliste, z. B. `18.4;18.3.2`
-- **HU:** grundsätzlich wie RAW, aber für 19 Zeilen nach einer Änderung leer, um Rauschen zu reduzieren
+- **HU:** grundsätzlich wie RAW, aber wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer – reduziert Rauschen im Normalfall
 
 ---
 
