@@ -104,7 +104,7 @@ Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorheri
 
 **Darstellung:**
 - **RAW:** Epochensekunden, z. B. `1743588000`
-- **HU:** lesbares Datum, z. B. `2026-02-01`
+- **HU:** lesbares Datum, z. B. `2026-02-01` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
 
 ---
 
