@@ -108,6 +108,71 @@ Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorheri
 
 ---
 
+### Peers
+
+**Bedeutung:**  
+Liste anderer im Netz erkannter Content-Caching-Peers.
+
+**Nutzen:**  
+Zeigt, ob der Cache andere Caches in seiner Umgebung sieht. Das kann für Architektur, Reichweite und Redundanz relevant sein.
+
+**Darstellung:**
+- **RAW:** semikolon-getrennte IP-Adressen, z. B. `10.1.2.3;10.1.2.4`
+- **HU:** Anzahl, z. B. `2`
+
+---
+
+### ClientsCnt
+
+**Bedeutung:**  
+Relation zwischen aktuell aktiven Clients und der für den Standort hinterlegten Gesamtzahl relevanter Geräte.
+
+**Nutzen:**  
+Dieses Feld verbindet technische Aktivität mit dem organisatorischen Standortkontext. Es soll nicht nur zeigen, dass etwas passiert, sondern ob die beobachtete Aktivität grob zur Größe des Standorts passt.
+
+**Sonderfall:**  
+Wenn ein Hostname keiner bekannten Schule zugeordnet ist, wird nur die erkennbare aktive Client-Zahl protokolliert, ohne Prozentbezug.
+
+**Darstellung:**
+- **RAW:** `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv`, wenn Standort unbekannt
+- **HU:** Prozentsatz (z. B. `3.3%`) oder nur `aktiv`, wenn Standort unbekannt
+
+**Quelle:**  
+Aktive Clients der letzten ca. 16 Minuten aus dem Systemlog, bezogen auf den bekannten Gerätebestand des Standorts aus `schulen.conf`.
+
+---
+
+### iOSUpdates
+
+**Bedeutung:**  
+Kurzinformation zu den aktuell relevanten iOS-/iPadOS-Versionen laut Apple GDMF API.
+
+**Nutzen:**  
+Dieses Feld macht sichtbar, ob gerade ein relevantes Update-Ereignis im Raum steht. Es verknüpft technische Aktivität mit dem äußeren Anlass.
+
+**Besonderheit:**  
+Änderungen der Versionsliste lösen CSV-Archivierung aus.
+
+**Darstellung:**
+- **RAW:** Versionsliste, z. B. `18.4;18.3.2`
+- **HU:** grundsätzlich wie RAW, aber wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer – reduziert Rauschen im Normalfall
+
+---
+
+### iOSBytes
+
+**Bedeutung:**  
+Im Cache gehaltene Datenmenge für iOS-/iPadOS-Software.
+
+**Nutzen:**  
+Hilft, allgemeine Cache-Nutzung von update-bezogener Nutzung zu unterscheiden.
+
+**Darstellung:**
+- **RAW:** Bytes (Integer)
+- **HU:** z. B. `74.2 GB`
+
+---
+
 ### TotReturned
 
 **Bedeutung:**  
@@ -128,7 +193,7 @@ Das ist einer der zentralen Aktivitätsindikatoren des gesamten Systems. Er zeig
 Gesamtmenge aller Daten, die der Cache seit `TotalsSince` von Apple-Servern bezogen und lokal gespeichert hat.
 
 **Nutzen:**  
-Zeigt, wie viel Material der Cache „von außen“ holen musste, um es später lokal weiterzugeben.
+Zeigt, wie viel Material der Cache „von außen” holen musste, um es später lokal weiterzugeben.
 
 **Interpretation:**  
 Im Zusammenspiel mit `TotReturned` erkennt man grob das Verhältnis zwischen Einspeicherung und Auslieferung.
@@ -213,71 +278,6 @@ Ein leerer oder fehlender Wert bedeutet nicht automatisch einen Fehler; in der H
 **Darstellung:**
 - **RAW:** Integer (0–100)
 - **HU:** z. B. `42%`
-
----
-
-### iOSBytes
-
-**Bedeutung:**  
-Im Cache gehaltene Datenmenge für iOS-/iPadOS-Software.
-
-**Nutzen:**  
-Hilft, allgemeine Cache-Nutzung von update-bezogener Nutzung zu unterscheiden.
-
-**Darstellung:**
-- **RAW:** Bytes (Integer)
-- **HU:** z. B. `74.2 GB`
-
----
-
-### ClientsCnt
-
-**Bedeutung:**  
-Relation zwischen aktuell aktiven Clients und der für den Standort hinterlegten Gesamtzahl relevanter Geräte.
-
-**Nutzen:**  
-Dieses Feld verbindet technische Aktivität mit dem organisatorischen Standortkontext. Es soll nicht nur zeigen, dass etwas passiert, sondern ob die beobachtete Aktivität grob zur Größe des Standorts passt.
-
-**Sonderfall:**  
-Wenn ein Hostname keiner bekannten Schule zugeordnet ist, wird nur die erkennbare aktive Client-Zahl protokolliert, ohne Prozentbezug.
-
-**Darstellung:**
-- **RAW:** `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv`, wenn Standort unbekannt
-- **HU:** Prozentsatz (z. B. `3.3%`) oder nur `aktiv`, wenn Standort unbekannt
-
-**Quelle:**  
-Aktive Clients der letzten ca. 16 Minuten aus dem Systemlog, bezogen auf den bekannten Gerätebestand des Standorts aus `schulen.conf`.
-
----
-
-### iOSUpdates
-
-**Bedeutung:**  
-Kurzinformation zu den aktuell relevanten iOS-/iPadOS-Versionen laut Apple GDMF API.
-
-**Nutzen:**  
-Dieses Feld macht sichtbar, ob gerade ein relevantes Update-Ereignis im Raum steht. Es verknüpft technische Aktivität mit dem äußeren Anlass.
-
-**Besonderheit:**  
-Änderungen der Versionsliste lösen CSV-Archivierung aus.
-
-**Darstellung:**
-- **RAW:** Versionsliste, z. B. `18.4;18.3.2`
-- **HU:** grundsätzlich wie RAW, aber wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer – reduziert Rauschen im Normalfall
-
----
-
-### Peers
-
-**Bedeutung:**  
-Liste anderer im Netz erkannter Content-Caching-Peers.
-
-**Nutzen:**  
-Zeigt, ob der Cache andere Caches in seiner Umgebung sieht. Das kann für Architektur, Reichweite und Redundanz relevant sein.
-
-**Darstellung:**
-- **RAW:** semikolon-getrennte IP-Adressen, z. B. `10.1.2.3;10.1.2.4`
-- **HU:** Anzahl, z. B. `2`
 
 ---
 
