@@ -35,13 +35,13 @@ README.md                       – Diese Datei
 
 ## Was das Skript erfasst
 
-- **Cache-Metriken:** TotReturned, TotOrigin, ServedDelta, OriginDelta, CacheUsed, CachePr
+- **Peer-Erkennung:** Andere Cache-Server im Netz
 - **Clients:** Aktive Geräte im letzten Intervall, optional als Prozentsatz des bekannten Gerätebestands
+- **iOS-Updates:** Aktuelle iOS-/iPadOS-Versionen via Apple GDMF API, gecachte iOS-Datenmenge
+- **Cache-Metriken:** TotReturned, TotOrigin, ServedDelta, OriginDelta, CacheUsed, CachePr
 - **Netzwerk:** Interfacestatus (EN0/EN1), GatewayIP, DefaultInterface, DNS-Resolve-Check
 - **Apple-Erreichbarkeit:** HTTPS-Erreichbarkeit + TTFB gegen Apple CDN
-- **WLAN:** RSSI, Noise, Channel Utilization (CCA)
-- **Peer-Erkennung:** Andere Cache-Server im Netz
-- **iOS-Updates:** Aktuelle iOS-/iPadOS-Versionen via Apple GDMF API
+- **WLAN:** SNR, Noise, Channel Utilization (CCA)
 
 Ausgabe: Zwei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/` — `*_RAW.csv` (maschinenlesbar) und `*_HU.csv` (menschenlesbar). Vollständige Feldbeschreibung: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md).
 
