@@ -9,6 +9,21 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - **Minor**: neue Felder, neue Funktionen, neue Deploy-/Betriebslogik
 - **Major**: grundlegende Umstellungen an Architektur, Datenmodell oder Betriebsweise
 
+## [1.6.2] - 2026-04-05
+
+### Changed
+- `TotalsSince` in der HU-Ansicht erhält ein 20-Zeilen-Sichtbarkeitsfenster analog zu `iOSUpdates`:
+  nach einer Änderung wird der Wert für 20 Zeilen angezeigt, danach leer
+  – reduziert Rauschen in der HU-Datei im Normalfall (gleichbleibende Zählerbasis)
+- SCRIPT_VER auf 1.6.2
+
+### Notes
+- RAW-Ausgabe von `TotalsSince` unverändert; nur HU betroffen
+- neue State-Datei: `/var/tmp/assetcache_totalssince_hu_state.tsv`
+- Uninstaller bereinigt neue State-Datei mit
+
+---
+
 ## [1.6.1] - 2026-04-02
 
 ### Added
