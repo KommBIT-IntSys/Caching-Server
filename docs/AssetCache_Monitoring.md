@@ -604,10 +604,12 @@ Die CSV ist kein Selbstzweck. Sie dient dazu, für die Schulen datenbasiert zu u
 - technischer Auffälligkeit mit möglichem Infrastrukturbezug
 
 Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
-- mit den Werten der anderen Caching-Server
-- mit einer geeigneten Auswertung aller SuS-iPads in Relution - Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 
-Verknüpft man all diese Dateien ein, zwei Wochen nach einem iOS-Update auf intelligente Art, ergibt sich schnell eine klare Handlungsperspektive für jeden einzelnen Standort.
+- mit den Werten der anderen Caching-Server
+- mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
+- mit dieser Dokumentation als fachlichem Kontext für eine KI-gestützte Auswertung
+
+Verknüpft man diese Daten ein, zwei Wochen nach einem iOS-Update und gibt sie zusammen mit dieser Dokumentation an eine geeignete KI, kann daraus eine belastbare Auswertung mit klaren Handlungsvorschlägen pro Standort entstehen.
 
 Genau darin liegt ihr Wert: Sie macht aus verstreuten Cache-Metriken eine lesbare Geschichte.
 
