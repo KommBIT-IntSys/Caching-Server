@@ -1,8 +1,9 @@
 #!/bin/zsh
 # =============================================================================
-# AssetCache Logger – CSV-Archivieren (KommunalBIT) v2
-# Stoppt den Daemon, verschiebt alle aktuellen CSV-Dateien ins Archiv
-# und startet den Daemon danach neu.
+# AssetCache Logger – CSV-Archivieren (KommunalBIT) v3
+# Stoppt den Daemon und verschiebt alle aktuellen CSV-Dateien ins Archiv.
+# Der Daemon wird danach NICHT neu gestartet – im Anschluss das
+# Deployment-Script ausführen, das den Daemon selbst startet.
 #
 # Einsatz:    Relution MDM Script (läuft als root)
 # Debug-Log:  /var/tmp/assetcache_archive.log
@@ -13,7 +14,7 @@ ARCHIVE_LOG="/var/tmp/assetcache_archive.log"
 exec > >(tee -a "${ARCHIVE_LOG}") 2>&1
 echo ""
 echo "========================================================"
-echo "AssetCache CSV-Archivieren v2 – $(date '+%Y-%m-%d %H:%M:%S')"
+echo "AssetCache CSV-Archivieren v3 – $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================================"
 
 # --- Konfiguration -----------------------------------------------------------
@@ -117,21 +118,4 @@ else
   log "${MOVED} Datei(en) verschoben, ${SKIPPED} Datei(en) konnten nicht verschoben werden (siehe oben)."
 fi
 
-# --- 6. Daemon neu starten ---------------------------------------------------
-if [[ -f "${PLIST_PATH}" ]]; then
-  log "Starte Daemon '${DAEMON_LABEL}' neu..."
-  launchctl bootstrap system "${PLIST_PATH}" 2>&1
-  BOOT_EXIT=$?
-  sleep 1
-  if [[ ${BOOT_EXIT} -eq 0 ]] && launchctl list "${DAEMON_LABEL}" &>/dev/null; then
-    log "Daemon läuft wieder."
-  else
-    log "WARNUNG: Daemon konnte nicht neu gestartet werden (exit ${BOOT_EXIT})."
-    log "         Manuell starten: launchctl bootstrap system ${PLIST_PATH}"
-  fi
-else
-  log "WARNUNG: Plist nicht gefunden (${PLIST_PATH}) – Daemon nicht gestartet."
-  log "         'Monitoring Deploy' in Relution ausführen, um ihn einzurichten."
-fi
-
-log "Fertig."
+log "Fertig. Daemon bleibt gestoppt – jetzt 'Monitoring Deploy' in Relution ausführen."
