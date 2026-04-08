@@ -158,8 +158,10 @@ Pro Host werden zwei parallele CSV-Dateien geschrieben, jeweils unter `/Library/
 
 | Datei | Zweck |
 |---|---|
-| `<HOST>_RAW.csv` | Maschinenlesbar – reine Zahlenwerte, leere Felder, ISO-8601-Zeitstempel mit Zeitzone |
-| `<HOST>_HU.csv` | Menschenlesbar – Einheiten (GB, %, ms, dB), `n/a` für fehlende Werte |
+| `<PREFIX>_AssetCacheRaw_v<VERSION>.csv` | Maschinenlesbar – reine Zahlenwerte, leere Felder, ISO-8601-Zeitstempel mit Zeitzone |
+| `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` | Menschenlesbar – Einheiten (GB, %, ms, dB), `n/a` für fehlende Werte |
+
+`<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`.
 
 **Grundregel:** RAW ist die fachliche Quelle. HU ist die komfortable Ableitung für die Sichtprüfung.
 
@@ -416,7 +418,7 @@ Status des Netzwerkinterfaces `en0` (in der Regel LAN).
 Sehr kompakte, aber diagnostisch starke Sicht auf die tatsächliche Netzsituation.
 
 **Darstellung:**
-- **RAW:** IP-Adresse oder Status (`down` / `noip` / `active`)
+- **RAW:** entweder eine IPv4-Adresse oder der Status `down` bzw. `noip`
 - **HU:** identisch zu RAW
 
 ---
@@ -430,7 +432,7 @@ Status des Netzwerkinterfaces `en1` (in der Regel WLAN).
 Ergänzt `EN0` und hilft, die tatsächlich aktive Netzlage des Systems zu verstehen.
 
 **Darstellung:**
-- **RAW:** IP-Adresse oder Status
+- **RAW:** entweder eine IPv4-Adresse oder der Status `down` bzw. `noip`
 - **HU:** identisch zu RAW
 
 ---
@@ -556,7 +558,7 @@ Hilft einzuschätzen, ob ein Standort auf WLAN-Ebene unter Konkurrenz oder Kanal
 - **RAW:** Integer (0–100)
 - **HU:** z. B. `18%`
 
-> WLAN-Felder sind leer, wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist.
+> Wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist, bleiben die WLAN-Felder in RAW leer; in HU erscheinen sie als `n/a`.
 
 ---
 
