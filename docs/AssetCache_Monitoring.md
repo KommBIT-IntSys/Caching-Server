@@ -79,6 +79,22 @@ Es enthält Workarounds für den bekannten Relution-Bug, bei dem Punkte in besti
 
 **Nicht seine Aufgabe:** fachliche Messlogik.
 
+#### Herkunft und Pflege der Standorttabelle
+
+Die produktive `schulen.conf` wird nicht im öffentlichen Repository gepflegt.
+
+Grundlage für diese Tabelle ist eine geeignete interne Auswertung aus Relution, aus der hervorgeht, wie viele relevante SuS-iPads einem Standort aktuell zugeordnet sind. Diese Information wird auf einem lokalen, passwortgeschützten Admin-Rechner weiterverarbeitet und in das für das Monitoring benötigte Format überführt.
+
+Verwendet wird dabei eine tabgetrennte Tabelle nach dem Muster:
+
+```text
+SCHULKÜRZEL<TAB>ANZAHL
+```
+
+Diese Tabelle wird vor dem Ausrollen des Deploy-Skripts manuell in die Relution-Version des Skripts eingefügt bzw. dort aktualisiert. Das Repository enthält dafür nur die veröffentlichbare Logik und gegebenenfalls eine Beispielkonfiguration, nicht jedoch die produktiven Standortdaten.
+
+Pflegen, erzeugen und einfügen können diese Tabelle nur Personen mit entsprechendem Zugriff auf die Relution-Auswertung und auf die MDM-Deployment-Verwaltung. Dadurch bleiben öffentliches Repository, produktive Standortdaten und tatsächlicher Rollout organisatorisch und technisch voneinander getrennt.
+
 ---
 
 ### `scripts/uninstall_assetcache_logger.sh`
@@ -601,4 +617,8 @@ Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl lokal aus:
 
 `/etc/kommunalbit/schulen.conf`
 
-Die Tabelle der Schulen mit der jeweiligen Anzahl an SuS- (Schüler und Schülerinnen-) iPads wurde aus datenschutzrechtlichen Gründen nicht in das öffentliche Repo übernommen. Sie enthält standortbezogene Bestandsdaten, die nur intern verwaltet werden sollen. Die Tabelle wird stattdessen über das Monitoring Deploy-Script in Relution mitgegeben, wo sie passwort-geschützt, aber für alle Admins leicht zugänglich ist.
+Diese Datei ist bewusst nicht Teil des öffentlichen Repositories. Sie enthält die produktive standortbezogene Konfiguration für `ClientsCnt` und wird im internen Deployment-Kontext über Relution mitgegeben.
+
+Die Trennung zwischen öffentlichem Projektkern und produktiver Standorttabelle ist Absicht: Die veröffentlichbare Monitoring-Logik bleibt dadurch von intern zu pflegenden Standortdaten getrennt.
+
+Wie diese Tabelle erzeugt, gepflegt und in das Deploy-Skript übernommen wird, ist im Abschnitt zu `scripts/deploy_assetcache_logger.sh` beschrieben.
