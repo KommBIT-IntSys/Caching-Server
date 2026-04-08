@@ -2,7 +2,7 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.6.1 (KommunalBIT)
+# Version 1.6.2 (KommunalBIT)
 #
 # Final characteristics:
 # - ClientsCnt RAW = active/total (e.g. 4/122), or just active if site unknown

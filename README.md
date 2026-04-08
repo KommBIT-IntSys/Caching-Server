@@ -43,7 +43,7 @@ README.md                       – Diese Datei
 - **Apple-Erreichbarkeit:** HTTPS-Erreichbarkeit + TTFB gegen Apple CDN
 - **WLAN:** SNR, Noise, Channel Utilization (CCA)
 
-Ausgabe: Zwei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/` — `*_RAW.csv` (maschinenlesbar) und `*_HU.csv` (menschenlesbar). Vollständige Feldbeschreibung: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md).
+Ausgabe: Zwei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/` — `<PREFIX>_AssetCacheRaw_v<VERSION>.csv` (maschinenlesbar) und `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` (menschenlesbar). `<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`. Vollständige Feldbeschreibung: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md).
 
 ---
 
