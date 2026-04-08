@@ -2,7 +2,7 @@
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
 
-Das Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in zwei CSV-Dateien (maschinenlesbar und menschenlesbar). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates datenbasiert einordnen zu können – ob die Ursache technischer oder organisatorischer Natur ist.
+Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in zwei CSV-Dateien (maschinen- und menschenlesbar). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
 
 **Aktuelle Version: [1.6.2](CHANGELOG.md)**
 
