@@ -26,6 +26,116 @@ Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und w
 
 ---
 
+## Skripte im MDM-/Relution-Betrieb
+
+Das Projekt besteht nicht nur aus dem eigentlichen Monitoring-Skript, sondern aus mehreren Skripten mit klar getrennter Zuständigkeit im Betriebsmodell.
+
+Kurz gesagt:
+
+- `assetcache_logger.sh` misst und protokolliert
+- `deploy_assetcache_logger.sh` installiert und aktiviert
+- `uninstall_assetcache_logger.sh` entfernt und bereinigt
+- Archiv-/Hilfsskripte sichern Übergänge bei Update, Wartung und Rollout
+
+Nicht jedes Skript läuft dauerhaft. Die Betriebs- und Hilfsskripte werden bei Bedarf über Relution ausgeführt. Das eigentliche Monitoring läuft danach lokal und autonom über den LaunchDaemon weiter.
+
+---
+
+### `scripts/assetcache_logger.sh`
+
+Das ist das eigentliche Monitoring-Skript.
+
+Es erfasst die relevanten Content-Caching-, Netzwerk-, Reachability- und WLAN-Daten und schreibt sie in die RAW- und HU-CSV-Dateien. Hier entsteht die fachliche Datengrundlage des Projekts.
+
+**Aufgaben:**
+
+- Metriken aus `AssetCacheManagerUtil` auslesen
+- Delta-Werte berechnen
+- Peer-, Client-, Netzwerk- und Apple-Erreichbarkeitsdaten erfassen
+- RAW- und HU-CSV schreiben
+- State-Dateien verwalten
+- CSV-Dateien bei neuen iOS-/iPadOS-Versionen archivieren
+
+**Nicht seine Aufgabe:** Deployment, Deinstallation oder manuelle Bereinigung.
+
+---
+
+### `scripts/deploy_assetcache_logger.sh`
+
+Das ist das Installations- und Bereitstellungsskript für den Relution-Betrieb.
+
+Es bringt das Zielsystem in den gewünschten Zustand: Hauptskript, LaunchDaemon, Verzeichnisse, Rechte und produktive `schulen.conf`.
+
+**Aufgaben:**
+
+- `assetcache_logger.sh` bereitstellen oder aktualisieren
+- LaunchDaemon anlegen oder aktualisieren
+- Verzeichnisse und Rechte herstellen
+- `schulen.conf` mitgeben
+- Regelbetrieb aktivieren
+
+**Besonderheit:**  
+Es enthält Workarounds für den bekannten Relution-Bug, bei dem Punkte in bestimmten Strings oder Dateinamen durch Unterstriche ersetzt werden können.
+
+**Nicht seine Aufgabe:** fachliche Messlogik.
+
+---
+
+### `scripts/uninstall_assetcache_logger.sh`
+
+Das ist das Rückbau- und Bereinigungsskript.
+
+Es entfernt das Monitoring sauber vom System und beseitigt dabei auch Altlasten früherer Versionen oder problematischer Deployments.
+
+**Aufgaben:**
+
+- LaunchDaemon stoppen und entfernen
+- installiertes Monitoring-Skript entfernen
+- State-Dateien bereinigen
+- historische Altlasten oder falsch benannte Dateien entfernen
+- sauberen Ausgangszustand für Neuinstallation oder Test herstellen
+
+**Wichtig:**  
+Es ist nicht nur ein formales Gegenstück zum Deploy-Skript, sondern ausdrücklich auch ein Bereinigungswerkzeug.
+
+---
+
+### Archiv- und Hilfsskripte
+
+Diese Skripte unterstützen Rollout, Wartung und Versionswechsel.
+
+Ihre Aufgabe ist nicht das laufende Monitoring, sondern ein sauberer Übergang zwischen Betriebszuständen, etwa durch Stoppen des Daemon, Archivieren bestehender CSV-Dateien oder Vorbereiten eines neuen Deployments.
+
+**Typische Aufgaben:**
+
+- Daemon vor Wartung oder Archivierung stoppen
+- bestehende CSV-Dateien ins Archiv verschieben
+- Schreibkonflikte vermeiden
+- Folge-Deployment vorbereiten
+
+**Nicht ihre Aufgabe:** vollständige Inbetriebnahme oder fachliche Messung.
+
+---
+
+### Typischer Ablauf im Betrieb
+
+1. System bei Bedarf bereinigen
+2. bestehende CSV-Dateien vor Update archivieren
+3. neue Version per Deploy-Skript ausrollen
+4. LaunchDaemon übernimmt den Regelbetrieb
+5. `assetcache_logger.sh` läuft lokal alle 15 Minuten
+6. Wartung, Update oder Bereinigung bei Bedarf gezielt über Hilfsskripte anstoßen
+
+---
+
+### Warum diese Trennung wichtig ist
+
+Die Aufteilung auf mehrere Skripte trennt Messlogik, Verteilung, Bereinigung und Wartung sauber voneinander.
+
+Das macht das Projekt robuster, verständlicher und im Relution-Betrieb besser beherrschbar.
+
+---
+
 ## Ausgabeformat
 
 Pro Host werden zwei parallele CSV-Dateien geschrieben, jeweils unter `/Library/Logs/KommunalBIT/`:
