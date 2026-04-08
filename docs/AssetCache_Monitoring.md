@@ -475,7 +475,7 @@ Die CSV ist kein Selbstzweck. Sie dient dazu, für die Schulen datenbasiert zu u
 - technischer Unauffälligkeit bei organisatorischem Rückstand
 - technischer Auffälligkeit mit möglichem Infrastrukturbezug
 
-Noch wertvoll wird eine Monitoring-CSV-Datei in Kombination
+Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
 - mit den Werten der anderen Caching-Server
 - mit einer geeigneten Auswertung aller SuS-iPads in Relution - Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 
