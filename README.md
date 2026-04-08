@@ -78,7 +78,7 @@ cat -A /etc/kommunalbit/schulen.conf | head -5
 
 ### Bekannter Relution-Bug
 
-Relution ersetzt in Scripts Punkte durch Unterstriche in bestimmten Mustern  
+Relution 26.1.1 ersetzt in Scripts Punkte durch Unterstriche in bestimmten Mustern  
 (z. B. `raw.githubusercontent.com` → `raw_githubusercontent.com`, `.csv` → `_csv`).  
 Das Deploy-Script und der Uninstaller enthalten bereits Workarounds. Beim Bearbeiten in Relution immer den Deploy-Log auf korrekte URLs und Dateinamen prüfen.
 
