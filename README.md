@@ -19,6 +19,7 @@ scripts/
   assetcache_logger.sh          – Monitoring-Skript (wird als /usr/local/bin/assetcache_logger.sh installiert)
   deploy_assetcache_logger.sh   – Deploy-Vorlage für Relution MDM
   uninstall_assetcache_logger.sh – Deinstaller
+  archive_assetcache_logs.sh    – Archiviert bestehende CSV-Dateien vor Updates
 launchd/
   de.kommunalbit.assetcachelogger.plist  – LaunchDaemon-Referenz
 docs/

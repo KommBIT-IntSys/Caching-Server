@@ -93,7 +93,7 @@ A version covers: `assetcache_logger.sh`, `deploy_assetcache_logger.sh`, `uninst
 ## Script Conventions
 
 ### Safety requirements (follow in all scripts)
-- Always use `set -u` — error on undefined variables
+- `set -u` is required in `assetcache_logger.sh` — error on undefined variables. The operational scripts (`deploy`, `archive`, `uninstall`) do not use it; `uninstall_assetcache_logger.sh` uses `#!/bin/sh` and is intentionally kept minimal.
 - Quote all variable expansions: `"${VAR}"` not `$VAR`
 - Wrap external commands in timeout guards (30–60 seconds):
   ```zsh
@@ -103,7 +103,7 @@ A version covers: `assetcache_logger.sh`, `deploy_assetcache_logger.sh`, `uninst
 - Validate numeric values before arithmetic with `is_uint` / `is_int` guards
 
 ### Shell target
-Scripts use `#!/bin/zsh` with `set -u`. ShellCheck runs them as `--shell=bash` (zsh not natively supported). Excluded rules: `SC1090`, `SC1091`, `SC2034`.
+`assetcache_logger.sh`, `deploy_assetcache_logger.sh`, and `archive_assetcache_logs.sh` use `#!/bin/zsh`. `uninstall_assetcache_logger.sh` uses `#!/bin/sh` (intentionally POSIX-minimal). ShellCheck runs all scripts as `--shell=bash` (zsh not natively supported). Excluded rules: `SC1090`, `SC1091`, `SC2034`.
 
 ### State files
 Delta calculations rely on TSV state files under `/var/tmp/`:
@@ -111,6 +111,7 @@ Delta calculations rely on TSV state files under `/var/tmp/`:
 - `assetcache_iosupdates_hu_state.tsv` — iOS update visibility window
 - `assetcache_totalssince_hu_state.tsv` — TotalsSince visibility window
 - `assetcache_gdmf_state.tsv` — GDMF cache/signature tracking
+- `assetcache_archive_state_<PREFIX>.tsv` — per-host archive tracking (one file per hostname prefix)
 
 When adding a new state file, always add cleanup for it in `uninstall_assetcache_logger.sh`.
 

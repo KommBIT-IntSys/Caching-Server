@@ -36,6 +36,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
   - `launchd/`
   - `docs/`
   - `config/`
+- `scripts/archive_assetcache_logs.sh` als eigenständiges Skript zur CSV-Archivierung vor Updates
 - `CHANGELOG.md` ergänzt
 - `docs/versioning-policy.md` ergänzt
 - `config/schulen.conf.example` als veröffentlichbare Beispielkonfiguration ergänzt
