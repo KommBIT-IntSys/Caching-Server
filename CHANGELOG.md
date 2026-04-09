@@ -85,7 +85,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
-## [1.5.x] - 2026-02 bis 2026-03
+## [1.5.x] - 2026-03
 
 ### Added
 - standortbezogene Client-Kapazitätslogik über harte Schultabelle
