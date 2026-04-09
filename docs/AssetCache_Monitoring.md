@@ -607,11 +607,9 @@ Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
 
 - mit den Werten der anderen Caching-Server
 - mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
-- mit dieser Dokumentation als fachlichem Kontext für eine KI-gestützte Auswertung
+- mit dieser Dokumentation als fachlichem Kontext
 
-Verknüpft man diese Daten ein, zwei Wochen nach einem iOS-Update und gibt sie zusammen mit dieser Dokumentation an eine geeignete KI, kann daraus eine belastbare Auswertung mit klaren Handlungsvorschlägen pro Standort entstehen.
-
-Genau darin liegt ihr Wert: Sie macht aus verstreuten Cache-Metriken eine lesbare Geschichte.
+Verknüpft man diese Daten ein, zwei Wochen nach einem iOS-Update, kann daraus im Kontext dieser Dokumentation eine belastbare Auswertung mit klaren Handlungsvorschlägen pro Standort entstehen.
 
 ---
 
