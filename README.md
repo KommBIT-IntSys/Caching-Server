@@ -1,5 +1,7 @@
 # AssetCache Monitoring – KommunalBIT
 
+[![ShellCheck](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml)
+
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
 
 Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in zwei CSV-Dateien (maschinen- und menschenlesbar). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
