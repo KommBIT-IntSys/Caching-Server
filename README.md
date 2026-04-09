@@ -1,6 +1,6 @@
 # AssetCache Monitoring – KommunalBIT
 
-[![ShellCheck](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml)
+[![ShellCheck](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml)
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
 
