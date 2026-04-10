@@ -1,6 +1,7 @@
 sudo mkdir -p /Library/Logs/KommunalBIT/
 sudo mkdir -p /Library/Logs/KommunalBIT/Archiv
 
+# Öffnet Editor, hier muss das Hauptskript eingefügt werden, danach mit Ctrl+O Daten schreiben und mit Ctrl + X Datei schließen
 nano /usr/local/bin/assetcache_logger.sh
 
 sudo chown root:wheel /usr/local/bin/assetcache_logger.sh
