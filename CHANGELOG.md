@@ -111,7 +111,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
-## [1.4]
+## [1.4] - 2026-02-27
 
 ### Added
 - `iOSUpdates`-Feld auf Basis von Apple GDMF
@@ -132,7 +132,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
-## [1.3]
+## [1.3] - 2026-02-26
 
 ### Added
 - Aufteilung in zwei CSV-Dateien:
@@ -155,7 +155,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
-## [1.2] - 2026-02-25
+## [1.2] - 2026-02-20
 
 ### Added
 - erstes feldtaugliches Viertelstunden-Logging zentraler Apple Content-Caching-Metriken
