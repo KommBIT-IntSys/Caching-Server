@@ -14,4 +14,5 @@ sudo chmod 644 /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
 sudo launchctl bootstrap system /Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist
 sudo launchctl kickstart -k system/de.kommunalbit.assetcachelogger
 
-
+# Die aktuell laufende Version des Skripts in die Zwischenablage kopieren:
+pbcopy < /usr/local/bin/assetcache_logger.sh
