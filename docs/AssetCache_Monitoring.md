@@ -233,7 +233,7 @@ Die Gesamtwerte des Content Cache sind nicht „für immer“, sondern beziehen 
 Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorherigen Zeile verglichen werden.
 
 **Darstellung:**
-- **RAW:** Epochensekunden, z. B. `1743588000`
+- **RAW:** ISO 8601 mit Zeitzone, z. B. `2026-02-01T00:00:00+01:00`
 - **HU:** lesbares Datum, z. B. `2026-02-01` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
 
 ---
@@ -248,7 +248,7 @@ Zeigt, ob der Cache andere Caches in seiner Umgebung sieht. Das kann für Archit
 
 **Darstellung:**
 - **RAW:** semikolon-getrennte IP-Adressen, z. B. `10.1.2.3;10.1.2.4`
-- **HU:** Anzahl, z. B. `2`
+- **HU:** Anzahl, z. B. `2` – leer wenn keine Peers erkannt wurden
 
 ---
 
