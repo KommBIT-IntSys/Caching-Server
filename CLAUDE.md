@@ -227,7 +227,7 @@ Only include: example configurations, anonymized examples, publishable technical
 | Hostname | string | string |
 | Timestamp | ISO 8601 | local datetime |
 | TotalsSince | ISO 8601 | visibility window (20 lines after change) |
-| Peers | int | int |
+| Peers | IP list (semicolon-sep.) | count |
 | ClientsCnt | N/Total | percentage |
 | iOSUpdates | string | visibility window (20 lines after change) |
 | iOSBytes | bytes | human-readable |
@@ -239,7 +239,7 @@ Only include: example configurations, anonymized examples, publishable technical
 | CachePr | float | percentage |
 | EN0 | status | status |
 | EN1 | status | status |
-| GatewayIP | IP | IP |
+| GatewayIP | IP | yes/no |
 | DefaultIf | string | string |
 | DNSRes | ok/fail | ok/fail |
 | AppleReach | ok/fail | ok/fail |
