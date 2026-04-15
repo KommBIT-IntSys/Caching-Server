@@ -13,6 +13,13 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > Tagesgenaue Datumsangaben werden nur dort geführt, wo sie aus Artefakten oder dem Projektverlauf klar belegbar sind.
 > Frühere Versionen sind teilweise historisch rekonstruiert und daher bewusst ohne exaktes Tagesdatum belassen.
 
+## [Unreleased]
+
+### Docs
+- `docs/AssetCache_Monitoring.md`: Datenminimierungsprinzip für Relution-Standardexport an zwei Stellen explizit dokumentiert – Gerätename ist für die standortbezogene Auswertung bewusst nicht erforderlich
+
+---
+
 ## [1.6.2] - 2026-04-05
 
 ### Changed

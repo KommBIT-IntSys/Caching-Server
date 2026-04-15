@@ -85,6 +85,8 @@ Die produktive `schulen.conf` wird nicht im öffentlichen Repository gepflegt.
 
 Grundlage für diese Tabelle ist eine geeignete interne Auswertung aus Relution, aus der hervorgeht, wie viele relevante SuS-iPads einem Standort aktuell zugeordnet sind. Diese Information wird auf einem lokalen, passwortgeschützten Admin-Rechner weiterverarbeitet und in das für das Monitoring benötigte Format überführt.
 
+Für diese interne Auswertung gilt das Prinzip der Datenminimierung. Für die standortbezogene Ableitung der Tabelle werden Organisationszuordnung und fachlich notwendige Zustandsdaten benötigt; Gerätebezeichnungen einzelner iPads werden dafür bewusst nicht benötigt und sollen nicht Bestandteil des Standardexports sein.
+
 Verwendet wird dabei eine tabgetrennte Tabelle nach dem Muster:
 
 ```text
@@ -606,8 +608,10 @@ Die CSV ist kein Selbstzweck. Sie dient dazu, für die Schulen datenbasiert zu u
 Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
 
 - mit den Werten der anderen Caching-Server
-- mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | Gerätename | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
+- mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 - mit dieser Dokumentation als fachlichem Kontext
+
+Der Gerätename wird für diese Auswertung bewusst nicht benötigt und sollte aus Gründen der Datenminimierung nicht Teil des Standardexports sein. Die Analyse erfolgt auf aggregierter Standortebene, nicht auf Ebene einzelner Geräte.
 
 Verknüpft man diese Daten ein, zwei Wochen nach einem iOS-Update, kann daraus im Kontext dieser Dokumentation eine belastbare Auswertung mit klaren Handlungsvorschlägen pro Standort entstehen.
 
