@@ -13,10 +13,22 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > Tagesgenaue Datumsangaben werden nur dort geführt, wo sie aus Artefakten oder dem Projektverlauf klar belegbar sind.
 > Frühere Versionen sind teilweise historisch rekonstruiert und daher bewusst ohne exaktes Tagesdatum belassen.
 
-## [Unreleased]
+## [1.6.3] - 2026-04-15
+
+### Changed
+- HU-Ausgabe: `EN0` und `EN1` geben keine konkreten IPv4-Adressen mehr aus; stattdessen `down`, `noip` oder `up`
+- HU-Ausgabe: `GatewayIP` gibt keine konkrete IPv4-Adresse mehr aus; stattdessen `yes` (Gateway vorhanden) oder `no`
+- RAW-Ausgabe: `EN0`, `EN1`, `GatewayIP` vollständig unverändert
+- `SCRIPT_VER` auf `1.6.3` gesetzt
 
 ### Docs
+- `docs/AssetCache_Monitoring.md`: `EN0`, `EN1`, `GatewayIP` mit klarer RAW/HU-Unterscheidung dokumentiert; Hinweis ergänzt, dass HU für externe Auswertungen bevorzugt werden soll
 - `docs/AssetCache_Monitoring.md`: Datenminimierungsprinzip für Relution-Standardexport an zwei Stellen explizit dokumentiert – Gerätename ist für die standortbezogene Auswertung bewusst nicht erforderlich
+
+### Notes
+- Neue Hilfsfunktionen `hu_iface_state()` und `hu_gateway_state()` im Hauptskript
+- CSV-Struktur (Feldanzahl, Reihenfolge, Spaltennamen, Quoting) bleibt identisch
+- Bewusste fachliche Änderung des HU-Formats aus Gründen der Datenminimierung
 
 ---
 

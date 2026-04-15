@@ -11,7 +11,7 @@ set -u
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 # - No extra columns added; existing schema preserved
 
-SCRIPT_VER="1.6.2"
+SCRIPT_VER="1.6.3"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
@@ -278,6 +278,23 @@ iface_code() {
     echo "noip"
   else
     echo "down"
+  fi
+}
+
+hu_iface_state() {
+  local raw="$1"
+  case "$raw" in
+    down|noip) echo "$raw" ;;
+    *) echo "up" ;;
+  esac
+}
+
+hu_gateway_state() {
+  local raw="$1"
+  if [[ -n "${raw:-}" ]]; then
+    echo "yes"
+  else
+    echo "no"
   fi
 }
 
@@ -629,6 +646,10 @@ EN1="$(iface_code en1)"
 GatewayIP="$(/sbin/route -n get default 2>/dev/null | awk '/gateway:/{print $2; exit}')"
 DefaultIf="$(/sbin/route -n get default 2>/dev/null | awk '/interface:/{print $2; exit}')"
 
+EN0_HU="$(hu_iface_state "$EN0")"
+EN1_HU="$(hu_iface_state "$EN1")"
+GatewayIP_HU="$(hu_gateway_state "$GatewayIP")"
+
 DNSRes_Hu="no"
 DNSRes_Raw="0"
 if /usr/bin/dscacheutil -q host -a name swcdn.apple.com 2>/dev/null | /usr/bin/grep -q "ip_address"; then
@@ -776,9 +797,9 @@ emit_csv_line "$OUT_HU" \
   "${OriginDelta_Hu:-n/a}" \
   "${CacheUsed_Hu:-n/a}" \
   "$CachePr_Hu" \
-  "$EN0" \
-  "$EN1" \
-  "$GatewayIP" \
+  "$EN0_HU" \
+  "$EN1_HU" \
+  "$GatewayIP_HU" \
   "$DefaultIf" \
   "$DNSRes_Hu" \
   "$AppleReach_Hu" \
