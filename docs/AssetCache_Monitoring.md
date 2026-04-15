@@ -420,8 +420,10 @@ Status des Netzwerkinterfaces `en0` (in der Regel LAN).
 Sehr kompakte, aber diagnostisch starke Sicht auf die tatsächliche Netzsituation.
 
 **Darstellung:**
-- **RAW:** entweder eine IPv4-Adresse oder der Status `down` bzw. `noip`
-- **HU:** identisch zu RAW
+- **RAW:** konkrete IPv4-Adresse des Interfaces, oder `down` bzw. `noip`
+- **HU:** `down`, `noip` oder `up` (konkrete IP-Adresse wird zu `up` normalisiert)
+
+HU enthält bewusst keine konkreten IP-Adressen. Für externe oder außerhäusige Auswertungen soll bevorzugt die HU-Version verwendet werden.
 
 ---
 
@@ -434,8 +436,10 @@ Status des Netzwerkinterfaces `en1` (in der Regel WLAN).
 Ergänzt `EN0` und hilft, die tatsächlich aktive Netzlage des Systems zu verstehen.
 
 **Darstellung:**
-- **RAW:** entweder eine IPv4-Adresse oder der Status `down` bzw. `noip`
-- **HU:** identisch zu RAW
+- **RAW:** konkrete IPv4-Adresse des Interfaces, oder `down` bzw. `noip`
+- **HU:** `down`, `noip` oder `up` (konkrete IP-Adresse wird zu `up` normalisiert)
+
+Gleiche Normalisierungslogik wie `EN0`.
 
 ---
 
@@ -448,8 +452,10 @@ IP-Adresse des aktuell genutzten Default-Gateways.
 Hilft, Netzkontext und Routinglage sichtbar zu machen.
 
 **Darstellung:**
-- **RAW:** IP-Adresse des Default-Gateways
-- **HU:** identisch zu RAW
+- **RAW:** konkrete IPv4-Adresse des Default-Gateways, oder leer wenn kein Gateway ermittelt wurde
+- **HU:** `yes` wenn ein Gateway vorhanden ist, `no` wenn keines ermittelt wurde
+
+Auch hier enthält HU bewusst keine konkrete IP-Adresse.
 
 ---
 
