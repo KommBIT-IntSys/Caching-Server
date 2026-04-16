@@ -617,7 +617,7 @@ Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
 - mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 - mit dieser Dokumentation als fachlichem Kontext
 
-Der Gerätename wird für diese Auswertung bewusst nicht benötigt und sollte aus Gründen der Datenminimierung nicht Teil des Standardexports sein. Die Analyse erfolgt auf aggregierter Standortebene, nicht auf Ebene einzelner Geräte.
+Der Gerätename wird für diese Auswertung bewusst nicht benötigt und sollte aus Gründen der Datenminimierung nicht Teil des Standardexports sein. Die Analyse erfolgt auf aggregierter Standortebene, nicht auf Ebene einzelner Geräte (Anmerkung: in der aktuellen Version von Relution 26.1.1 ist es leider nicht möglich, die Gerätenamen beim Export wegzulassen - man kann aber natürlich die Spalte nachträglich entfernen).
 
 Verknüpft man diese Daten ein, zwei Wochen nach einem iOS-Update, kann daraus im Kontext dieser Dokumentation eine belastbare Auswertung mit klaren Handlungsvorschlägen pro Standort entstehen.
 
