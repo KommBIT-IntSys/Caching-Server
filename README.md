@@ -6,6 +6,10 @@ Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
 
 Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in zwei CSV-Dateien (maschinen- und menschenlesbar). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
 
+## Rechtlicher Hinweis
+
+Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICENSE` und `DISCLAIMER` geregelt.
+
 **Aktuelle Version: [1.6.3](CHANGELOG.md)**
 
 > Die öffentliche Hauptlinie des Projekts ist ab Version 1.6.1 bewusst von standortspezifischer Produktivkonfiguration getrennt. Frühere 1.6.4-Artefakte dienten vor allem der Umgehung eines Relution-spezifischen Deploy-Problems.
