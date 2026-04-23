@@ -20,20 +20,25 @@ Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICE
 
 ```
 scripts/
-  assetcache_logger.sh          – Monitoring-Skript (wird als /usr/local/bin/assetcache_logger.sh installiert)
-  deploy_assetcache_logger.sh   – Deploy-Vorlage für Relution MDM
+  assetcache_logger.sh           – Monitoring-Skript (wird als /usr/local/bin/assetcache_logger.sh installiert)
+  deploy_assetcache_logger.sh    – Deploy-Vorlage für Relution MDM
   uninstall_assetcache_logger.sh – Deinstaller
-  archive_assetcache_logs.sh    – Archiviert bestehende CSV-Dateien vor Updates
+  archive_assetcache_logs.sh     – Archiviert bestehende CSV-Dateien vor Updates
 launchd/
   de.kommunalbit.assetcachelogger.plist  – LaunchDaemon-Referenz
 docs/
-  AssetCache_Monitoring.md      – Vollständige technische Dokumentation
-  versioning-policy.md          – Versionierungsrichtlinie
-  Befehle_zum_Installieren.txt  – Manuelle Installationsbefehle (Referenz)
+  AssetCache_Monitoring.md       – Vollständige technische Dokumentation
+  versioning-policy.md           – Versionierungsrichtlinie
+  Befehle_zum_Installieren.txt   – Manuelle Installationsbefehle (Referenz)
 config/
-  schulen.conf.example          – Beispielformat für die Schultabelle
-CHANGELOG.md                    – Änderungshistorie
-README.md                       – Diese Datei
+  schulen.conf.example           – Beispielformat für die Schultabelle
+.github/workflows/
+  shellcheck.yml                 – CI: ShellCheck-Linting bei Push/PR auf scripts/**
+CHANGELOG.md                     – Änderungshistorie
+CLAUDE.md                        – Leitfaden für KI-Assistenten
+DISCLAIMER                       – Urheberrecht und Nutzungsvorbehalt
+LICENSE                          – Lizenztext
+README.md                        – Diese Datei
 ```
 
 > **Nicht im Repository:** Die produktive Schultabelle (`/etc/kommunalbit/schulen.conf`) mit echten Schulkürzeln und iPad-Zahlen. Sie wird über Relution MDM auf die Mac Minis verteilt.
