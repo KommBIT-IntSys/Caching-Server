@@ -116,6 +116,6 @@ Das Deploy-Script und der Uninstaller enthalten bereits Workarounds. Beim Bearbe
 
 ## Weitere Dokumentation
 
-- [Vollständige technische Dokumentation](docs/AssetCache_Monitoring.md) – alle 23 CSV-Felder, Betriebsartefakte, Praxis-Interpretationstabelle
+- [Vollständige technische Dokumentation](docs/AssetCache_Monitoring.md) – 23 RAW/HU-Felder, 14 CO-Felder, Betriebsartefakte, Praxis-Interpretationstabelle
 - [Versionierungsrichtlinie](docs/versioning-policy.md)
 - [Changelog](CHANGELOG.md)

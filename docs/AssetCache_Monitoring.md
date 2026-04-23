@@ -22,7 +22,7 @@ Der Schwerpunkt liegt nicht auf dem reinen Sammeln von Zahlen, sondern auf daten
 
 ## Funktionsweise
 
-Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in zwei CSV-Dateien.
+Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in drei CSV-Dateien (RAW, HU, CO).
 
 ---
 
@@ -45,16 +45,16 @@ Nicht jedes Skript läuft dauerhaft. Die Betriebs- und Hilfsskripte werden bei B
 
 Das ist das eigentliche Monitoring-Skript.
 
-Es erfasst die relevanten Content-Caching-, Netzwerk-, Reachability- und WLAN-Daten und schreibt sie in die RAW- und HU-CSV-Dateien. Hier entsteht die fachliche Datengrundlage des Projekts.
+Es erfasst die relevanten Content-Caching-, Netzwerk-, Reachability- und WLAN-Daten und schreibt sie in die RAW-, HU- und CO-CSV-Dateien. Hier entsteht die fachliche Datengrundlage des Projekts.
 
 **Aufgaben:**
 
 - Metriken aus `AssetCacheManagerUtil` auslesen
 - Delta-Werte berechnen
 - Peer-, Client-, Netzwerk- und Apple-Erreichbarkeitsdaten erfassen
-- RAW- und HU-CSV schreiben
+- RAW-, HU- und CO-CSV schreiben
 - State-Dateien verwalten
-- CSV-Dateien bei neuen iOS-/iPadOS-Versionen archivieren
+- alle drei CSV-Dateien bei neuen iOS-/iPadOS-Versionen archivieren
 
 **Nicht seine Aufgabe:** Deployment, Deinstallation oder manuelle Bereinigung.
 
@@ -270,8 +270,8 @@ Die Gesamtwerte des Content Cache sind nicht „für immer“, sondern beziehen 
 Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorherigen Zeile verglichen werden.
 
 **Darstellung:**
-- **RAW:** Epochensekunden, z. B. `1743588000`
-- **HU:** lesbares Datum, z. B. `2026-02-01` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
+- **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-03-11T08:00:00+01:00`
+- **HU:** lokal lesbares Datum/Uhrzeit, z. B. `2026-03-11 08:00:00` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
 
 ---
 
@@ -321,8 +321,8 @@ Dieses Feld macht sichtbar, ob gerade ein relevantes Update-Ereignis im Raum ste
 Änderungen der Versionsliste lösen CSV-Archivierung aus.
 
 **Darstellung:**
-- **RAW:** Versionsliste, z. B. `18.4;18.3.2`
-- **HU:** grundsätzlich wie RAW, aber wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer – reduziert Rauschen im Normalfall
+- **RAW:** Pipe-getrennte Versionsliste, z. B. `18.4|17.7.2`
+- **HU:** wie RAW, aber wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer – reduziert Rauschen im Normalfall
 
 ---
 
@@ -460,7 +460,7 @@ Sehr kompakte, aber diagnostisch starke Sicht auf die tatsächliche Netzsituatio
 - **RAW:** konkrete IPv4-Adresse des Interfaces, oder `down` bzw. `noip`
 - **HU:** `down`, `noip` oder `up` (konkrete IP-Adresse wird zu `up` normalisiert)
 
-HU enthält bewusst keine konkreten IP-Adressen. Für externe oder außerhäusige Auswertungen soll bevorzugt die HU-Version verwendet werden.
+HU enthält bewusst keine konkreten IP-Adressen. Für externe oder KI-gestützte Auswertungen soll bevorzugt die **CO-CSV** verwendet werden – dort entfällt dieses Feld vollständig.
 
 ---
 

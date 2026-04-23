@@ -1,7 +1,7 @@
 #!/bin/zsh
 # =============================================================================
 # AssetCache Logger – MDM Deployment Script (KommunalBIT) v3
-# Deploys AssetCache Monitoring 1.6 via Relution MDM.
+# Deploys AssetCache Monitoring 1.7 via Relution MDM.
 #
 # What this script does:
 #   1. Creates required log directories
