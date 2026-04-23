@@ -241,6 +241,7 @@ Wichtig, wenn CSV-Dateien aus mehreren Schulen oder Testsystemen zusammengeführ
 **Darstellung:**
 - **RAW:** Hostname des Mac Mini
 - **HU:** identisch zu RAW
+- **CO:** entfällt – wird durch das Feld `SiteCode` ersetzt, das nur das Standortkürzel (PREFIX) enthält, z. B. `ASGS` statt `ASGS-Mac-Mini-Caching-Server-0`
 
 ---
 
@@ -603,20 +604,29 @@ Hilft einzuschätzen, ob ein Standort auf WLAN-Ebene unter Konkurrenz oder Kanal
 - **RAW:** Integer (0–100)
 - **HU:** z. B. `18%`
 
-> Wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist, bleiben die WLAN-Felder in RAW leer; in HU erscheinen sie als `n/a`.
+> Wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist, bleiben die WLAN-Felder in RAW leer; in HU erscheinen sie als `n/a`. In CO ist nur `WiFiSNR` enthalten (leer wenn kein WLAN); `WifiNoise` und `WifiCCA` sind in CO nicht vorhanden.
 
 ---
 
-## Warum die Human-readable-CSV bewusst anders formatiert ist
+## Warum die drei CSV-Ausgaben bewusst verschieden formatiert sind
 
-Die HU-Datei ist nicht bloß eine „schönere“ RAW-Datei. Sie verfolgt ein anderes Ziel:
+Die drei Ausgabeformate verfolgen unterschiedliche Ziele und sind nicht füreinander austauschbar:
 
+**RAW** ist die fachliche Quelle: streng, nüchtern, verlustfrei. Alle Rohwerte, ISO-8601-Zeitstempel, leere Felder statt kosmetischer Füllwerte.
+
+**HU** ist das operative Sichtfenster:
 - Byte-Werte werden lesbar skaliert
 - Zeitstempel werden menschlich dargestellt
-- fehlende Werte werden als `n/a` oder `0` so dargestellt, dass man sie beim Lesen korrekt einordnet
-- Prozent- und Diagnosefelder sollen auf einen Blick erfassbar sein
+- fehlende Werte erscheinen als `n/a` oder `0`, damit man sie beim Lesen korrekt einordnet
+- Prozent- und Diagnosefelder sind auf einen Blick erfassbar
+- IP-Adressen werden abstrahiert (`up`/`down`/`yes`/`no`)
 
-Sie ist damit das operative Sichtfenster für schnelle Beurteilung, während die RAW-Datei die analytische Grundlage für spätere systematische Auswertung bleibt.
+**CO** ist das datensparsame Analyseformat:
+- kein voller Hostname (nur `SiteCode`/Schulkürzel)
+- keine IP-Adressen
+- keine kumulativen Totals, kein TotalsSince, keine reinen Troubleshooting-Felder
+- 14 Felder statt 23 — nur was für kombinierte Auswertung mit Relution-/MDM-Export nötig ist
+- bevorzugtes Eingabeformat für KI-Assistenten wie Microsoft Copilot
 
 ---
 

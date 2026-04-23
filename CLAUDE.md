@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-**AssetCache Monitoring – KommunalBIT** is a macOS-based monitoring and logging system for Apple Content Caching on Mac Minis deployed in schools. It collects cache performance metrics every 15 minutes via a LaunchDaemon, writing two CSV files (machine-readable RAW and human-readable HU) to `/Library/Logs/KommunalBIT/`. The primary goal is to distinguish between technical infrastructure issues and organizational/local factors when iOS/iPadOS update delivery is delayed.
+**AssetCache Monitoring – KommunalBIT** is a macOS-based monitoring and logging system for Apple Content Caching on Mac Minis deployed in schools. It collects cache performance metrics every 15 minutes via a LaunchDaemon, writing three CSV files to `/Library/Logs/KommunalBIT/`: machine-readable RAW, human-readable HU, and data-minimal CO (for external/AI-assisted analysis). The primary goal is to distinguish between technical infrastructure issues and organizational/local factors when iOS/iPadOS update delivery is delayed.
 
-**Current version: 1.6.2**  
+**Current version: 1.7.0**  
 **Primary language of documentation and comments: German**  
 **Primary shell: zsh** (ShellCheck uses bash as closest approximation)
 
@@ -23,7 +23,7 @@ launchd/
 config/
   schulen.conf.example           # Template for school/site lookup table
 docs/
-  AssetCache_Monitoring.md       # Full technical documentation (all 23 CSV fields)
+  AssetCache_Monitoring.md       # Full technical documentation (23 RAW/HU fields, 14 CO fields)
   versioning-policy.md           # Versioning rules and project history
   Befehle_zum_Installieren.txt   # Manual installation reference
 CHANGELOG.md                     # Version history
@@ -115,12 +115,13 @@ Delta calculations rely on TSV state files under `/var/tmp/`:
 
 When adding a new state file, always add cleanup for it in `uninstall_assetcache_logger.sh`.
 
-### Dual CSV output model
-The logger always writes two outputs. Keep them consistent:
+### Triple CSV output model
+The logger always writes three outputs. Keep all three consistent:
 - **RAW**: machine-readable, ISO 8601 timestamps, full precision, empty string for missing values
 - **HU**: human-readable, local timestamps, percentages, `n/a` for missing values, visibility windows for change events
+- **CO**: data-minimal, no full hostname (SiteCode/PREFIX only), no IP addresses, 14 fields, for external/AI-assisted analysis
 
-Never mix cosmetic formatting into RAW. RAW is the authoritative data source.
+Never mix cosmetic formatting into RAW. RAW is the authoritative data source. CO is the preferred format for external or AI-assisted analysis — never use RAW or HU for that purpose.
 
 ### Visibility windows (HU only)
 When a value changes (e.g. iOS version, TotalsSince), show it for the next 20 lines in HU output, then suppress until next change. Track this via the corresponding `_hu_state.tsv` file.
@@ -220,33 +221,54 @@ Only include: example configurations, anonymized examples, publishable technical
 
 ---
 
-## CSV Fields Reference (23 total)
+## CSV Fields Reference
+
+### RAW / HU (23 fields each)
 
 | Field | RAW format | HU format |
 |-------|-----------|-----------|
 | Hostname | string | string |
 | Timestamp | ISO 8601 | local datetime |
 | TotalsSince | ISO 8601 | visibility window (20 lines after change) |
-| Peers | int | int |
+| Peers | semicolon-separated IPs | peer count (int) |
 | ClientsCnt | N/Total | percentage |
-| iOSUpdates | string | visibility window (20 lines after change) |
+| iOSUpdates | pipe-separated versions | visibility window (20 lines after change) |
 | iOSBytes | bytes | human-readable |
 | TotReturned | bytes | human-readable |
 | TotOrigin | bytes | human-readable |
 | ServedDelta | bytes | human-readable |
 | OriginDelta | bytes | human-readable |
 | CacheUsed | bytes | human-readable |
-| CachePr | float | percentage |
-| EN0 | status | status |
-| EN1 | status | status |
-| GatewayIP | IP | IP |
+| CachePr | int 0–100 | percentage |
+| EN0 | IPv4 or down/noip | up/down/noip |
+| EN1 | IPv4 or down/noip | up/down/noip |
+| GatewayIP | IPv4 | yes/no |
 | DefaultIf | string | string |
-| DNSRes | ok/fail | ok/fail |
-| AppleReach | ok/fail | ok/fail |
-| AppleTTFB | ms | ms |
-| WiFiSNR | dB | dB |
-| WifiNoise | dBm | dBm |
-| WifiCCA | float | percentage |
+| DNSRes | 0/1 | yes/no |
+| AppleReach | 0/1 | yes/no |
+| AppleTTFB | ms (int) | ms (string) |
+| WiFiSNR | dB (int) | dB (string) |
+| WifiNoise | dBm (int) | dBm (string) |
+| WifiCCA | int 0–100 | percentage |
+
+### CO (14 fields — data-minimal, for external/AI-assisted analysis)
+
+| Field | Format | Notes |
+|-------|--------|-------|
+| SiteCode | string (PREFIX) | replaces full Hostname; school code only |
+| Timestamp | ISO 8601 | same as RAW |
+| PeerCnt | int | count only, no IP addresses |
+| ClientsCnt | N/Total | same as RAW |
+| iOSUpdates | pipe-separated versions | same as RAW |
+| iOSBytes | bytes | same as RAW |
+| ServedDelta | bytes | same as RAW |
+| OriginDelta | bytes | same as RAW |
+| CacheUsed | bytes | same as RAW |
+| CachePr | int 0–100 | same as RAW |
+| DNSRes | 0/1 | same as RAW |
+| AppleReach | 0/1 | same as RAW |
+| AppleTTFB | ms (int) | same as RAW |
+| WiFiSNR | dB (int) | empty if no Wi-Fi |
 
 Full field descriptions: `docs/AssetCache_Monitoring.md`
 
@@ -255,7 +277,7 @@ Full field descriptions: `docs/AssetCache_Monitoring.md`
 ## Key Design Principles
 
 1. **Separation of concerns**: logger, deployer, uninstaller, and archiver are distinct scripts — do not merge their responsibilities
-2. **RAW is authoritative**: HU is a derived, human-friendly view; never compromise RAW fidelity for cosmetic reasons
+2. **RAW is authoritative**: HU is a derived, human-friendly view; CO is a data-minimal derived view for external/AI analysis — never compromise RAW fidelity for either
 3. **Fault tolerance over completeness**: prefer empty fields to crashes; use timeouts, fallbacks, and graceful degradation
 4. **No external dependencies**: everything uses macOS-native tools; do not introduce package managers or third-party binaries
 5. **Sensitive data stays out**: school configuration is always MDM-deployed, never hardcoded or committed
