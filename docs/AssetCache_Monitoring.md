@@ -1,7 +1,7 @@
 # Asset Cache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
-**Aktuelle Version: 1.6.3**
+**Aktuelle Version: 1.7.0**
 
 ---
 
@@ -156,30 +156,33 @@ Das macht das Projekt robuster, verständlicher und im Relution-Betrieb besser b
 
 ## Ausgabeformat
 
-Pro Host werden zwei parallele CSV-Dateien geschrieben, jeweils unter `/Library/Logs/KommunalBIT/`:
+Pro Host werden drei parallele CSV-Dateien geschrieben, jeweils unter `/Library/Logs/KommunalBIT/`:
 
 | Datei | Zweck |
 |---|---|
 | `<PREFIX>_AssetCacheRaw_v<VERSION>.csv` | Maschinenlesbar – reine Zahlenwerte, leere Felder, ISO-8601-Zeitstempel mit Zeitzone |
 | `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` | Menschenlesbar – Einheiten (GB, %, ms, dB), `n/a` für fehlende Werte |
+| `<PREFIX>_AssetCacheCo_v<VERSION>.csv` | Datensparsam – kein voller Hostname, keine IPs, maschinenlesbar, für KI-gestützte externe Auswertung |
 
 `<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`.
 
-**Grundregel:** RAW ist die fachliche Quelle. HU ist die komfortable Ableitung für die Sichtprüfung.
+**Grundregel:** RAW ist die fachliche Quelle. HU ist die komfortable Ableitung für die Sichtprüfung. **CO ist das bevorzugte Format für KI-gestützte oder externe Auswertung** – insbesondere in Kombination mit einem datensparsam vorbereiteten Relution-/MDM-Export.
 
-Bei Erkennung einer neuen iOS-Version werden die bisherigen CSV-Dateien automatisch in `/Library/Logs/KommunalBIT/Archiv/` verschoben.
+Bei Erkennung einer neuen iOS-Version werden alle drei CSV-Dateien automatisch in `/Library/Logs/KommunalBIT/Archiv/` verschoben.
 
 ---
 
 ## Grundprinzip der CSV-Ausgaben
 
-Das Monitoring erzeugt zwei CSV-Dateien mit weitgehend identischem fachlichem Inhalt, aber unterschiedlicher Zielrichtung:
+Das Monitoring erzeugt drei CSV-Dateien mit unterschiedlicher Zielrichtung:
 
-- **RAW-CSV**: für maschinelle Auswertung, Skripte, Filter und Import in Analysewerkzeuge
-- **HU-CSV**: für schnelle Sichtprüfung durch Menschen
+- **RAW-CSV**: für maschinelle Auswertung, Skripte, Filter und Import in Analysewerkzeuge – vollständig, verlustfrei, intern
+- **HU-CSV**: für schnelle Sichtprüfung durch Menschen – lesbar, mit Einheiten, intern
+- **CO-CSV**: für KI-gestützte oder externe Auswertung – datensparsam, keine IPs, kein voller Hostname
 
 Die **RAW-CSV** ist streng, nüchtern und möglichst verlustfrei formatiert.  
-Die **HU-CSV** ist darauf optimiert, dass man sie direkt öffnet und zügig versteht.
+Die **HU-CSV** ist darauf optimiert, dass man sie direkt öffnet und zügig versteht.  
+Die **CO-CSV** ist auf sichere, datensparsame Weitergabe optimiert – insbesondere zur Kombination mit einem geeignet reduzierten Relution-/MDM-Export für KI-gestützte Standortanalyse.
 
 Die Human-readable-Datei soll innerhalb weniger Sekunden Antworten auf drei Fragen geben:
 
@@ -188,6 +191,40 @@ Die Human-readable-Datei soll innerhalb weniger Sekunden Antworten auf drei Frag
 3. Passt die Aktivität grob zur erwartbaren Zahl der iPads am Standort?
 
 Sie ist also kein Rohdatenarchiv, sondern ein bewusst lesbares Diagnoseprotokoll.
+
+> **Für KI-gestützte Auswertung:** Bevorzugt die **CO-CSV** verwenden, nicht RAW oder HU. CO enthält keine konkreten IP-Adressen, keinen vollen Hostnamen und keine reinen Troubleshooting-Felder. In Kombination mit einem ebenfalls datensparsam vorbereiteten Relution-Export (Felder: Organisation | OS Version | OS Update Status | Letzte Verbindung) ist CO das geeignete Eingabeformat für KI-Assistenten wie Microsoft Copilot.
+
+---
+
+## CO-CSV-Felder (14 Spalten)
+
+Die CO-Datei enthält eine bewusst reduzierte Auswahl aus dem Gesamtdatenmodell. Sie folgt dem Prinzip der Datensparsamkeit: Es werden nur Felder aufgenommen, die für die kombinierte Auswertung mit Relution-/MDM-Daten fachlich notwendig sind.
+
+**Nicht enthalten in CO:** voller Hostname, TotalsSince, TotReturned, TotOrigin, EN0/EN1 (IP), GatewayIP, DefaultIf, WifiNoise, WifiCCA.
+
+| Feld | Format | Nutzen |
+|---|---|---|
+| `SiteCode` | Zeichenkette (PREFIX) | Standortbezug für Join mit Relution-Export; kein voller Hostname |
+| `Timestamp` | ISO 8601 mit Zeitzone | zeitliche Einordnung; maschinenlesbar und stabil |
+| `PeerCnt` | Integer | Anzahl erkannter Cache-Peers; strukturelle Einordnung, keine IP-Adressen |
+| `ClientsCnt` | `aktiv/gesamt` oder `aktiv` | Aktivitätsverhältnis; zentraler Einordnungswert |
+| `iOSUpdates` | Versionsliste | aktuell relevante iOS-/iPadOS-Versionen; Update-Kontext |
+| `iOSBytes` | Bytes (Integer) | iOS-Softwareanteil im Cache; unterscheidet allgemeine von update-bezogener Nutzung |
+| `ServedDelta` | Bytes (Integer) | primärer Aktivitätsindikator im Intervall |
+| `OriginDelta` | Bytes (Integer) | Nachladebedarf im Intervall; zusammen mit ServedDelta entscheidend |
+| `CacheUsed` | Bytes (Integer) | aktueller Cachebelegungsstand |
+| `CachePr` | Integer 0–100 | Cache-Druckindikator; wichtiger Gesundheitswert |
+| `DNSRes` | 0 / 1 | DNS-Auflösung funktionsfähig |
+| `AppleReach` | 0 / 1 | Apple CDN erreichbar |
+| `AppleTTFB` | Millisekunden (Integer) | Apple CDN-Latenz aus Standortsicht |
+| `WiFiSNR` | Integer (dB), leer wenn LAN | WLAN-Signalqualität; relevant wenn Mac Mini per WLAN betrieben wird |
+
+**Bewusste Designentscheidungen für CO:**
+- `SiteCode` statt `Hostname`: Das Schulkürzel (z. B. `ASGS`) ist für die standortbezogene Analyse ausreichend; unnötige Infrastrukturdetails wie vollständiger Gerätename entfallen.
+- Keine IP-Adressen (EN0/EN1, GatewayIP): Für die Frage „Ist der Standort technisch unauffällig?" genügen `DNSRes` und `AppleReach`.
+- Keine kumulativen Totals (TotReturned, TotOrigin): Für Intervallanalyse sind Deltawerte aussagekräftiger.
+- `TotalsSince` entfällt: Für KI-Auswertung nicht notwendig; wird nur für tiefes technisches Troubleshooting benötigt.
+- `WiFiSNR` inklusive: Kann leer sein (LAN-Betrieb), gibt aber bei WLAN-Problemen wichtigen Kontext.
 
 ---
 
@@ -616,6 +653,8 @@ Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
 - mit den Werten der anderen Caching-Server
 - mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 - mit dieser Dokumentation als fachlichem Kontext
+
+**Empfehlung für KI-gestützte Auswertung:** Bevorzugt die **CO-CSV** (`<PREFIX>_AssetCacheCo_v<VERSION>.csv`) verwenden. Sie ist speziell für diesen Zweck entworfen: kein voller Hostname, keine IP-Adressen, nur die fachlich notwendigen Felder. In Kombination mit einem datensparsam vorbereiteten Relution-Export (Spalte Gerätename möglichst weglassen oder nachträglich entfernen) ergibt sich ein geeignetes Eingabeformat für Copilot oder vergleichbare KI-Assistenten.
 
 Der Gerätename wird für diese Auswertung bewusst nicht benötigt und sollte aus Gründen der Datenminimierung nicht Teil des Standardexports sein. Die Analyse erfolgt auf aggregierter Standortebene, nicht auf Ebene einzelner Geräte (Anmerkung: in der aktuellen Version von Relution 26.1.1 ist es leider nicht möglich, die Gerätenamen beim Export wegzulassen - man kann aber natürlich die Spalte nachträglich entfernen).
 
