@@ -228,7 +228,9 @@ Die CO-Datei enthält eine bewusst reduzierte Auswahl aus dem Gesamtdatenmodell.
 
 ---
 
-## CSV-Felder (23 Spalten)
+## RAW- und HU-Felder (23 Spalten)
+
+Die folgenden Feldbeschreibungen gelten für die **RAW-** und **HU-CSV**. Die CO-CSV enthält eine reduzierte Auswahl dieser Felder; welche enthalten sind und in welchem Format, ist im Abschnitt [CO-CSV-Felder](#co-csv-felder-14-spalten) beschrieben.
 
 ### Hostname
 
@@ -256,6 +258,7 @@ Erlaubt die zeitliche Einordnung jedes Datensatzes. Zusammen mit den Delta-Werte
 **Darstellung:**
 - **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-04-02T10:15:00+02:00`
 - **HU:** lokal lesbar ohne Offset, z. B. `2026-04-02 10:15:00`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -273,6 +276,7 @@ Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorheri
 **Darstellung:**
 - **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-03-11T08:00:00+01:00`
 - **HU:** lokal lesbares Datum/Uhrzeit, z. B. `2026-03-11 08:00:00` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
+- **CO:** nicht enthalten – für Intervallanalyse nicht notwendig
 
 ---
 
@@ -287,6 +291,7 @@ Zeigt, ob der Cache andere Caches in seiner Umgebung sieht. Das kann für Archit
 **Darstellung:**
 - **RAW:** semikolon-getrennte IP-Adressen, z. B. `10.1.2.3;10.1.2.4`
 - **HU:** Anzahl, z. B. `2`
+- **CO:** als `PeerCnt` – nur die Anzahl (Integer), keine IP-Adressen
 
 ---
 
@@ -304,6 +309,7 @@ Wenn ein Hostname keiner bekannten Schule zugeordnet ist, wird nur die erkennbar
 **Darstellung:**
 - **RAW:** `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv`, wenn Standort unbekannt
 - **HU:** Prozentsatz (z. B. `3.3%`) oder nur `aktiv`, wenn Standort unbekannt
+- **CO:** identisch zu RAW
 
 **Quelle:**  
 Aktive Clients der letzten ca. 16 Minuten aus dem Systemlog, bezogen auf den bekannten Gerätebestand des Standorts aus `schulen.conf`.
@@ -324,6 +330,7 @@ Dieses Feld macht sichtbar, ob gerade ein relevantes Update-Ereignis im Raum ste
 **Darstellung:**
 - **RAW:** Pipe-getrennte Versionsliste, z. B. `18.4|17.7.2`
 - **HU:** wie RAW, aber wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer – reduziert Rauschen im Normalfall
+- **CO:** identisch zu RAW
 
 ---
 
@@ -338,6 +345,7 @@ Hilft, allgemeine Cache-Nutzung von update-bezogener Nutzung zu unterscheiden.
 **Darstellung:**
 - **RAW:** Bytes (Integer)
 - **HU:** z. B. `74.2 GB`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -352,6 +360,7 @@ Das ist einer der zentralen Aktivitätsindikatoren des gesamten Systems. Er zeig
 **Darstellung:**
 - **RAW:** Bytes (Integer)
 - **HU:** z. B. `142.3 GB`
+- **CO:** nicht enthalten – kumulative Gesamtzähler sind für Intervallanalyse weniger aussagekräftig als Deltawerte
 
 ---
 
@@ -369,6 +378,7 @@ Im Zusammenspiel mit `TotReturned` erkennt man grob das Verhältnis zwischen Ein
 **Darstellung:**
 - **RAW:** Bytes (Integer)
 - **HU:** z. B. `18.7 GB`
+- **CO:** nicht enthalten – kumulative Gesamtzähler sind für Intervallanalyse weniger aussagekräftig als Deltawerte
 
 ---
 
@@ -388,6 +398,7 @@ Das ist die eigentliche Aktivität im Intervall. Während `TotReturned` die Hist
 **Darstellung:**
 - **RAW:** Bytes (Integer)
 - **HU:** z. B. `1.2 GB`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -407,6 +418,7 @@ Ergänzt `ServedDelta`. Während `ServedDelta` die Ausgabe an Clients beschreibt
 **Darstellung:**
 - **RAW:** Bytes (Integer)
 - **HU:** z. B. `240 MB`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -424,6 +436,7 @@ Allein betrachtet ist dieser Wert nur begrenzt aussagekräftig. Spannend wird er
 **Darstellung:**
 - **RAW:** Bytes (Integer)
 - **HU:** z. B. `85.4 GB`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -446,6 +459,7 @@ Ein leerer oder fehlender Wert bedeutet nicht automatisch einen Fehler; in der H
 **Darstellung:**
 - **RAW:** Integer (0–100)
 - **HU:** z. B. `42%`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -460,8 +474,7 @@ Sehr kompakte, aber diagnostisch starke Sicht auf die tatsächliche Netzsituatio
 **Darstellung:**
 - **RAW:** konkrete IPv4-Adresse des Interfaces, oder `down` bzw. `noip`
 - **HU:** `down`, `noip` oder `up` (konkrete IP-Adresse wird zu `up` normalisiert)
-
-HU enthält bewusst keine konkreten IP-Adressen. Für externe oder KI-gestützte Auswertungen soll bevorzugt die **CO-CSV** verwendet werden – dort entfällt dieses Feld vollständig.
+- **CO:** nicht enthalten – IP-Adressen gehören nicht in die externe Auswertung
 
 ---
 
@@ -476,6 +489,7 @@ Ergänzt `EN0` und hilft, die tatsächlich aktive Netzlage des Systems zu verste
 **Darstellung:**
 - **RAW:** konkrete IPv4-Adresse des Interfaces, oder `down` bzw. `noip`
 - **HU:** `down`, `noip` oder `up` (konkrete IP-Adresse wird zu `up` normalisiert)
+- **CO:** nicht enthalten
 
 Gleiche Normalisierungslogik wie `EN0`.
 
@@ -492,6 +506,7 @@ Hilft, Netzkontext und Routinglage sichtbar zu machen.
 **Darstellung:**
 - **RAW:** konkrete IPv4-Adresse des Default-Gateways, oder leer wenn kein Gateway ermittelt wurde
 - **HU:** `yes` wenn ein Gateway vorhanden ist, `no` wenn keines ermittelt wurde
+- **CO:** nicht enthalten
 
 Auch hier enthält HU bewusst keine konkrete IP-Adresse.
 
@@ -508,6 +523,7 @@ Hilft zusammen mit `EN0`, `EN1` und `GatewayIP`, das tatsächlich genutzte Netz 
 **Darstellung:**
 - **RAW:** Interface-Name, z. B. `en0`
 - **HU:** identisch zu RAW
+- **CO:** nicht enthalten
 
 ---
 
@@ -522,6 +538,7 @@ Schneller Nachweis, ob die Namensauflösung für relevante Apple-Ziele grundsät
 **Darstellung:**
 - **RAW:** `1` (erfolgreich) / `0` (fehlgeschlagen)
 - **HU:** `yes` / `no`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -539,6 +556,7 @@ HTTP 2xx bis 4xx gilt als erreichbar.
 **Darstellung:**
 - **RAW:** `1` / `0`
 - **HU:** `yes` / `no`
+- **CO:** identisch zu RAW
 
 ---
 
@@ -558,6 +576,7 @@ Ein pragmatischer Indikator für Netz- und Serverantwortverhalten aus Sicht des 
 **Darstellung:**
 - **RAW:** Millisekunden (Integer)
 - **HU:** z. B. `38ms`
+- **CO:** identisch zu RAW
 
 **Hinweis:**  
 Leer, wenn das Ziel nicht erreichbar ist.
@@ -575,6 +594,7 @@ Wertvoller Qualitätsindikator, falls der Mac Mini tatsächlich per WLAN arbeite
 **Darstellung:**
 - **RAW:** Integer (dB)
 - **HU:** z. B. `42dB`
+- **CO:** identisch zu RAW; leer wenn kein WLAN aktiv
 
 ---
 
@@ -589,6 +609,7 @@ Ergänzt `WiFiSNR` und hilft bei der Einordnung gestörter Funkumgebungen.
 **Darstellung:**
 - **RAW:** Integer (dBm, negativ)
 - **HU:** z. B. `-92dBm`
+- **CO:** nicht enthalten
 
 ---
 
@@ -603,6 +624,7 @@ Hilft einzuschätzen, ob ein Standort auf WLAN-Ebene unter Konkurrenz oder Kanal
 **Darstellung:**
 - **RAW:** Integer (0–100)
 - **HU:** z. B. `18%`
+- **CO:** nicht enthalten
 
 > Wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist, bleiben die WLAN-Felder in RAW leer; in HU erscheinen sie als `n/a`. In CO ist nur `WiFiSNR` enthalten (leer wenn kein WLAN); `WifiNoise` und `WifiCCA` sind in CO nicht vorhanden.
 
