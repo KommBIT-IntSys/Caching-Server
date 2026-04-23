@@ -2,16 +2,20 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.6.3 (KommunalBIT)
+# Version 1.7.0 (KommunalBIT)
 #
-# Final characteristics:
+# Drei CSV-Ausgaben pro Host:
+#   RAW – vollständige Rohdaten, maschinenlesbar, ISO-8601-Zeitstempel
+#   HU  – menschenlesbar, Einheiten, n/a für fehlende Werte
+#   CO  – datensparsam, KI-/Analysegeeignet, kein voller Hostname, keine IPs
+#
 # - ClientsCnt RAW = active/total (e.g. 4/122), or just active if site unknown
 # - ClientsCnt HU  = percentage only (e.g. 3.3%), or just active if site unknown
+# - ClientsCnt CO  = active/total (wie RAW); Hostname-Feld = SiteCode (PREFIX)
 # - CSV output is fully quoted / CSV-safe, including header
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
-# - No extra columns added; existing schema preserved
 
-SCRIPT_VER="1.6.3"
+SCRIPT_VER="1.7.0"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
@@ -49,6 +53,13 @@ CSV_HEADER_FIELDS=(
   "WiFiSNR" "WifiNoise" "WifiCCA"
 )
 
+# CO: datensparsam, ohne IPs und volle Hostnamen – für KI-gestützte externe Auswertung
+CSV_HEADER_FIELDS_CO=(
+  "SiteCode" "Timestamp" "PeerCnt" "ClientsCnt" "iOSUpdates" "iOSBytes"
+  "ServedDelta" "OriginDelta" "CacheUsed" "CachePr"
+  "DNSRes" "AppleReach" "AppleTTFB" "WiFiSNR"
+)
+
 # RAW: ISO 8601 local time with offset
 TS_RAW="$(date +"%Y-%m-%dT%H:%M:%S%z" | sed -E 's/([+-][0-9]{2})([0-9]{2})$/\1:\2/')"
 
@@ -63,6 +74,7 @@ PREFIX="$(echo "$HOST" | awk -F'-' '{print $1}')"
 
 OUT_RAW="${OUTDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}.csv"
 OUT_HU="${OUTDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}.csv"
+OUT_CO="${OUTDIR}/${PREFIX}_AssetCacheCo_v${SCRIPT_VER}.csv"
 
 # Archive state per prefix
 ARCHIVE_STATEFILE="/var/tmp/assetcache_archive_state_${PREFIX}.tsv"
@@ -556,6 +568,9 @@ archive_csv_on_update() {
   if [[ -f "$OUT_HU" ]]; then
     /bin/mv "$OUT_HU" "${ARCHIVDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
   fi
+  if [[ -f "$OUT_CO" ]]; then
+    /bin/mv "$OUT_CO" "${ARCHIVDIR}/${PREFIX}_AssetCacheCo_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
+  fi
 
   printf "%s\n" "$current_ver" > "$ARCHIVE_STATEFILE" 2>/dev/null || true
 }
@@ -807,6 +822,29 @@ emit_csv_line "$OUT_HU" \
   "$WiFiSNR_hu" \
   "$WifiNoise_hu" \
   "$WifiCCA_hu"
+
+# ---------- CO CSV write ----------
+if [[ ! -f "$OUT_CO" ]]; then
+  : > "$OUT_CO"
+  emit_csv_line "$OUT_CO" "${CSV_HEADER_FIELDS_CO[@]}"
+  /bin/chmod 644 "$OUT_CO"
+fi
+
+emit_csv_line "$OUT_CO" \
+  "$PREFIX" \
+  "$TS_RAW" \
+  "${Peers_Hu:-}" \
+  "$ClientsCnt_Raw" \
+  "$iOSUpdates_Raw" \
+  "${iOSBytes_B:-}" \
+  "${ServedDelta_B:-}" \
+  "${OriginDelta_B:-}" \
+  "${CacheUsed_B:-}" \
+  "$CachePr_Raw" \
+  "$DNSRes_Raw" \
+  "$AppleReach_Raw" \
+  "$AppleTTFB_raw" \
+  "$WiFiSNR_raw"
 
 exit 0
 

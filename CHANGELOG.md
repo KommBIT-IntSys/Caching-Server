@@ -13,6 +13,24 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > Tagesgenaue Datumsangaben werden nur dort geführt, wo sie aus Artefakten oder dem Projektverlauf klar belegbar sind.
 > Frühere Versionen sind teilweise historisch rekonstruiert und daher bewusst ohne exaktes Tagesdatum belassen.
 
+## [1.7.0] - 2026-04-23
+
+### Added
+- Neue CO-CSV-Ausgabe (`<PREFIX>_AssetCacheCo_v<VERSION>.csv`) pro Host
+- CO folgt dem Prinzip der Datensparsamkeit: speziell für KI-gestützte oder externe Auswertung konzipiert, insbesondere zur Kombination mit einem datensparsam vorbereiteten Relution-/MDM-Export
+- CO enthält 14 Felder: `SiteCode`, `Timestamp`, `PeerCnt`, `ClientsCnt`, `iOSUpdates`, `iOSBytes`, `ServedDelta`, `OriginDelta`, `CacheUsed`, `CachePr`, `DNSRes`, `AppleReach`, `AppleTTFB`, `WiFiSNR`
+- Archivierung bei iOS-Versionsänderung schließt nun auch die CO-Datei ein
+- `SCRIPT_VER` auf `1.7.0` gesetzt
+
+### Notes
+- `SiteCode` in CO entspricht dem Hostnamen-Präfix (z. B. `ASGS` statt `ASGS-Mac-Mini-Caching-Server-0`)
+- CO enthält bewusst keine IP-Adressen (EN0/EN1, GatewayIP), keinen vollen Hostnamen, keine kumulativen Totals (TotReturned, TotOrigin), kein TotalsSince und keine reinen Troubleshooting-Felder (DefaultIf, WifiNoise, WifiCCA)
+- RAW und HU bleiben vollständig erhalten; CO kommt als drittes Format hinzu
+- CSV-Struktur von RAW und HU (Feldanzahl, Reihenfolge, Spaltennamen, Quoting) unverändert
+- Für KI-gestützte Auswertung soll bevorzugt CO verwendet werden, nicht RAW oder HU
+
+---
+
 ## [1.6.3] - 2026-04-15
 
 ### Changed
