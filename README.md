@@ -4,13 +4,13 @@
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
 
-Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in zwei CSV-Dateien (maschinen- und menschenlesbar). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
+Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in drei CSV-Dateien: maschinenlesbar (RAW), menschenlesbar (HU) und datensparsam für KI-gestützte externe Auswertung (CO). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
 
 ## Rechtlicher Hinweis
 
 Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICENSE` und `DISCLAIMER` geregelt.
 
-**Aktuelle Version: [1.6.3](CHANGELOG.md)**
+**Aktuelle Version: [1.7.0](CHANGELOG.md)**
 
 > Die öffentliche Hauptlinie des Projekts ist ab Version 1.6.1 bewusst von standortspezifischer Produktivkonfiguration getrennt. Frühere 1.6.4-Artefakte dienten vor allem der Umgehung eines Relution-spezifischen Deploy-Problems.
 
@@ -55,7 +55,12 @@ README.md                        – Diese Datei
 - **Apple-Erreichbarkeit:** HTTPS-Erreichbarkeit + TTFB gegen Apple CDN
 - **WLAN:** SNR, Noise, Channel Utilization (CCA)
 
-Ausgabe: Zwei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/` — `<PREFIX>_AssetCacheRaw_v<VERSION>.csv` (maschinenlesbar) und `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` (menschenlesbar). `<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`. Vollständige Feldbeschreibung: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md).
+Ausgabe: Drei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/`:
+- `<PREFIX>_AssetCacheRaw_v<VERSION>.csv` – maschinenlesbar, vollständige Rohdaten (intern/technisch)
+- `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` – menschenlesbar, mit Einheiten (intern/Sichtprüfung)
+- `<PREFIX>_AssetCacheCo_v<VERSION>.csv` – datensparsam, kein voller Hostname, keine IPs (KI-/externe Auswertung)
+
+`<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`. Vollständige Feldbeschreibung: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md).
 
 ---
 
