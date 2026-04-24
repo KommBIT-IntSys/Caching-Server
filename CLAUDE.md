@@ -119,7 +119,7 @@ When adding a new state file, always add cleanup for it in `uninstall_assetcache
 The logger always writes three outputs. Keep them consistent:
 - **RAW**: machine-readable, ISO 8601 timestamps, full precision, empty string for missing values
 - **HU**: human-readable, local timestamps, percentages, `n/a` for missing values, visibility windows for change events
-- **CO**: machine-readable, data-minimized, ISO 8601 timestamps, empty string for missing values; `SiteCode` field contains the hostname prefix only (not the full hostname); no IP addresses, no cumulative totals (`TotReturned`, `TotOrigin`), no `TotalsSince`, no pure troubleshooting fields (`DefaultIf`, `EN0`, `EN1`, `GatewayIP`, `WifiNoise`, `WifiCCA`); intended for AI-assisted and external analysis
+- **CO**: machine-readable, data-minimized, ISO 8601 timestamps, empty string for missing values; `SiteCode` field contains the hostname prefix only (not the full hostname); no IP addresses, no cumulative totals (`TotReturned`, `TotOrigin`), no `TotalsSince`, no pure troubleshooting fields (`DefaultIf`, `EN0`, `EN1`, `GatewayIP`, `WifiNoise`, `WifiCCA`); intended for AI-assisted and external analysis. CO is not a cosmetic variant of HU — it uses machine-readable formats throughout (ISO 8601, binary 0/1 flags, raw byte counts) but deliberately reduces the field set to omit identifying and internal-only data
 
 Never mix cosmetic formatting into RAW. RAW is the authoritative data source.
 
@@ -239,12 +239,12 @@ Only include: example configurations, anonymized examples, publishable technical
 | OriginDelta | bytes | human-readable | bytes |
 | CacheUsed | bytes | human-readable | bytes |
 | CachePr | float | percentage | float |
-| EN0 | status | status | – |
-| EN1 | status | status | – |
-| GatewayIP | IP | IP | – |
+| EN0 | IP / noip / down | up / noip / down | – |
+| EN1 | IP / noip / down | up / noip / down | – |
+| GatewayIP | IP | yes / no | – |
 | DefaultIf | string | string | – |
-| DNSRes | ok/fail | ok/fail | 0/1 |
-| AppleReach | ok/fail | ok/fail | 0/1 |
+| DNSRes | 1 / 0 | yes / no | 1 / 0 |
+| AppleReach | 1 / 0 | yes / no | 1 / 0 |
 | AppleTTFB | ms | ms | ms |
 | WiFiSNR | dB | dB | dB |
 | WifiNoise | dBm | dBm | – |
