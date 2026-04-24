@@ -1,6 +1,6 @@
 #!/bin/zsh
 # =============================================================================
-# AssetCache Logger – CSV-Archivieren (KommunalBIT) v3
+# AssetCache Logger – CSV-Archivieren (KommunalBIT) v3 – kompatibel mit 1.7.0 (RAW / HU / CO)
 # Stoppt den Daemon und verschiebt alle aktuellen CSV-Dateien ins Archiv.
 # Der Daemon wird danach NICHT neu gestartet – im Anschluss das
 # Deployment-Script ausführen, das den Daemon selbst startet.
