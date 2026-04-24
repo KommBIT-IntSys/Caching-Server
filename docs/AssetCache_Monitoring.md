@@ -270,7 +270,7 @@ Die Gesamtwerte des Content Cache sind nicht „für immer“, sondern beziehen 
 Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorherigen Zeile verglichen werden.
 
 **Darstellung:**
-- **RAW:** Epochensekunden, z. B. `1743588000`
+- **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-02-01T10:15:00+02:00`
 - **HU:** lesbares Datum, z. B. `2026-02-01` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
 
 ---

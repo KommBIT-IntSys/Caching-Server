@@ -229,7 +229,7 @@ Only include: example configurations, anonymized examples, publishable technical
 | Hostname | string | string | SiteCode (prefix only) |
 | Timestamp | ISO 8601 | local datetime | ISO 8601 |
 | TotalsSince | ISO 8601 | visibility window (20 lines after change) | – |
-| Peers | int | int | PeerCnt (count) |
+| Peers | IPs (semikolon-getrennt) | count | PeerCnt (count) |
 | ClientsCnt | N/Total | percentage | N/Total |
 | iOSUpdates | string | visibility window (20 lines after change) | string |
 | iOSBytes | bytes | human-readable | bytes |
