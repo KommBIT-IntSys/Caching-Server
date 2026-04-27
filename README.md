@@ -8,6 +8,8 @@ Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching 
 
 ## Rechtlicher Hinweis
 
+Dieses Repository enthält keine personenbezogenen Daten.
+Die DSGVO‑konforme Nutzung im Betrieb obliegt der verantwortlichen Stelle.
 Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICENSE` und `DISCLAIMER` geregelt.
 
 **Aktuelle Version: [1.7.0](CHANGELOG.md)**
