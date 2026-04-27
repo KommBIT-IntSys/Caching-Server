@@ -1,7 +1,7 @@
 # Asset Cache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
-**Aktuelle Version: 1.7.0**
+**Aktuelle Version: 1.7.1**
 
 ---
 
@@ -162,7 +162,7 @@ Pro Host werden drei parallele CSV-Dateien geschrieben, jeweils unter `/Library/
 |---|---|
 | `<PREFIX>_AssetCacheRaw_v<VERSION>.csv` | Maschinenlesbar – reine Zahlenwerte, leere Felder, ISO-8601-Zeitstempel mit Zeitzone |
 | `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` | Menschenlesbar – Einheiten (GB, %, ms, dB), `n/a` für fehlende Werte |
-| `<PREFIX>_AssetCacheCo_v<VERSION>.csv` | Datensparsam – kein voller Hostname, keine IPs, maschinenlesbar, für KI-gestützte externe Auswertung |
+| `<PREFIX>_AssetCache_Co_v<VERSION>.csv` | Datensparsam – kein voller Hostname, keine IPs, maschinenlesbar, für KI-gestützte externe Auswertung |
 
 `<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`.
 
@@ -270,7 +270,7 @@ Die Gesamtwerte des Content Cache sind nicht „für immer“, sondern beziehen 
 Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorherigen Zeile verglichen werden.
 
 **Darstellung:**
-- **RAW:** Epochensekunden, z. B. `1743588000`
+- **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-02-01T10:15:00+02:00`
 - **HU:** lesbares Datum, z. B. `2026-02-01` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
 
 ---
@@ -654,7 +654,7 @@ Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
 - mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
 - mit dieser Dokumentation als fachlichem Kontext
 
-**Empfehlung für KI-gestützte Auswertung:** Bevorzugt die **CO-CSV** (`<PREFIX>_AssetCacheCo_v<VERSION>.csv`) verwenden. Sie ist speziell für diesen Zweck entworfen: kein voller Hostname, keine IP-Adressen, nur die fachlich notwendigen Felder. In Kombination mit einem datensparsam vorbereiteten Relution-Export (Spalte Gerätename möglichst weglassen oder nachträglich entfernen) ergibt sich ein geeignetes Eingabeformat für Copilot oder vergleichbare KI-Assistenten.
+**Empfehlung für KI-gestützte Auswertung:** Bevorzugt die **CO-CSV** (`<PREFIX>_AssetCache_Co_v<VERSION>.csv`) verwenden. Sie ist speziell für diesen Zweck entworfen: kein voller Hostname, keine IP-Adressen, nur die fachlich notwendigen Felder. In Kombination mit einem datensparsam vorbereiteten Relution-Export (Spalte Gerätename möglichst weglassen oder nachträglich entfernen) ergibt sich ein geeignetes Eingabeformat für Copilot oder vergleichbare KI-Assistenten.
 
 Der Gerätename wird für diese Auswertung bewusst nicht benötigt und sollte aus Gründen der Datenminimierung nicht Teil des Standardexports sein. Die Analyse erfolgt auf aggregierter Standortebene, nicht auf Ebene einzelner Geräte (Anmerkung: in der aktuellen Version von Relution 26.1.1 ist es leider nicht möglich, die Gerätenamen beim Export wegzulassen - man kann aber natürlich die Spalte nachträglich entfernen).
 
