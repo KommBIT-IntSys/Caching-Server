@@ -13,6 +13,21 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > Tagesgenaue Datumsangaben werden nur dort geführt, wo sie aus Artefakten oder dem Projektverlauf klar belegbar sind.
 > Frühere Versionen sind teilweise historisch rekonstruiert und daher bewusst ohne exaktes Tagesdatum belassen.
 
+## [1.7.1] - 2026-04-27
+
+### Changed
+- CO-Ausgabe wird künftig als `<PREFIX>_AssetCache_Co_v<VERSION>.csv` geschrieben
+- RAW bleibt weiterhin `<PREFIX>_AssetCacheRaw_v<VERSION>.csv`
+- HU bleibt weiterhin `<PREFIX>_AssetCache_Hu_v<VERSION>.csv`
+- `SCRIPT_VER` auf `1.7.1` gesetzt
+
+### Notes
+- Der Unterstrich vor `Co` ist bewusst: Die datensparsame CO-Datei steht dadurch in alphabetischen Dateilisten vor der HU-Datei
+- Das unterstützt die sichere Standardauswahl bei manueller Weitergabe oder KI-gestützter Analyse
+- Keine Änderung an Feldanzahl, Feldreihenfolge, Messlogik oder Datenschutzmodell
+
+---
+
 ## [1.7.0] - 2026-04-23
 
 ### Added

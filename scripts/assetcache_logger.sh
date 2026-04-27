@@ -2,7 +2,7 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.7.0 (KommunalBIT)
+# Version 1.7.1 (KommunalBIT)
 #
 # Drei CSV-Ausgaben pro Host:
 #   RAW – vollständige Rohdaten, maschinenlesbar, ISO-8601-Zeitstempel
@@ -15,7 +15,7 @@ set -u
 # - CSV output is fully quoted / CSV-safe, including header
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 
-SCRIPT_VER="1.7.0"
+SCRIPT_VER="1.7.1"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
@@ -74,7 +74,7 @@ PREFIX="$(echo "$HOST" | awk -F'-' '{print $1}')"
 
 OUT_RAW="${OUTDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}.csv"
 OUT_HU="${OUTDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}.csv"
-OUT_CO="${OUTDIR}/${PREFIX}_AssetCacheCo_v${SCRIPT_VER}.csv"
+OUT_CO="${OUTDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}.csv"
 
 # Archive state per prefix
 ARCHIVE_STATEFILE="/var/tmp/assetcache_archive_state_${PREFIX}.tsv"
@@ -569,7 +569,7 @@ archive_csv_on_update() {
     /bin/mv "$OUT_HU" "${ARCHIVDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
   fi
   if [[ -f "$OUT_CO" ]]; then
-    /bin/mv "$OUT_CO" "${ARCHIVDIR}/${PREFIX}_AssetCacheCo_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
+    /bin/mv "$OUT_CO" "${ARCHIVDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
   fi
 
   printf "%s\n" "$current_ver" > "$ARCHIVE_STATEFILE" 2>/dev/null || true

@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-**AssetCache Monitoring – KommunalBIT** is a macOS-based monitoring and logging system for Apple Content Caching on Mac Minis deployed in schools. It collects cache performance metrics every 15 minutes via a LaunchDaemon, writing two CSV files (machine-readable RAW and human-readable HU) to `/Library/Logs/KommunalBIT/`. The primary goal is to distinguish between technical infrastructure issues and organizational/local factors when iOS/iPadOS update delivery is delayed.
+**AssetCache Monitoring – KommunalBIT** is a macOS-based monitoring and logging system for Apple Content Caching on Mac Minis deployed in schools. It collects cache performance metrics every 15 minutes via a LaunchDaemon, writing three CSV files (machine-readable RAW, human-readable HU, and data-minimized CO) to `/Library/Logs/KommunalBIT/`. The primary goal is to distinguish between technical infrastructure issues and organizational/local factors when iOS/iPadOS update delivery is delayed.
 
-**Current version: 1.7.0**  
+**Current version: 1.7.1**  
 **Primary language of documentation and comments: German**  
 **Primary shell: zsh** (ShellCheck uses bash as closest approximation)
 
@@ -115,10 +115,11 @@ Delta calculations rely on TSV state files under `/var/tmp/`:
 
 When adding a new state file, always add cleanup for it in `uninstall_assetcache_logger.sh`.
 
-### Dual CSV output model
-The logger always writes two outputs. Keep them consistent:
+### Triple CSV output model
+The logger always writes three outputs. Keep them consistent:
 - **RAW**: machine-readable, ISO 8601 timestamps, full precision, empty string for missing values
 - **HU**: human-readable, local timestamps, percentages, `n/a` for missing values, visibility windows for change events
+- **CO**: machine-readable, data-minimized, ISO 8601 timestamps, empty string for missing values; `SiteCode` field contains the hostname prefix only (not the full hostname); no IP addresses, no cumulative totals (`TotReturned`, `TotOrigin`), no `TotalsSince`, no pure troubleshooting fields (`DefaultIf`, `EN0`, `EN1`, `GatewayIP`, `WifiNoise`, `WifiCCA`); intended for AI-assisted and external analysis. CO is not a cosmetic variant of HU — it uses machine-readable formats throughout (ISO 8601, binary 0/1 flags, raw byte counts) but deliberately reduces the field set to omit identifying and internal-only data
 
 Never mix cosmetic formatting into RAW. RAW is the authoritative data source.
 
@@ -202,6 +203,7 @@ cat -A /etc/kommunalbit/schulen.conf | head -5
 | `/usr/local/bin/assetcache_logger.sh` | Monitoring script |
 | `/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist` | LaunchDaemon (900s) |
 | `/Library/Logs/KommunalBIT/` | CSV output directory |
+| `/Library/Logs/KommunalBIT/<PREFIX>_AssetCache_Co_v<VERSION>.csv` | CO output per host (data-minimized, for AI-assisted/external analysis) |
 | `/Library/Logs/KommunalBIT/Archiv/` | Archive for old CSV versions |
 | `/etc/kommunalbit/schulen.conf` | School lookup table (MDM-deployed, not in repo) |
 | `/var/tmp/assetcache_*.tsv` | State files for delta calculations |
@@ -220,33 +222,33 @@ Only include: example configurations, anonymized examples, publishable technical
 
 ---
 
-## CSV Fields Reference (23 total)
+## CSV Fields Reference (RAW/HU: 23 fields · CO: 14 fields)
 
-| Field | RAW format | HU format |
-|-------|-----------|-----------|
-| Hostname | string | string |
-| Timestamp | ISO 8601 | local datetime |
-| TotalsSince | ISO 8601 | visibility window (20 lines after change) |
-| Peers | int | int |
-| ClientsCnt | N/Total | percentage |
-| iOSUpdates | string | visibility window (20 lines after change) |
-| iOSBytes | bytes | human-readable |
-| TotReturned | bytes | human-readable |
-| TotOrigin | bytes | human-readable |
-| ServedDelta | bytes | human-readable |
-| OriginDelta | bytes | human-readable |
-| CacheUsed | bytes | human-readable |
-| CachePr | float | percentage |
-| EN0 | status | status |
-| EN1 | status | status |
-| GatewayIP | IP | IP |
-| DefaultIf | string | string |
-| DNSRes | ok/fail | ok/fail |
-| AppleReach | ok/fail | ok/fail |
-| AppleTTFB | ms | ms |
-| WiFiSNR | dB | dB |
-| WifiNoise | dBm | dBm |
-| WifiCCA | float | percentage |
+| Field | RAW format | HU format | CO format |
+|-------|-----------|-----------|-----------|
+| Hostname | string | string | SiteCode (prefix only) |
+| Timestamp | ISO 8601 | local datetime | ISO 8601 |
+| TotalsSince | ISO 8601 | visibility window (20 lines after change) | – |
+| Peers | IPs (semikolon-getrennt) | count | PeerCnt (count) |
+| ClientsCnt | N/Total | percentage | N/Total |
+| iOSUpdates | string | visibility window (20 lines after change) | string |
+| iOSBytes | bytes | human-readable | bytes |
+| TotReturned | bytes | human-readable | – |
+| TotOrigin | bytes | human-readable | – |
+| ServedDelta | bytes | human-readable | bytes |
+| OriginDelta | bytes | human-readable | bytes |
+| CacheUsed | bytes | human-readable | bytes |
+| CachePr | float | percentage | float |
+| EN0 | IP / noip / down | up / noip / down | – |
+| EN1 | IP / noip / down | up / noip / down | – |
+| GatewayIP | IP | yes / no | – |
+| DefaultIf | string | string | – |
+| DNSRes | 1 / 0 | yes / no | 1 / 0 |
+| AppleReach | 1 / 0 | yes / no | 1 / 0 |
+| AppleTTFB | ms | ms | ms |
+| WiFiSNR | dB | dB | dB |
+| WifiNoise | dBm | dBm | – |
+| WifiCCA | float | percentage | – |
 
 Full field descriptions: `docs/AssetCache_Monitoring.md`
 
@@ -260,3 +262,4 @@ Full field descriptions: `docs/AssetCache_Monitoring.md`
 4. **No external dependencies**: everything uses macOS-native tools; do not introduce package managers or third-party binaries
 5. **Sensitive data stays out**: school configuration is always MDM-deployed, never hardcoded or committed
 6. **Measure, don't speculate**: the goal is distinguishing technical from organizational causes — precision matters more than polish
+7. **Data minimization for external outputs**: CO deliberately omits identifying fields (full hostname, IP addresses) and internal-only fields to enable external and AI-assisted analysis while limiting data exposure
