@@ -2,7 +2,7 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.7.1 (KommunalBIT)
+# Version 1.8.0 (KommunalBIT)
 #
 # Drei CSV-Ausgaben pro Host:
 #   RAW – vollständige Rohdaten, maschinenlesbar, ISO-8601-Zeitstempel
@@ -15,7 +15,7 @@ set -u
 # - CSV output is fully quoted / CSV-safe, including header
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 
-SCRIPT_VER="1.7.1"
+SCRIPT_VER="1.8.0"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
@@ -575,61 +575,118 @@ archive_csv_on_update() {
   printf "%s\n" "$current_ver" > "$ARCHIVE_STATEFILE" 2>/dev/null || true
 }
 
-# ---------- Core values ----------
+# =============================================================================
+# 1. Collect snapshot
+# =============================================================================
+# Einmalige Erfassung aller Systemwerte. Keine Ableitung, keine Formatierung.
+
 TotalsSince_src="$(get_key "TotalBytesAreSince")"
-TotalsSince_Raw="$(totals_since_raw "$TotalsSince_src")"
-TotalsSince_Hu="$(totalssince_hu_value "$(totals_since_hu "$TotalsSince_src")")"
 
-Peers="$(peers_value)"
+_peers_raw="$(peers_value)"
 
-ClientsCnt_Active="$(clients_count_last_minutes 16)"
-[[ -z "${ClientsCnt_Active:-}" ]] && ClientsCnt_Active=""
+_clientscnt_active="$(clients_count_last_minutes 16)"
+[[ -z "${_clientscnt_active:-}" ]] && _clientscnt_active=""
 
-SITE_CODE="$(site_code_for_clientscnt "$PREFIX")"
-ClientsCnt_Total=""
-if [[ -n "${SITE_CODE:-}" && -n "${SUS_TOTAL_BY_SITE[$SITE_CODE]:-}" ]]; then
-  ClientsCnt_Total="${SUS_TOTAL_BY_SITE[$SITE_CODE]}"
+_site_code="$(site_code_for_clientscnt "$PREFIX")"
+_clientscnt_total=""
+if [[ -n "${_site_code:-}" && -n "${SUS_TOTAL_BY_SITE[${_site_code}]:-}" ]]; then
+  _clientscnt_total="${SUS_TOTAL_BY_SITE[${_site_code}]}"
 fi
 
-ClientsCnt_Raw="$(format_clientscnt_raw "${ClientsCnt_Active:-}" "${ClientsCnt_Total:-}")"
-ClientsCnt_Hu="$(format_clientscnt_hu "${ClientsCnt_Active:-}" "${ClientsCnt_Total:-}")"
+_iosupdates_src="$(gdmf_latest_ios_version)"
+[[ -z "${_iosupdates_src:-}" ]] && _iosupdates_src=""
 
-iOSUpdates_Raw="$(gdmf_latest_ios_version)"
-[[ -z "${iOSUpdates_Raw:-}" ]] && iOSUpdates_Raw=""
-iOSUpdates_Hu="$(iosupdates_hu_value "${iOSUpdates_Raw:-}")"
+_cacheused_src="$(get_key "CacheUsed")"
+_totret_src="$(get_key "TotalBytesReturnedToClients")"
+_totorg_src="$(get_key "TotalBytesStoredFromOrigin")"
+_iosbytes_src="$(get_detail "iOS Software")"
+_cachepr_src="$(get_key "MaxCachePressureLast1Hour")"
 
-CacheUsed_raw="$(get_key "CacheUsed")"
-TotRet_raw="$(get_key "TotalBytesReturnedToClients")"
-TotOrg_raw="$(get_key "TotalBytesStoredFromOrigin")"
+_en0_collected="$(iface_code en0)"
+_en1_collected="$(iface_code en1)"
+_gatewayip_collected="$(/sbin/route -n get default 2>/dev/null | awk '/gateway:/{print $2; exit}')"
+_defaultif_collected="$(/sbin/route -n get default 2>/dev/null | awk '/interface:/{print $2; exit}')"
 
-CacheUsed_B="$(to_bytes "$CacheUsed_raw")"
-TotRet_B="$(to_bytes "$TotRet_raw")"
-TotOrg_B="$(to_bytes "$TotOrg_raw")"
+_dnsres_ok=0
+if /usr/bin/dscacheutil -q host -a name swcdn.apple.com 2>/dev/null | /usr/bin/grep -q "ip_address"; then
+  _dnsres_ok=1
+fi
 
-iOSBytes_B="$(to_bytes "$(get_detail "iOS Software")")"
-[[ -z "${iOSBytes_B:-}" ]] && iOSBytes_B=""
+_apple_line="$(LC_ALL=C /usr/bin/curl -L --silent --show-error \
+  --max-time 10 \
+  -o /dev/null \
+  -w "%{http_code} %{time_starttransfer}" \
+  "https://swcdn.apple.com/" 2>/dev/null || true)"
+_apple_code="$(echo "$_apple_line" | awk '{print $1}')"
+_apple_ttfb="$(echo "$_apple_line" | awk '{print $2}')"
 
-CachePr_Hu="0"
-CachePr_Raw=""
+_wdutil_rssi=""
+_wdutil_noise=""
+_wdutil_cca=""
+WDUTIL="/usr/bin/wdutil"
+if [[ -x "$WDUTIL" ]]; then
+  _wdutil_tmp="$(/usr/bin/mktemp /var/tmp/wdutil_XXXXXX 2>/dev/null || echo "")"
+  _wdutil_out=""
+  if [[ -n "${_wdutil_tmp:-}" ]]; then
+    _timeout_run 30 "$_wdutil_tmp" "$WDUTIL" info
+    _wdutil_out="$(/bin/cat "$_wdutil_tmp" 2>/dev/null || true)"
+    /bin/rm -f "$_wdutil_tmp" 2>/dev/null || true
+  fi
 
-pr_raw="$(get_key "MaxCachePressureLast1Hour")"
-if [[ -n "${pr_raw:-}" && "$pr_raw" == *"%" ]]; then
-  pr_val="${pr_raw%\%}"
-  if echo "$pr_val" | /usr/bin/grep -Eq '^[0-9]{1,3}$'; then
-    CachePr_Hu="$pr_val"
-    CachePr_Raw="$pr_val"
+  _wifi_block="$(echo "$_wdutil_out" | awk '
+    $0 ~ /^WIFI$/ {inside=1; next}
+    inside && $0 ~ /^BLUETOOTH$/ {exit}
+    inside {print}
+  ')"
+
+  _ssid="$(echo "$_wifi_block" | awk -F': ' '/^[[:space:]]*SSID[[:space:]]*:/ {print $2; exit}')"
+  _opm="$(echo "$_wifi_block" | awk -F': ' '/^[[:space:]]*Op Mode[[:space:]]*:/ {print $2; exit}')"
+  [[ "${_ssid:-}" == "None" ]] && _ssid=""
+  [[ "${_opm:-}" == "None" ]] && _opm=""
+
+  if [[ -n "${_ssid:-}" && -n "${_opm:-}" ]]; then
+    _wdutil_rssi="$(echo "$_wifi_block" | awk -F': ' '/^[[:space:]]*RSSI[[:space:]]*:/ {gsub(/ dBm/,"",$2); print $2; exit}')"
+    _wdutil_noise="$(echo "$_wifi_block" | awk -F': ' '/^[[:space:]]*Noise[[:space:]]*:/ {gsub(/ dBm/,"",$2); print $2; exit}')"
+    _wdutil_cca="$(echo "$_wifi_block" | awk -F': ' '/^[[:space:]]*CCA[[:space:]]*:/ {gsub(/ %/,"",$2); print $2; exit}')"
+
+    if [[ "${_wdutil_rssi:-}" == "0" && "${_wdutil_noise:-}" == "0" && "${_wdutil_cca:-}" == "0" ]]; then
+      _wdutil_rssi=""
+      _wdutil_noise=""
+      _wdutil_cca=""
+    fi
   fi
 fi
 
-CacheUsed_Hu="$(bytes_human "${CacheUsed_B:-}")"
-iOSBytes_Hu="$(bytes_human "${iOSBytes_B:-}")"
-TotReturned_Hu="$(bytes_human "${TotRet_B:-}")"
-TotOrigin_Hu="$(bytes_human "${TotOrg_B:-}")"
+# =============================================================================
+# 2. Build RAW fields
+# =============================================================================
+# RAW ist die technische Wahrheit und primäre Datenquelle.
 
-# ---------- Deltas ----------
+TotalsSince_Raw="$(totals_since_raw "$TotalsSince_src")"
+
+Peers="${_peers_raw}"
+
+ClientsCnt_Raw="$(format_clientscnt_raw "${_clientscnt_active:-}" "${_clientscnt_total:-}")"
+
+iOSUpdates_Raw="${_iosupdates_src}"
+
+iOSBytes_B="$(to_bytes "$_iosbytes_src")"
+[[ -z "${iOSBytes_B:-}" ]] && iOSBytes_B=""
+
+TotRet_B="$(to_bytes "$_totret_src")"
+TotOrg_B="$(to_bytes "$_totorg_src")"
+CacheUsed_B="$(to_bytes "$_cacheused_src")"
+
+CachePr_Raw=""
+if [[ -n "${_cachepr_src:-}" && "$_cachepr_src" == *"%" ]]; then
+  _cachepr_val="${_cachepr_src%\%}"
+  if echo "$_cachepr_val" | /usr/bin/grep -Eq '^[0-9]{1,3}$'; then
+    CachePr_Raw="$_cachepr_val"
+  fi
+fi
+
 ServedDelta_B=""
 OriginDelta_B=""
-
 if is_uint "${TotRet_B:-}"; then ServedDelta_B="0"; fi
 if is_uint "${TotOrg_B:-}"; then OriginDelta_B="0"; fi
 
@@ -645,126 +702,116 @@ if [[ -f "$STATEFILE" ]]; then
   fi
 fi
 
+EN0="${_en0_collected}"
+EN1="${_en1_collected}"
+GatewayIP="${_gatewayip_collected}"
+DefaultIf="${_defaultif_collected}"
+
+DNSRes_Raw="0"
+[[ "${_dnsres_ok}" -eq 1 ]] && DNSRes_Raw="1"
+
+AppleReach_Raw="0"
+AppleTTFB_raw=""
+if echo "$_apple_code" | /usr/bin/grep -Eq '^[0-9]{3}$' \
+  && [[ "$_apple_code" -ge 200 && "$_apple_code" -lt 500 ]] \
+  && echo "$_apple_ttfb" | /usr/bin/grep -Eq '^[0-9.]+$'; then
+  _apple_ttfb_ms="$(LC_ALL=C /usr/bin/awk -v t="$_apple_ttfb" 'BEGIN{printf "%.0f", t*1000.0}')"
+  if [[ "${_apple_ttfb_ms:-0}" -gt 0 ]]; then
+    AppleReach_Raw="1"
+    AppleTTFB_raw="${_apple_ttfb_ms}"
+  fi
+fi
+
+WiFiSNR_raw=""
+WifiNoise_raw=""
+WifiCCA_raw=""
+if is_int "${_wdutil_rssi:-}" && is_int "${_wdutil_noise:-}"; then
+  WiFiSNR_raw=$(( _wdutil_rssi - _wdutil_noise ))
+  WifiNoise_raw="${_wdutil_noise}"
+fi
+if echo "${_wdutil_cca:-}" | /usr/bin/grep -Eq '^[0-9]+$'; then
+  WifiCCA_raw="${_wdutil_cca}"
+fi
+
+# =============================================================================
+# 3. Validate / normalize RAW
+# =============================================================================
+# Konsistenz- und Ableitungslogik auf Basis der RAW-Felder. Keine neue Messung.
+
 if [[ -n "${TotalsSince_src:-}" ]]; then
   if is_uint "${TotRet_B:-}" && is_uint "${TotOrg_B:-}"; then
     printf "%s\t%s\t%s\n" "$TotalsSince_src" "${TotRet_B}" "${TotOrg_B}" > "$STATEFILE" 2>/dev/null || true
   fi
 fi
 
+# =============================================================================
+# 4. Build HU fields from RAW
+# =============================================================================
+# HU ist eine menschenlesbare View. Keine eigene Messung.
+
+TotalsSince_Hu="$(totalssince_hu_value "$(totals_since_hu "$TotalsSince_src")")"
+
+if [[ -n "${Peers:-}" ]]; then
+  Peers_Hu="$(echo "$Peers" | awk -F';' '{print NF}')"
+else
+  Peers_Hu=""
+fi
+
+ClientsCnt_Hu="$(format_clientscnt_hu "${_clientscnt_active:-}" "${_clientscnt_total:-}")"
+
+iOSUpdates_Hu="$(iosupdates_hu_value "${iOSUpdates_Raw:-}")"
+
+iOSBytes_Hu="$(bytes_human "${iOSBytes_B:-}")"
+TotReturned_Hu="$(bytes_human "${TotRet_B:-}")"
+TotOrigin_Hu="$(bytes_human "${TotOrg_B:-}")"
+CacheUsed_Hu="$(bytes_human "${CacheUsed_B:-}")"
+
+CachePr_Hu="0"
+[[ -n "${CachePr_Raw:-}" ]] && CachePr_Hu="${CachePr_Raw}"
+
 ServedDelta_Hu="$(bytes_human "${ServedDelta_B:-}")"
 OriginDelta_Hu="$(bytes_human "${OriginDelta_B:-}")"
-
-# ---------- Network basics ----------
-EN0="$(iface_code en0)"
-EN1="$(iface_code en1)"
-
-GatewayIP="$(/sbin/route -n get default 2>/dev/null | awk '/gateway:/{print $2; exit}')"
-DefaultIf="$(/sbin/route -n get default 2>/dev/null | awk '/interface:/{print $2; exit}')"
 
 EN0_HU="$(hu_iface_state "$EN0")"
 EN1_HU="$(hu_iface_state "$EN1")"
 GatewayIP_HU="$(hu_gateway_state "$GatewayIP")"
 
 DNSRes_Hu="no"
-DNSRes_Raw="0"
-if /usr/bin/dscacheutil -q host -a name swcdn.apple.com 2>/dev/null | /usr/bin/grep -q "ip_address"; then
-  DNSRes_Hu="yes"
-  DNSRes_Raw="1"
-fi
+[[ "$DNSRes_Raw" == "1" ]] && DNSRes_Hu="yes"
 
-# ---------- Apple reach + timing ----------
 AppleReach_Hu="no"
-AppleReach_Raw="0"
 AppleTTFB_hu="n/a"
-AppleTTFB_raw=""
-
-apple_line="$(LC_ALL=C /usr/bin/curl -L --silent --show-error \
-  --max-time 10 \
-  -o /dev/null \
-  -w "%{http_code} %{time_starttransfer}" \
-  "https://swcdn.apple.com/" 2>/dev/null || true)"
-
-apple_code="$(echo "$apple_line" | awk '{print $1}')"
-apple_ttfb="$(echo "$apple_line" | awk '{print $2}')"
-
-if echo "$apple_code" | /usr/bin/grep -Eq '^[0-9]{3}$' \
-  && [[ "$apple_code" -ge 200 && "$apple_code" -lt 500 ]] \
-  && echo "$apple_ttfb" | /usr/bin/grep -Eq '^[0-9.]+$'; then
-  AppleTTFB_ms="$(LC_ALL=C /usr/bin/awk -v t="$apple_ttfb" 'BEGIN{printf "%.0f", t*1000.0}')"
-  if [[ "${AppleTTFB_ms:-0}" -gt 0 ]]; then
-    AppleReach_Hu="yes"
-    AppleReach_Raw="1"
-    AppleTTFB_raw="${AppleTTFB_ms}"
-    AppleTTFB_hu="${AppleTTFB_ms}ms"
-  fi
+if [[ "$AppleReach_Raw" == "1" ]]; then
+  AppleReach_Hu="yes"
+  AppleTTFB_hu="${AppleTTFB_raw}ms"
 fi
-
-# ---------- Wi-Fi via wdutil ----------
-WiFiSNR_raw=""
-WifiNoise_raw=""
-WifiCCA_raw=""
 
 WiFiSNR_hu="n/a"
 WifiNoise_hu="n/a"
 WifiCCA_hu="n/a"
+[[ -n "${WiFiSNR_raw:-}" ]] && WiFiSNR_hu="${WiFiSNR_raw}dB"
+[[ -n "${WifiNoise_raw:-}" ]] && WifiNoise_hu="${WifiNoise_raw}dBm"
+[[ -n "${WifiCCA_raw:-}" ]] && WifiCCA_hu="${WifiCCA_raw}%"
 
-WDUTIL="/usr/bin/wdutil"
-if [[ -x "$WDUTIL" ]]; then
-  _wdutil_tmp="$(/usr/bin/mktemp /var/tmp/wdutil_XXXXXX 2>/dev/null || echo "")"
-  wdi=""
-  if [[ -n "${_wdutil_tmp:-}" ]]; then
-    _timeout_run 30 "$_wdutil_tmp" "$WDUTIL" info
-    wdi="$(/bin/cat "$_wdutil_tmp" 2>/dev/null || true)"
-    /bin/rm -f "$_wdutil_tmp" 2>/dev/null || true
-  fi
+# =============================================================================
+# 5. Build CO fields from RAW
+# =============================================================================
+# CO ist eine datensparsame Analyse-/Weitergabe-View. Keine eigene Messung.
 
-  wifi_block="$(echo "$wdi" | awk '
-    $0 ~ /^WIFI$/ {inside=1; next}
-    inside && $0 ~ /^BLUETOOTH$/ {exit}
-    inside {print}
-  ')"
+SiteCode_Co="${PREFIX}"
+PeerCnt_Co="${Peers_Hu:-}"
 
-  ssid="$(echo "$wifi_block" | awk -F': ' '/^[[:space:]]*SSID[[:space:]]*:/ {print $2; exit}')"
-  opm="$(echo "$wifi_block" | awk -F': ' '/^[[:space:]]*Op Mode[[:space:]]*:/ {print $2; exit}')"
-  [[ "${ssid:-}" == "None" ]] && ssid=""
-  [[ "${opm:-}" == "None" ]] && opm=""
-
-  if [[ -n "${ssid:-}" && -n "${opm:-}" ]]; then
-    rssi="$(echo "$wifi_block" | awk -F': ' '/^[[:space:]]*RSSI[[:space:]]*:/ {gsub(/ dBm/,"",$2); print $2; exit}')"
-    noise="$(echo "$wifi_block" | awk -F': ' '/^[[:space:]]*Noise[[:space:]]*:/ {gsub(/ dBm/,"",$2); print $2; exit}')"
-    cca="$(echo "$wifi_block" | awk -F': ' '/^[[:space:]]*CCA[[:space:]]*:/ {gsub(/ %/,"",$2); print $2; exit}')"
-
-    if [[ "${rssi:-}" == "0" && "${noise:-}" == "0" && "${cca:-}" == "0" ]]; then
-      :
-    else
-      if is_int "${rssi:-}" && is_int "${noise:-}"; then
-        snr=$(( rssi - noise ))
-        WiFiSNR_raw="${snr}"
-        WifiNoise_raw="${noise}"
-        WiFiSNR_hu="${snr}dB"
-        WifiNoise_hu="${noise}dBm"
-      fi
-      if echo "${cca:-}" | /usr/bin/grep -Eq '^[0-9]+$'; then
-        WifiCCA_raw="${cca}"
-        WifiCCA_hu="${cca}%"
-      fi
-    fi
-  fi
-fi
+# =============================================================================
+# 6. Write CSV files
+# =============================================================================
+# RAW zuerst schreiben, danach HU und CO.
 
 archive_csv_on_update "${iOSUpdates_Raw:-}"
 
-# ---------- CSV write ----------
 if [[ ! -f "$OUT_RAW" ]]; then
   : > "$OUT_RAW"
   emit_csv_line "$OUT_RAW" "${CSV_HEADER_FIELDS[@]}"
   /bin/chmod 644 "$OUT_RAW"
-fi
-
-if [[ ! -f "$OUT_HU" ]]; then
-  : > "$OUT_HU"
-  emit_csv_line "$OUT_HU" "${CSV_HEADER_FIELDS[@]}"
-  /bin/chmod 644 "$OUT_HU"
 fi
 
 emit_csv_line "$OUT_RAW" \
@@ -792,10 +839,10 @@ emit_csv_line "$OUT_RAW" \
   "$WifiNoise_raw" \
   "$WifiCCA_raw"
 
-if [[ -n "${Peers:-}" ]]; then
-  Peers_Hu="$(echo "$Peers" | awk -F';' '{print NF}')"
-else
-  Peers_Hu=""
+if [[ ! -f "$OUT_HU" ]]; then
+  : > "$OUT_HU"
+  emit_csv_line "$OUT_HU" "${CSV_HEADER_FIELDS[@]}"
+  /bin/chmod 644 "$OUT_HU"
 fi
 
 emit_csv_line "$OUT_HU" \
@@ -823,7 +870,6 @@ emit_csv_line "$OUT_HU" \
   "$WifiNoise_hu" \
   "$WifiCCA_hu"
 
-# ---------- CO CSV write ----------
 if [[ ! -f "$OUT_CO" ]]; then
   : > "$OUT_CO"
   emit_csv_line "$OUT_CO" "${CSV_HEADER_FIELDS_CO[@]}"
@@ -831,9 +877,9 @@ if [[ ! -f "$OUT_CO" ]]; then
 fi
 
 emit_csv_line "$OUT_CO" \
-  "$PREFIX" \
+  "$SiteCode_Co" \
   "$TS_RAW" \
-  "${Peers_Hu:-}" \
+  "$PeerCnt_Co" \
   "$ClientsCnt_Raw" \
   "$iOSUpdates_Raw" \
   "${iOSBytes_B:-}" \

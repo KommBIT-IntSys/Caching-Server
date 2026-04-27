@@ -4,7 +4,7 @@
 
 **AssetCache Monitoring – KommunalBIT** is a macOS-based monitoring and logging system for Apple Content Caching on Mac Minis deployed in schools. It collects cache performance metrics every 15 minutes via a LaunchDaemon, writing three CSV files (machine-readable RAW, human-readable HU, and data-minimized CO) to `/Library/Logs/KommunalBIT/`. The primary goal is to distinguish between technical infrastructure issues and organizational/local factors when iOS/iPadOS update delivery is delayed.
 
-**Current version: 1.7.1**  
+**Current version: 1.8.0**  
 **Primary language of documentation and comments: German**  
 **Primary shell: zsh** (ShellCheck uses bash as closest approximation)
 
