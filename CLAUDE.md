@@ -4,7 +4,7 @@
 
 **AssetCache Monitoring – KommunalBIT** is a macOS-based monitoring and logging system for Apple Content Caching on Mac Minis deployed in schools. It collects cache performance metrics every 15 minutes via a LaunchDaemon, writing three CSV files (machine-readable RAW, human-readable HU, and data-minimized CO) to `/Library/Logs/KommunalBIT/`. The primary goal is to distinguish between technical infrastructure issues and organizational/local factors when iOS/iPadOS update delivery is delayed.
 
-**Current version: 1.7.0**  
+**Current version: 1.7.1**  
 **Primary language of documentation and comments: German**  
 **Primary shell: zsh** (ShellCheck uses bash as closest approximation)
 
@@ -203,7 +203,7 @@ cat -A /etc/kommunalbit/schulen.conf | head -5
 | `/usr/local/bin/assetcache_logger.sh` | Monitoring script |
 | `/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist` | LaunchDaemon (900s) |
 | `/Library/Logs/KommunalBIT/` | CSV output directory |
-| `/Library/Logs/KommunalBIT/<PREFIX>_AssetCacheCo_v<VERSION>.csv` | CO output per host (data-minimized, for AI-assisted/external analysis) |
+| `/Library/Logs/KommunalBIT/<PREFIX>_AssetCache_Co_v<VERSION>.csv` | CO output per host (data-minimized, for AI-assisted/external analysis) |
 | `/Library/Logs/KommunalBIT/Archiv/` | Archive for old CSV versions |
 | `/etc/kommunalbit/schulen.conf` | School lookup table (MDM-deployed, not in repo) |
 | `/var/tmp/assetcache_*.tsv` | State files for delta calculations |
