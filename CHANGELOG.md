@@ -13,6 +13,22 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > Tagesgenaue Datumsangaben werden nur dort geführt, wo sie aus Artefakten oder dem Projektverlauf klar belegbar sind.
 > Frühere Versionen sind teilweise historisch rekonstruiert und daher bewusst ohne exaktes Tagesdatum belassen.
 
+## [1.8.0] - 2026-04-28
+
+### Changed
+- Hauptskript architektonisch als RAW-first Pipeline strukturiert.
+- Klare Lesereihenfolge im Skript: Collect → RAW → HU → CO → Write.
+- HU- und CO-Ausgaben sind ausdrücklich als Ableitungen aus der RAW-Datenbasis kommentiert.
+- Schreibreihenfolge der CSV-Dateien klar auf RAW → HU → CO festgelegt.
+- `SCRIPT_VER` auf `1.8.0` gesetzt.
+
+### Notes
+- Keine Änderung an CSV-Schemata, Feldnamen, Feldreihenfolge oder Messlogik.
+- Diese Version bereitet die spätere Weiterentwicklung der HU-Datei zur Bewertungs-/Entscheidungsansicht vor.
+- RAW bleibt die technische Wahrheit; HU und CO sind Views.
+
+---
+
 ## [1.7.1] - 2026-04-27
 
 ### Changed
