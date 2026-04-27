@@ -1,7 +1,7 @@
 # Asset Cache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
-**Aktuelle Version: 1.7.1**
+**Aktuelle Version: 1.8.0**
 
 ---
 
@@ -183,6 +183,8 @@ Das Monitoring erzeugt drei CSV-Dateien mit unterschiedlicher Zielrichtung:
 Die **RAW-CSV** ist streng, nüchtern und möglichst verlustfrei formatiert.  
 Die **HU-CSV** ist darauf optimiert, dass man sie direkt öffnet und zügig versteht.  
 Die **CO-CSV** ist auf sichere, datensparsame Weitergabe optimiert – insbesondere zur Kombination mit einem geeignet reduzierten Relution-/MDM-Export für KI-gestützte Standortanalyse.
+
+RAW ist die primäre Datenquelle; HU und CO werden intern aus RAW abgeleitet, ohne eigene Systemabfragen.
 
 Die Human-readable-Datei soll innerhalb weniger Sekunden Antworten auf drei Fragen geben:
 
