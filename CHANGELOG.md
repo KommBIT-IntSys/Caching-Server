@@ -22,6 +22,11 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - Schreibreihenfolge der CSV-Dateien klar auf RAW → HU → CO festgelegt.
 - `SCRIPT_VER` auf `1.8.0` gesetzt.
 
+### Docs
+- Abschnitt „Interne Datenverarbeitung (RAW-first-Prinzip)" in `docs/AssetCache_Monitoring.md` ergänzt.
+- Veraltete Formulierungen „zwei CSV-Dateien" und „RAW- und HU-CSV" korrigiert.
+- `CLAUDE.md`: Architekturhinweis zur RAW-first-Pipeline ergänzt.
+
 ### Notes
 - Keine Änderung an CSV-Schemata, Feldnamen, Feldreihenfolge oder Messlogik.
 - Diese Version bereitet die spätere Weiterentwicklung der HU-Datei zur Bewertungs-/Entscheidungsansicht vor.
