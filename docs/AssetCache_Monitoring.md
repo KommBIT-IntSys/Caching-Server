@@ -36,7 +36,7 @@ Das Monitoring-Skript arbeitet nach einem klaren, einheitlichen Verarbeitungsmod
 
 2. **RAW-Datenbasis**
    Aus diesem Snapshot wird die vollständige RAW-Datenstruktur aufgebaut.
-   Diese stellt die technische Wahrheit des Systems dar.
+   Diese bildet die vollständige, technische Datenbasis des Systems.
 
 3. **Ableitung von HU und CO**
    Die beiden weiteren CSV-Formate werden ausschließlich aus der RAW-Datenbasis erzeugt:
