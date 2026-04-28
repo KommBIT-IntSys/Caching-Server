@@ -10,6 +10,26 @@
 
 ---
 
+## Analytical Goal
+
+The CSV files are not an end in themselves. The monitoring exists to answer one question per school: is a delay in iOS update adoption caused by infrastructure issues (KommunalBIT's responsibility) or organizational factors (local handling of iPads — charge level, Wi-Fi availability)?
+
+**Analysis workflow:**
+- Cache logger CO-CSV + Relution/MDM iPad export, evaluated one to two weeks after an iOS update event
+- Relution export fields: Organisation | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
+- Device names are intentionally excluded from the analysis (data minimization); analysis is on site level, not individual device level
+- Analysis tool: **Microsoft Copilot** (only AI permitted in the work environment)
+
+**Implications for CO field design:**  
+CO fields must be Copilot/Excel-friendly: flat structure, numeric fields as actual numbers (not formatted strings), no nested values, no IP addresses, no full hostnames.
+
+Do not suggest Python/HTML analysis tooling — Copilot is the analysis layer.  
+Do not suggest merging analysis logic into the logger scripts.
+
+**Deployment scale:** ~40 schools (growing).
+
+---
+
 ## Repository Structure
 
 ```
@@ -233,6 +253,23 @@ Only include: example configurations, anonymized examples, publishable technical
 
 ---
 
+## Constraints for AI Assistance
+
+When working on this codebase, do not:
+
+- Introduce external dependencies or package managers — everything uses macOS-native tools only
+- Propose CSV schema changes without explicit discussion — RAW field stability is critical; the analysis layer depends on schema consistency across all schools
+- Add fields to CO that are explicitly excluded by design (full hostname, IP addresses, cumulative totals, `TotalsSince`, `DefaultIf`, `WifiNoise`, `WifiCCA`) — their absence is an intentional data minimization decision, not an oversight
+- Merge responsibilities across scripts — logger / deployer / uninstaller / archiver are intentionally separate
+- Suggest zsh → bash migration; zsh is intentional on macOS targets
+- "Fix" Relution workarounds (dot → underscore mangling) — these exist for a documented MDM bug, not by accident
+- Suggest Python/HTML tooling for the analysis layer — Microsoft Copilot is the analysis environment; the CO-CSV is designed specifically for that tool
+- Break the RAW-first pipeline order — HU and CO are always derived from RAW, never from independent system calls
+
+**Note on operator input:** The operator may use speech-to-text dictation. Known transcription artifacts: "Cash" → "Cache", "Revolution" → "Relution". Interpret by technical context.
+
+---
+
 ## CSV Fields Reference (RAW/HU: 23 fields · CO: 14 fields)
 
 | Field | RAW format | HU format | CO format |
@@ -268,7 +305,7 @@ Full field descriptions: `docs/AssetCache_Monitoring.md`
 ## Key Design Principles
 
 1. **Separation of concerns**: logger, deployer, uninstaller, and archiver are distinct scripts — do not merge their responsibilities
-2. **RAW is authoritative**: HU is a derived, human-friendly view; never compromise RAW fidelity for cosmetic reasons
+2. **RAW is authoritative**: HU and CO are derived views; never compromise RAW fidelity for cosmetic reasons
 3. **Fault tolerance over completeness**: prefer empty fields to crashes; use timeouts, fallbacks, and graceful degradation
 4. **No external dependencies**: everything uses macOS-native tools; do not introduce package managers or third-party binaries
 5. **Sensitive data stays out**: school configuration is always MDM-deployed, never hardcoded or committed
