@@ -115,6 +115,17 @@ Delta calculations rely on TSV state files under `/var/tmp/`:
 
 When adding a new state file, always add cleanup for it in `uninstall_assetcache_logger.sh`.
 
+### RAW-first pipeline architecture
+The main script processes data in a strict one-way pipeline — do not break this order:
+1. **Collect**: all system measurements run once, results stored in `_`-prefixed intermediate variables
+2. **Build RAW**: canonical RAW field variables are derived from the collected snapshot
+3. **Validate/normalize RAW**: state file is written (delta baseline for next run)
+4. **Build HU from RAW**: all HU fields are derived from RAW variables — no new system calls
+5. **Build CO from RAW**: all CO fields are derived from RAW variables — no new system calls
+6. **Write CSV**: RAW first, then HU, then CO
+
+HU and CO must never trigger additional system measurements. If you add a new field, collect it in step 1 and derive views in steps 4 and 5.
+
 ### Triple CSV output model
 The logger always writes three outputs. Keep them consistent:
 - **RAW**: machine-readable, ISO 8601 timestamps, full precision, empty string for missing values

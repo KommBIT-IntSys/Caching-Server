@@ -22,7 +22,32 @@ Der Schwerpunkt liegt nicht auf dem reinen Sammeln von Zahlen, sondern auf daten
 
 ## Funktionsweise
 
-Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in zwei CSV-Dateien.
+Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in drei CSV-Dateien (RAW, HU und CO).
+
+---
+
+## Interne Datenverarbeitung (RAW-first-Prinzip)
+
+Das Monitoring-Skript arbeitet nach einem klaren, einheitlichen Verarbeitungsmodell:
+
+1. **Collect (Snapshot)**
+   Alle relevanten Systemwerte werden einmalig im selben Durchlauf erfasst
+   (Content Caching, Netzwerk, Apple-Erreichbarkeit, WLAN).
+
+2. **RAW-Datenbasis**
+   Aus diesem Snapshot wird die vollständige RAW-Datenstruktur aufgebaut.
+   Diese stellt die technische Wahrheit des Systems dar.
+
+3. **Ableitung von HU und CO**
+   Die beiden weiteren CSV-Formate werden ausschließlich aus der RAW-Datenbasis erzeugt:
+   - **HU (Human Readable)**: menschenlesbare Darstellung mit Einheiten und vereinfachter Sicht
+   - **CO (Companion / KI-Format)**: datensparsame, maschinenlesbare Auswahl für externe Auswertung
+
+4. **Keine zusätzlichen Systemabfragen**
+   HU und CO führen keine eigenen Messungen durch.
+   Alle drei CSV-Dateien basieren auf demselben technischen Zustand.
+
+Dieses Prinzip stellt sicher, dass alle Ausgaben konsistent sind und sich direkt miteinander vergleichen lassen.
 
 ---
 
@@ -45,14 +70,14 @@ Nicht jedes Skript läuft dauerhaft. Die Betriebs- und Hilfsskripte werden bei B
 
 Das ist das eigentliche Monitoring-Skript.
 
-Es erfasst die relevanten Content-Caching-, Netzwerk-, Reachability- und WLAN-Daten und schreibt sie in die RAW- und HU-CSV-Dateien. Hier entsteht die fachliche Datengrundlage des Projekts.
+Es erfasst die relevanten Content-Caching-, Netzwerk-, Reachability- und WLAN-Daten und schreibt drei CSV-Dateien: RAW als technische Primärquelle, HU und CO als daraus abgeleitete Views. Hier entsteht die fachliche Datengrundlage des Projekts.
 
 **Aufgaben:**
 
 - Metriken aus `AssetCacheManagerUtil` auslesen
 - Delta-Werte berechnen
 - Peer-, Client-, Netzwerk- und Apple-Erreichbarkeitsdaten erfassen
-- RAW- und HU-CSV schreiben
+- RAW-, HU- und CO-CSV schreiben (RAW als Primärquelle, HU und CO als Ableitungen)
 - State-Dateien verwalten
 - CSV-Dateien bei neuen iOS-/iPadOS-Versionen archivieren
 
