@@ -62,7 +62,7 @@ Ausgabe: Drei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/`:
 - `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` – menschenlesbar, mit Einheiten (intern/Sichtprüfung)
 - `<PREFIX>_AssetCache_Co_v<VERSION>.csv` – datensparsam, kein voller Hostname, keine IPs (KI-/externe Auswertung)
 
-**RAW ist die primäre technische Datenbasis; HU und CO werden daraus abgeleitet.** CO ist das bevorzugte Format für KI-gestützte oder externe Auswertung.
+**RAW ist die primäre technische Datenbasis; _HU und _CO werden daraus abgeleitet.** _CO ist das bevorzugte Format für KI-gestützte oder externe Auswertung.
 
 `<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`. Vollständige Feldbeschreibung: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md).
 
