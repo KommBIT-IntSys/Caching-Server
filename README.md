@@ -7,11 +7,22 @@ Besonders interessant, wemn mehrere Standorte abgefragt und verglichen werden k�
 
 Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in drei CSV-Dateien: maschinenlesbar (RAW), menschenlesbar (HU) und datensparsam für KI-gestützte externe Auswertung (CO). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
 
+## Lizenz
+
+Dieses Projekt steht unter der **European Union Public Licence (EUPL) v1.2**.
+
+Kurz gesagt: Nutzung, Anpassung und Weitergabe sind erlaubt. Bei Weitergabe
+oder abgeleiteten Fassungen müssen die Lizenzbedingungen der EUPL eingehalten
+werden.
+
+- Rechtlich maßgeblicher Lizenztext: [`LICENSE`](LICENSE)
+- Verständliche deutsche Kurzfassung: [`LICENSE.de.md`](LICENSE.de.md)
+
 ## Rechtlicher Hinweis
 
 Dieses Repository enthält keine personenbezogenen Daten.
 Die DSGVO‑konforme Nutzung im Betrieb obliegt der verantwortlichen Stelle.
-Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICENSE` und `DISCLAIMER` geregelt.
+Haftungsausschluss: [`DISCLAIMER`](DISCLAIMER)
 
 **Aktuelle Version: [1.8.0](CHANGELOG.md)**
 
