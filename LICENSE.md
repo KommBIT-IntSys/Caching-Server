@@ -1,7 +1,3 @@
-SPDX-License-Identifier: EUPL-1.2
-
----
-
 # Europäische Union Öffentliche Lizenz v. 1.2
 
 **EUPL © die Europäische Union 2007, 2016**
@@ -313,3 +309,5 @@ Versionen der oben genannten Lizenzen aufzunehmen, ohne eine neue EUPL-Version
 vorzulegen, solange die Lizenzen die in Artikel 2 dieser Lizenz gewährten
 Rechte einräumen und den Quellcode, auf den sie sich beziehen, vor
 ausschließlicher Ineignahme schützen.
+
+<!-- SPDX-License-Identifier: EUPL-1.2 -->
