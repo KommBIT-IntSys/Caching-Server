@@ -310,4 +310,3 @@ vorzulegen, solange die Lizenzen die in Artikel 2 dieser Lizenz gewährten
 Rechte einräumen und den Quellcode, auf den sie sich beziehen, vor
 ausschließlicher Ineignahme schützen.
 
-<!-- SPDX-License-Identifier: EUPL-1.2 -->
