@@ -11,7 +11,7 @@ Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching 
 
 Dieses Repository enthält keine personenbezogenen Daten.
 Die DSGVO‑konforme Nutzung im Betrieb obliegt der verantwortlichen Stelle.
-Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICENSE.md` und `DISCLAIMER` geregelt.
+Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICENSE` und `DISCLAIMER` geregelt.
 
 **Aktuelle Version: [1.8.0](CHANGELOG.md)**
 
