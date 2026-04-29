@@ -17,17 +17,7 @@ Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICE
 
 ---
 
-## Repository-Struktur
-
-```
-scripts/    – Monitoring, Deployment, Deinstallation, Archivierung
-launchd/    – LaunchDaemon-Konfiguration
-docs/       – Vollständige technische Dokumentation
-config/     – Beispielkonfiguration
-
----
-
-## Was das Skript erfasst
+# Was das Skript erfasst
 
 - **Peer-Erkennung:** Andere Cache-Server im Netz
 - **Clients:** Aktive Geräte im letzten Intervall, optional als Prozentsatz des bekannten Gerätebestands
