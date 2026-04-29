@@ -5,7 +5,7 @@ set -u
 # Asset Cache Monitoring / Logging
 # Version 1.8.0 (KommunalBIT)
 # SPDX-License-Identifier: EUPL-1.2
-# Copyright (C) 2024 KommunalBIT (Kommunaler Betrieb für Informationstechnik) AöR
+# Copyright (C) 2026 KommunalBIT (Kommunaler Betrieb für Informationstechnik) AöR
 # Licensed under the EUPL, Version 1.2
 # https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
 #
