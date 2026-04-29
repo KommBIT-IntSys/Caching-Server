@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: EUPL-1.2 -->
+
 # Europäische Union Öffentliche Lizenz v. 1.2
 
 **EUPL © die Europäische Union 2007, 2016**
