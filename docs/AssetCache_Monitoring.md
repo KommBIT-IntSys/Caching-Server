@@ -79,15 +79,13 @@ Es erfasst die relevanten Content-Caching-, Netzwerk-, Reachability- und WLAN-Da
 - Peer-, Client-, Netzwerk- und Apple-Erreichbarkeitsdaten erfassen
 - RAW-, HU- und CO-CSV schreiben (RAW als Primärquelle, HU und CO als Ableitungen)
 - State-Dateien verwalten
-- CSV-Dateien bei neuen iOS-/iPadOS-Versionen archivieren
-
-**Nicht seine Aufgabe:** Deployment, Deinstallation oder manuelle Bereinigung.
+- CSV-Dateien bei neuen iOS-/iPadOS-Versionen archivieren.
 
 ---
 
 ### `scripts/deploy_assetcache_logger.sh`
 
-Das ist das Installations- und Bereitstellungsskript für den Relution-Betrieb.
+Das ist das Installations- und Bereitstellungsskript, ausführbar lokal oder über ein MDM.
 
 Es bringt das Zielsystem in den gewünschten Zustand: Hauptskript, LaunchDaemon, Verzeichnisse, Rechte und produktive `schulen.conf`.
 
@@ -100,9 +98,8 @@ Es bringt das Zielsystem in den gewünschten Zustand: Hauptskript, LaunchDaemon,
 - Regelbetrieb aktivieren
 
 **Besonderheit:**  
-Es enthält Workarounds für den bekannten Relution-Bug, bei dem Punkte in bestimmten Strings oder Dateinamen durch Unterstriche ersetzt werden können.
+Es enthält Workarounds für einen derzeitigen Relution-Bug, bei dem Punkte in bestimmten Strings oder Dateinamen durch Unterstriche ersetzt werden können.
 
-**Nicht seine Aufgabe:** fachliche Messlogik.
 
 #### Herkunft und Pflege der Standorttabelle
 
