@@ -13,6 +13,15 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > Tagesgenaue Datumsangaben werden nur dort geführt, wo sie aus Artefakten oder dem Projektverlauf klar belegbar sind.
 > Frühere Versionen sind teilweise historisch rekonstruiert und daher bewusst ohne exaktes Tagesdatum belassen.
 
+## [Unreleased]
+
+### Docs
+- `LICENSE` → `LICENSE.md`: vollständiger amtlicher EUPL-1.2-Text auf Deutsch,
+  Markdown-formatiert mit Artikel-Überschriften und Listenstruktur.
+  SPDX-Header ergänzt für GitHub-Lizenzerkennung.
+
+---
+
 ## [1.8.0] - 2026-04-28
 
 ### Changed
