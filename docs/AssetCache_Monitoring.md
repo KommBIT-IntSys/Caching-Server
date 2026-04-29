@@ -7,7 +7,7 @@ Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.
 
 ## Motivation
 
-In einer Umgebung mit vielen iOS- /iPad-Devices ist Apple Content Caching ein wichtiger technischer Baustein, um Last, Bandbreite und Updateverteilung sinnvoll zu steuern. Da Verzögerungen bei der Installation aktueller iOS-Updates ein Sicherheitsrisiko darstellen, ist es das Ziel, an jeder Schule die bestmöglichen Voraussetzungen zu schaffen, um so viele Geräte wie möglich zeitnah zu aktualisieren.
+In einer Umgebung mit vielen iOS- /iPad-Devices ist Apple Content Caching ein wichtiger technischer Baustein, um Last, Bandbreite und Updateverteilung sinnvoll zu steuern. Da Verzögerungen bei der Installation aktueller iOS-Updates ein Sicherheitsrisiko darstellen, ist es das Ziel, an überall die bestmöglichen Voraussetzungen zu schaffen, um so viele Geräte wie möglich zeitnah zu aktualisieren.
 
 Die entscheidenden Fragen:
 
