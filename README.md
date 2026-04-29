@@ -2,7 +2,8 @@
 
 [![ShellCheck](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml)
 
-Monitoring und Logging des Apple Content Caching in Schulen.
+Monitoring und Logging des Apple Content Caching.
+Besonders interessant, wemn mehrere Standorte abgefragt und verglichen werden können und sollen.
 
 Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in drei CSV-Dateien: maschinenlesbar (RAW), menschenlesbar (HU) und datensparsam für KI-gestützte externe Auswertung (CO). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
 
