@@ -22,7 +22,7 @@ Der Schwerpunkt liegt nicht auf dem reinen Sammeln von Zahlen, sondern auf daten
 
 ## Funktionsweise
 
-Das Skript läuft auf einem Mac Mini mit aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in drei CSV-Dateien (RAW, HU und CO).
+Das Skript läuft auf einem Rechner mit macOS und aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in drei CSV-Dateien (RAW, HU und CO).
 
 ---
 
