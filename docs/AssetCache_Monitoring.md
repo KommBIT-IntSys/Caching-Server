@@ -191,7 +191,7 @@ Pro Host werden drei parallele CSV-Dateien geschrieben, jeweils unter `/Library/
 
 `<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`.
 
-**Grundregel:** RAW ist die fachliche Quelle. HU ist die komfortable Ableitung für die Sichtprüfung. **CO ist das bevorzugte Format für KI-gestützte oder externe Auswertung** – insbesondere in Kombination mit einem datensparsam vorbereiteten Relution-/MDM-Export.
+**Grundregel:** RAW ist die primäre technische Datenbasis; HU und CO werden daraus abgeleitet. **CO ist das bevorzugte Format für KI-gestützte oder externe Auswertung** – insbesondere in Kombination mit einem datensparsam vorbereiteten Relution-/MDM-Export.
 
 Bei Erkennung einer neuen iOS-Version werden alle drei CSV-Dateien automatisch in `/Library/Logs/KommunalBIT/Archiv/` verschoben.
 
