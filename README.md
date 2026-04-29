@@ -23,10 +23,7 @@ Urheberrecht, Nutzungsvorbehalt und Haftungsausschluss sind in den Dateien `LICE
 scripts/    – Monitoring, Deployment, Deinstallation, Archivierung
 launchd/    – LaunchDaemon-Konfiguration
 docs/       – Vollständige technische Dokumentation
-config/     – Beispielkonfiguration schulen.conf
-```
-
-> **Nicht im Repository:** Die produktive Schultabelle (`/etc/kommunalbit/schulen.conf`) mit Schulkürzeln und Gerätezahlen. Sie wird über MDM verteilt und enthält keine personenbezogenen Daten.
+config/     – Beispielkonfiguration
 
 ---
 
