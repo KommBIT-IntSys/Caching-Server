@@ -9,15 +9,13 @@ Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching 
 
 ## Lizenz
 
-Dieses Projekt steht unter der European Union Public Licence (EUPL) Einsatz im öffentlichen Umfeld:
-Es kann innerhalb öffentlicher Einrichtungen produktiv eingesetzt werden.
+Dieses Projekt steht unter der European Union Public Licence (EUPL) v1.2.
 
-Kurz gesagt: Nutzung, Anpassung und Weitergabe sind erlaubt. Bei Weitergabe
-oder abgeleiteten Fassungen müssen die Lizenzbedingungen der EUPL eingehalten
-werden.
+➡ Nutzung, Anpassung und Weitergabe sind erlaubt.
 
-- Rechtlich maßgeblicher Lizenztext: [`LICENSE`](LICENSE)
-- Verständliche deutsche Kurzfassung: [`Lizenz.De.md`](Lizenz.De.md)
+Details:
+- Rechtlich verbindlich: `LICENSE`
+- Verständlich erklärt: `LICENSE.de.md`
 
 ## Rechtlicher Hinweis
 
