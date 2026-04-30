@@ -1,8 +1,7 @@
 # Lizenz – verständliche Kurzfassung
 
-Dieses Projekt steht unter der **European Union Public Licence (EUPL) v1.2**.
-
-Die rechtlich maßgebliche Lizenzdatei ist [`LICENSE`](LICENSE).
+Dieses Projekt steht unter der **European Union Public Licence (EUPL) Dies ist eine vereinfachte, nicht rechtsverbindliche Erläuterung.
+Rechtsverbindlich ist ausschließlich die Datei `LICENSE`
 
 ## Darf ich das verwenden?
 
