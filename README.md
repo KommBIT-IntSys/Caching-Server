@@ -15,7 +15,7 @@ Dieses Projekt steht unter der European Union Public Licence (EUPL) v1.2.
 
 Details:
 - Rechtlich verbindlich: `LICENSE`
-- Verständlich erklärt: `LICENSE.de.md`
+- Verständlich erklärt: [`Lizenz.De.md`](Lizenz.De.md)
 
 ## Rechtlicher Hinweis
 
