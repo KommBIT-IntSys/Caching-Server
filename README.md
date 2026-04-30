@@ -1,6 +1,6 @@
 # AssetCache Monitoring – KommunalBIT
 
-[![ShellCheck](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml)
+[![ShellCheck](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml) [![Lizenz: EUPL-1.2](https://img.shields.io/badge/Lizenz-EUPL--1.2-blue)](LICENSE)
 
 Monitoring und Logging des Apple Content Caching.
 Besonders interessant, wemn mehrere Standorte abgefragt und verglichen werden können und sollen.
