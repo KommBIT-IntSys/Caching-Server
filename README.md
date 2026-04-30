@@ -16,7 +16,7 @@ oder abgeleiteten Fassungen müssen die Lizenzbedingungen der EUPL eingehalten
 werden.
 
 - Rechtlich maßgeblicher Lizenztext: [`LICENSE`](LICENSE)
-- Verständliche deutsche Kurzfassung: [`LICENSE.de.md`](LICENSE.de.md)
+- Verständliche deutsche Kurzfassung: [`Lizenz.De.md`](Lizenz.De.md)
 
 ## Rechtlicher Hinweis
 
