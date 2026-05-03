@@ -164,3 +164,49 @@ done > AssetCache_Co_alle_Standorte.csv
 
 Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei,
 alle Standorte, ein Header.
+
+## PowerShell-Skript: CO-Dateien zusammenführen (Windows 11)
+
+### Variante 1 – Skriptdatei `merge_co_csv.ps1`
+
+Im Verzeichnis mit allen CO-CSV-Dateien ablegen und ausführen:
+
+```powershell
+$output = "AssetCache_Co_alle_Standorte.csv"
+$files  = Get-ChildItem -Filter "*_AssetCache_Co_v*.csv" | Sort-Object Name
+
+$first = $true
+foreach ($file in $files) {
+    if ($first) {
+        Get-Content $file.FullName | Set-Content -Encoding UTF8 $output
+        $first = $false
+    } else {
+        Get-Content $file.FullName | Select-Object -Skip 1 | Add-Content -Encoding UTF8 $output
+    }
+}
+
+Write-Host "Fertig: $output ($($files.Count) Dateien zusammengeführt)"
+```
+
+Ausführen:
+```
+powershell -ExecutionPolicy Bypass -File merge_co_csv.ps1
+```
+
+---
+
+### Variante 2 – PowerShell-Einzeiler
+
+```powershell
+$f = Get-ChildItem "*_AssetCache_Co_v*.csv" | Sort-Object Name; Get-Content $f[0].FullName | Set-Content -Encoding UTF8 AssetCache_Co_alle_Standorte.csv; $f | Select-Object -Skip 1 | ForEach-Object { Get-Content $_.FullName | Select-Object -Skip 1 | Add-Content -Encoding UTF8 AssetCache_Co_alle_Standorte.csv }
+```
+
+---
+
+Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei, alle Standorte, ein Header.
+
+> **Hinweis:** Falls PowerShell die Ausführung von `.ps1`-Dateien blockiert,
+> entweder den Einzeiler direkt ins PowerShell-Fenster einfügen,
+> oder einmalig für den aktuellen Benutzer freigeben:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
