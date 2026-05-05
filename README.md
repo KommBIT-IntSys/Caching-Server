@@ -7,6 +7,32 @@ Besonders interessant, wemn mehrere Standorte abgefragt und verglichen werden k�
 
 Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in drei CSV-Dateien: maschinenlesbar (RAW), menschenlesbar (HU) und datensparsam für KI-gestützte externe Auswertung (CO). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
 
+---
+
+## Caching-Server Monitoring
+
+Dieses Repo enthält Skripte und Anleitungen zur Überwachung des Apple Content-Caching in Organisationen sowie zur Auswertung des iOS-Updatestands über das MDM-System Relution.
+
+### Schnelleinstieg
+
+[HOW TO COPILOT.md](<HOW TO COPILOT.md>)
+
+### Dateien im Überblick
+
+| Datei / Ordner             | Inhalt                                                  |
+|----------------------------|---------------------------------------------------------|
+| `AssetCache_Monitoring.sh` | Hauptskript: erfasst Cache-Metriken der Mac Minis       |
+| `HOW TO COPILOT.md`        | Anleitung zur Auswertung mit Microsoft Copilot          |
+| `Skripte/`                 | Hilfsskripte für Windows und macOS (Merge, Bereinigung) |
+| `Docs/`                    | Technische Hintergrunddokumentation                     |
+
+### Warum MSCopilot?
+
+Nicht weil es die dafür beste KI wäre, sondern weil es derzeit die einzige ist, die der bayerische ÖD erlaubt.
+Allerdings: Gut gepromptet liefert auch diese aussagekräftige und belastbare Ergebnisse.
+
+---
+
 ## Lizenz
 
 Dieses Projekt steht unter der European Union Public Licence (EUPL) v1.2.
