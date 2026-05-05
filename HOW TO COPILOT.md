@@ -8,10 +8,10 @@ Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
    (`*_AssetCache_Co_v*.csv`, siehe Skripte unter dem Prompt für Copilot)
    
 2. **Relution-Export** – Geräteliste ohne Gerätenamen und ohne Schulnamen (siehe Skripte unter dem Prompt für Copilot)
-   (Felder: `model | osVersion | applePendingVersion | status | deviceConnectionState | batteryLevel | organizationName`)
+   (Felder: `model | osVersion | applePendingVersion | lastConnectionDate | deviceConnectionState | status | batteryLevel | organizationName`)
 Geräte auerdem vor dem Export mit folgenden Suchbegriffen filtern:
 SuS Sport Koga Lehrer
-=> LDG-iPads werden nicht berücksichtig, da nicht alle immer vor Ort sind.
+=> LDG-iPads werden nicht berücksichtig, da nicht alle dauerhaft vor Ort sind.
 ---
 
 ## Prompt für Copilot:
@@ -54,8 +54,8 @@ Wichtig: `ClientsCnt` ist keine harte Erfolgsschwelle und darf nicht isoliert be
 
 `ClientsCnt` ist eine Intervall-/Aktivitätskennzahl aus den AssetCache-Logs. Sie zeigt, wie viele
 eindeutige private Client-IP-Adressen im betrachteten Logfenster gesehen wurden. In 15-Minuten-Intervallen
-ist es normal, dass nur ein Teil aller iPads gleichzeiti
-aktiv Cache-Anfragen erzeugt. Ein niedriger `ClientsCnt`-Wert allein beweist daher weder geringe Nutzung
+ist es normal, dass nur ein Teil aller iPads gleichzeitig aktiv Cache-Anfragen erzeugt.
+Ein niedriger `ClientsCnt`-Wert allein beweist daher weder geringe Nutzung
 noch ein organisatorisches Problem.
 
 Verwende `ClientsCnt` nur als Kontextsignal zusammen mit:
