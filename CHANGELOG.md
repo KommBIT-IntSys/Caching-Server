@@ -15,10 +15,42 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [Unreleased]
 
-### Docs
-- `LICENSE` → `LICENSE.md`: vollständiger amtlicher EUPL-1.2-Text auf Deutsch,
-  Markdown-formatiert mit Artikel-Überschriften und Listenstruktur.
-  SPDX-Header ergänzt für GitHub-Lizenzerkennung.
+---
+
+## [1.8.1] - 2026-05-05
+
+### Added
+- `scripts/Merge_Co_CSV.ps1` – CO-CSV-Dateien aller Standorte unter
+  Windows zusammenführen (Header einmalig, Daten akkumuliert)
+- `scripts/Relution-Export-Cleaner_Co.ps1` – Relution-Export unter
+  Windows datenschutzkonform bereinigen: Gerätenamen entfernen,
+  organizationName auf Standortkürzel kürzen, Dateiname mit Datum
+- `scripts/merge_co_csv.sh` – CO-CSV-Dateien unter macOS zusammenführen
+- `scripts/relution_cleaner_co.sh` – Relution-Export unter macOS
+  datenschutzkonform bereinigen
+
+### Changed
+- `COPILOT.md` umbenannt in `HOW TO COPILOT.md` – Zielrichtung
+  gewechselt: von interner KI-Instruktion zu menschenlesbarer
+  Schritt-für-Schritt-Anleitung für Anwender
+- `HOW TO COPILOT.md` vollständig neu strukturiert: Kurzanleitung
+  mit Vorbereitungsschritten, Links zu Skripten, Copilot-Prompt
+- Copilot-Prompt inhaltlich weiterentwickelt: Bewertung des
+  Updatezustands primär über `osVersion` / `applePendingVersion` /
+  `iOSUpdates`, nicht über MDM-Status `COMPLIANT`; `ClientsCnt`
+  als Kontextsignal statt harte Schwelle; explorativer Ansatz
+  mit Hypothesenformulierung statt Urteilen
+- `README.md` überarbeitet: klarere Struktur, Schnelleinstieg
+  direkt zu `HOW TO COPILOT.md`, Abschnitt „Warum MSCopilot?"
+  mit sachlichem Hinweis auf behördliche Einschränkung ergänzt
+
+### Notes
+- Keine Änderung an Hauptskript, Messlogik, CSV-Schemata oder
+  Felddefinitionen
+- Skripte in `scripts/` ergänzen den bestehenden Ordner;
+  Deployment- und Hauptskripte unverändert
+- `HOW TO COPILOT.md` wird mit jedem Auswertungszyklus
+  weiterentwickelt; Prompt-Optimierung ist iterativer Prozess
 
 ---
 

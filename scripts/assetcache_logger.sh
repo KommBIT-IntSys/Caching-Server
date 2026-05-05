@@ -3,7 +3,7 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.8.0 (KommunalBIT)
+# Version 1.8.1 (KommunalBIT)
 # SPDX-License-Identifier: EUPL-1.2
 # Licensed under the EUPL, Version 1.2
 # https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
@@ -20,7 +20,7 @@ set -u
 # - CSV output is fully quoted / CSV-safe, including header
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 
-SCRIPT_VER="1.8.0"
+SCRIPT_VER="1.8.1"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
