@@ -28,9 +28,9 @@ und mit `SiteCode` abgleichen.
 ## Prompt für Copilot:
 
 ```
-Ich übergebe dir zwei Dateien:
+Ich übergebe dir folgende Dateien:
 
-Datei 1 – CO-CSV (Cache-Logger-Daten):
+Datei 1 – AssetCache_Co_alle_Standorte.csv (Cache-Logger-Daten):
 Felder: SiteCode, Timestamp, PeerCnt, ClientsCnt, iOSUpdates, iOSBytes,
 ServedDelta, OriginDelta, CacheUsed, CachePr, DNSRes, AppleReach, AppleTTFB, WiFiSNR
 
@@ -40,7 +40,7 @@ Extrahiere beide Werte getrennt:
 - Geräte gesamt laut Cache = Zahl nach dem Schrägstrich
 Der Quotient aktiv/gesamt zeigt die tatsächliche Cache-Nutzung.
 
-Datei 2 – Relution-Export (iPad-Zustand, bereinigt):
+Datei 2 ff – Geraete_Global_Co_JJJJ-MM-TT.csv (iPad-Zustand, bereinigt):
 Felder: model, osVersion, applePendingVersion, status, deviceConnectionState,
 batteryLevel, organizationName
 
