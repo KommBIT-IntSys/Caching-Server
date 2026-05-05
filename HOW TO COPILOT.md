@@ -74,10 +74,11 @@ Verwende `ClientsCnt` nur als Kontextsignal zusammen mit:
 Interpretationslogik:
 
 - `ClientsCnt` niedrig + `ServedDelta` niedrig + viele Geräte nicht aktuell + alte `lastConnectionDate`
-+ niedrige Akkustände = möglicher Hinweis auf organisatorische Probleme, zum Beispiel Geräte nicht ausreichend
-geladen, nicht regelmäßig online oder nicht im Updatefenster erreichbar.
+   + niedrige Akkustände = möglicher Hinweis auf organisatorische Probleme, zum Beispiel Geräte nicht ausreichend
+   geladen, nicht regelmäßig online oder nicht im Updatefenster erreichbar.
 - `ClientsCnt` niedrig + `ServedDelta` hoch = kein direkter Fehler; der Cache kann trotzdem relevant ausgeliefert haben.
-- `ClientsCnt` hoch + `ServedDelta` niedrig = prüfen, ob nur kleine Requests stattfinden oder ob die betrachtete Updatephase nicht aktiv war.
+- `ClientsCnt` hoch + `ServedDelta` niedrig = prüfen, ob nur kleine Requests stattfinden
+   oder ob die betrachtete Updatephase nicht aktiv war.
 - `ClientsCnt` niedrig allein = kein Beweis für ein Problem.
 
 Setze keine harte Schwelle wie „unter 50 % = kritisch“. Bewerte stattdessen Muster und Zusammenhänge.
