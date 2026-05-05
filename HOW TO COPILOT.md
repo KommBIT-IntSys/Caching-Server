@@ -273,7 +273,7 @@ Write-Host "Fertig: $output_file ($($cleaned.Count) Geräte)"
 
 Ausführen:
 ```
-powershell -ExecutionPolicy Bypass -File Relution-Export-Cleaner_Co.ps1
+Rechtsklick => Mit PowerShell ausführen
 ```
 
 Ergebnis: `Geraete_Global_Co_JJJJ-MM-TT.csv` – ohne Gerätenamen,
