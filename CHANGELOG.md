@@ -13,8 +13,6 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > Tagesgenaue Datumsangaben werden nur dort geführt, wo sie aus Artefakten oder dem Projektverlauf klar belegbar sind.
 > Frühere Versionen sind teilweise historisch rekonstruiert und daher bewusst ohne exaktes Tagesdatum belassen.
 
-## [Unreleased]
-
 ---
 
 ## [1.8.1] - 2026-05-05
