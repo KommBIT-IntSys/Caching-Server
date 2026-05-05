@@ -312,8 +312,4 @@ chmod +x relution_cleaner_co.sh
 ```
 
 Ergebnis: `Geraete_Global_Co_JJJJ-MM-TT.csv` – ohne Gerätenamen,
-`organizationName` reduziert auf Standortkürzel (z. B. `EPS`).
-
-> **Hinweis HHS:** Falls der Standort in Relution als `HHS-N` und `HHS-W`
-> geführt wird, beide Einträge vor der Übergabe manuell auf `HHS` vereinheitlichen,
-> damit der Join mit dem `SiteCode` der CO-CSV funktioniert.
+`organizationName` reduziert auf Standortkürzel (z. B. `ABC`)
