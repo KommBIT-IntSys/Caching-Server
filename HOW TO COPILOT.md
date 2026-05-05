@@ -17,163 +17,85 @@ SuS Sport Koga Lehrer
 ## Prompt für Copilot:
 
 ```
-Ich übergebe dir folgende Dateien:
+Bitte analysiere die bereitgestellten Dateien `AssetCache_Co_alle_Standorte.csv` und `Geraete_Global_Co_YYYY-MM-DD.csv` gemeinsam.
 
-AssetCache_Co_alle_Standorte.csv (Cache-Logger-Daten):
-Felder: SiteCode, Timestamp, PeerCnt, ClientsCnt, iOSUpdates, iOSBytes,
-ServedDelta, OriginDelta, CacheUsed, CachePr, DNSRes, AppleReach, AppleTTFB, WiFiSNR
+Ziel der Analyse ist es, datenbasiert zu bewerten, welche Schulstandorte im Zusammenhang mit iOS-/iPadOS-Updates zuerst betrachtet werden sollten. Dabei soll unterschieden werden, ob Auffälligkeiten eher auf Infrastruktur-/Cache-/Netzwerkprobleme oder eher auf organisatorische Ursachen hindeuten, zum Beispiel Geräte nicht ausreichend geladen, nicht regelmäßig online oder nicht im geeigneten Zeitfenster erreichbar.
 
-ClientsCnt hat das Format "aktiv/gesamt" (z. B. "14/122").
-Extrahiere beide Werte getrennt:
-- aktive Clients = Zahl vor dem Schrägstrich
-- Geräte gesamt laut Cache = Zahl nach dem Schrägstrich
-Der Quotient aktiv/gesamt zeigt die tatsächliche Cache-Nutzung.
+Wichtig: Der MDM-Status `COMPLIANT` darf nicht mit „aktuelles iOS/iPadOS“ gleichgesetzt werden.
 
-Geraete_Global_Co_JJJJ-MM-TT.csv (iPad-Zustand, bereinigt):
-Felder: model, osVersion, applePendingVersion, status, deviceConnectionState,
-batteryLevel, organizationName
+Bewerte den Updatezustand primär anhand dieser Felder:
 
-Das Feld organizationName enthält bereits nur das Schulkürzel (z. B. "EPS").
-Verknüpfe direkt mit SiteCode aus der CO-CSV – kein Extrahieren nötig.
+- `osVersion`
+- `applePendingVersion`
+- `iOSUpdates` aus der AssetCache-Co-Datei
 
-Hinweis: Falls HHS-N und HHS-W als separate Einträge vorhanden sind,
-beide als "HHS" behandeln und zusammenführen.
+Leite aus `iOSUpdates` die aktuell erwartete Zielversion beziehungsweise die relevanten aktuellen iOS-/iPadOS-Versionen ab. Verwende `osVersion` als Hauptfeld, um zu bestimmen, ob ein Gerät bereits auf Zielversion ist oder darunter liegt. Verwende `applePendingVersion`, um zu erkennen, ob ein Update bereits als ausstehend erkannt wurde.
 
----
+Der MDM-Status `status` darf separat ausgewertet werden, aber nur als MDM-/Compliance-Indikator. Er ist kein Ersatz für die OS-Versionsbewertung. Ein Gerät kann MDM-seitig `COMPLIANT` sein, obwohl es nicht auf der neuesten OS-Version ist. Umgekehrt kann ein Gerät nicht compliant sein, obwohl die OS-Version aktuell ist.
 
-SCOPE
+Stelle deshalb getrennt dar:
 
-Ausgewertet werden ausschließlich Standorte, die in BEIDEN Dateien
-vorhanden sind (SiteCode in CO-CSV ∩ organizationName in Relution-Export).
+- Geräte auf Zielversion
+- Geräte unter Zielversion
+- Geräte mit `applePendingVersion`
+- Geräte mit älteren Major-Versionen
+- optional separat: MDM-Status `COMPLIANT` / `NONCOMPLIANT`
 
-Standorte, die nur in einer Datei vorkommen:
-- Nur in Relution (kein Mac Mini / keine CO-Daten): aus der Analyse
-  ausschließen, nicht bewerten, nicht in der Tabelle führen.
-- Nur in CO-CSV (kein Relution-Eintrag): als Datenlücke vermerken.
+Wichtig: `ClientsCnt` ist keine harte Erfolgsschwelle und darf nicht isoliert bewertet werden.
 
-Vor der Ausgabe bitte prüfen: Wie viele Standorte sind in beiden
-Dateien vorhanden? Diese Zahl muss mit der Zeilenanzahl der
-Standortübersicht übereinstimmen.
+`ClientsCnt` ist eine Intervall-/Aktivitätskennzahl aus den AssetCache-Logs. Sie zeigt, wie viele eindeutige private Client-IP-Adressen im betrachteten Logfenster gesehen wurden. In 15-Minuten-Intervallen ist es normal, dass nur ein Teil aller iPads gleichzeitig aktiv Cache-Anfragen erzeugt. Ein niedriger `ClientsCnt`-Wert allein beweist daher weder geringe Nutzung noch ein organisatorisches Problem.
 
----
+Verwende `ClientsCnt` nur als Kontextsignal zusammen mit:
 
-KONTEXT
+- `ServedDelta`
+- `OriginDelta`
+- `osVersion`
+- `applePendingVersion`
+- `lastConnectionDate`
+- `batteryLevel`
+- `DNSRes`
+- `AppleReach`
+- `AppleTTFB`
+- `CachePr`
 
-Die CO-CSV enthält 15-Minuten-Messwerte der Apple Content Caching Server
-(Mac Minis) an Schulen. Sie zeigt, ob und wie intensiv der lokale Cache
-genutzt wurde, wie viel iOS-Software er geliefert hat, und ob die
-Netzwerkanbindung zum Apple CDN unauffällig war.
+Interpretationslogik:
 
-Der Relution-Export zeigt den Zustand der iPads an jedem Standort:
-welche iOS-Version installiert ist, ob ein Update aussteht, ob Geräte
-verbunden oder inaktiv waren, und wie der Ladezustand war.
+- `ClientsCnt` niedrig + `ServedDelta` niedrig + viele Geräte nicht aktuell + alte `lastConnectionDate` + niedrige Akkustände = möglicher Hinweis auf organisatorische Probleme, zum Beispiel Geräte nicht ausreichend geladen, nicht regelmäßig online oder nicht im Updatefenster erreichbar.
+- `ClientsCnt` niedrig + `ServedDelta` hoch = kein direkter Fehler; der Cache kann trotzdem relevant ausgeliefert haben.
+- `ClientsCnt` hoch + `ServedDelta` niedrig = prüfen, ob nur kleine Requests stattfinden oder ob die betrachtete Updatephase nicht aktiv war.
+- `ClientsCnt` niedrig allein = kein Beweis für ein Problem.
 
-Das Ziel der Analyse ist es, für jeden Standort zu unterscheiden:
-- Technische Ursachen für Update-Rückstand:
-  Cache nicht aktiv, schlechte Netzanbindung (DNSRes=0, AppleReach=0,
-  hoher AppleTTFB), kein ServedDelta trotz relevantem Zeitraum
-- Organisatorische Ursachen:
-  iPads offline (deviceConnectionState = INACTIVE), niedrige Batterie,
-  Update steht aus (applePendingVersion nicht leer), obwohl Cache
-  technisch aktiv war
+Setze keine harte Schwelle wie „unter 50 % = kritisch“. Bewerte stattdessen Muster und Zusammenhänge.
 
----
+Bitte liefere die Analyse standortweise mit folgenden Bestandteilen:
 
-WICHTIG ZUR AUSGABE
+1. Kurzbewertung je Standort
+   - Updatezustand
+   - Pending-Updates
+   - ältere Major-Versionen
+   - Akku-/Online-Auffälligkeiten
+   - Cache-Aktivität
+   - Infrastrukturindikatoren
 
-Die Standortübersicht muss alle Standorte im gemeinsamen Scope
-vollständig ausgeben – keine Kürzung, kein Abbruch.
-Falls die Tabelle in der Ausgabe zu lang wird: in zwei Blöcken
-ausgeben (A–M, N–Z), aber niemals abschneiden.
-Aussagen über „kein technischer Problemstandort" o. ä. sind nur
-zulässig, wenn alle Standorte vollständig ausgewertet wurden.
+2. Priorisierte Standortliste
+   - höchste Priorität zuerst
+   - mit kurzer Begründung
+   - getrennt nach vermuteter Ursache:
+     - eher Infrastruktur / Cache / Netzwerk
+     - eher Organisation / Geräteprozess
+     - unklar / weiter prüfen
 
----
+3. Keine Schuldzuweisung
+   - Formuliere sachlich.
+   - Ziel ist Ursachenklärung und Unterstützung, nicht Kontrolle oder Vorwurf.
 
-ANALYSE-AUFGABEN
+4. Methodische Hinweise
+   - Weise auf Unsicherheiten hin, zum Beispiel wenn Relution-Daten nur eine Momentaufnahme sind.
+   - Weise darauf hin, wenn Cache-Daten und Relution-Daten zeitlich nicht perfekt deckungsgleich sind.
+   - Weise darauf hin, wenn Werte nur gemeinsam interpretierbar sind.
 
-1. STANDORTÜBERSICHT (eine Zeile pro Schule)
-   Erstelle eine Tabelle mit folgenden Spalten:
-   - Schulkürzel (SiteCode)
-   - Geräte gesamt
-   - Geräte COMPLIANT (aktuelles iOS)
-   - Geräte NONCOMPLIANT
-   - Geräte INACTIVE
-   - Geräte mit ausstehendem Update (applePendingVersion nicht leer)
-   - Anteil Geräte mit Akku < 20 % (zum Zeitpunkt des Exports)
-   - Durchschnittlicher ServedDelta im Betrachtungszeitraum (aus CO-CSV)
-   - Durchschnittlicher OriginDelta im Betrachtungszeitraum (aus CO-CSV)
-   - Durchschnittlicher AppleTTFB in ms (aus CO-CSV)
-   - DNSRes und AppleReach: Anteil der Messungen mit Wert 1 (in %)
-   - Auffälligkeit (deine Einschätzung: technisch / organisatorisch / unauffällig)
-
-2. AUFFÄLLIGE STANDORTE
-   Identifiziere Standorte, bei denen Update-Rückstand wahrscheinlich ist.
-   Trenne dabei:
-
-   A) Technisch auffällig:
-      - DNSRes oder AppleReach: Anteil der Messungen mit Wert 1 unter 80 %
-      - AppleTTFB∅ dauerhaft über 500 ms
-      - ServedDelta∅ = 0 UND OriginDelta∅ = 0 über den gesamten Zeitraum:
-        Cache-Dienst war mit hoher Wahrscheinlichkeit nicht aktiv.
-        Klassifikation: TECHNISCH, unabhängig vom Gerätezustand.
-        Handlungsvorschlag: Cache-Dienst auf dem Mac Mini prüfen / neu starten.
-      - ServedDelta dauerhaft 0, obwohl iOSUpdates einen relevanten
-        Versionsstand zeigt (und OriginDelta > 0)
-
-   B) Organisatorisch auffällig:
-      - Über 30 % der Geräte INACTIVE
-      - Über 20 % der Geräte mit Akku < 20 %
-      - Über 20 % der Geräte mit gesetztem applePendingVersion,
-        obwohl Cache technisch aktiv war (ServedDelta∅ > 0)
-      - ClientsCnt-Quotient (aktiv/gesamt) dauerhaft unter 50 %
-        trotz technisch funktionierendem Cache
-
-   C) Gemischt oder unklar:
-      - Kombination beider Muster, oder zu wenig Daten für eindeutige Aussage
-
-3. STANDORT-STECKBRIEFE (nur für auffällige Standorte)
-   Pro auffälligem Standort: ein kurzer Absatz mit
-   - beobachtetem Muster in den Cache-Daten
-   - Situation der iPads laut Relution-Export
-   - wahrscheinlichster Ursache (technisch / organisatorisch)
-   - konkretem Handlungsvorschlag
-
-4. GESAMTBILD
-   Kurze Zusammenfassung (max. 10 Sätze):
-   - Wie viele Standorte sind unauffällig?
-   - Wo liegt der Schwerpunkt der Probleme (technisch oder organisatorisch)?
-   - Gibt es ein Muster, das mehrere Schulen betrifft?
-   - Welche zwei oder drei Standorte haben den dringendsten Handlungsbedarf?
-
----
-
-HINWEISE ZUR INTERPRETATION
-
-- ServedDelta = 0 über viele Messungen bedeutet: Cache hat in diesem
-  Zeitraum nichts ausgeliefert. Das kann normal sein (kein Update-Anlass),
-  ist aber in Kombination mit NONCOMPLIANT-Geräten ein Warnsignal.
-
-- ServedDelta∅ = 0 UND OriginDelta∅ = 0: Cache-Dienst war nicht aktiv –
-  weder lokale Auslieferung noch Nachladen vom Origin.
-  Klassifikation: TECHNISCH, unabhängig vom Gerätezustand.
-
-- OriginDelta hoch, ServedDelta niedrig: Cache lädt nach, hat aber
-  noch wenig lokal verteilt – möglicherweise frühe Update-Phase.
-
-- CachePr > 70: Cache steht unter Speicherdruck. Kann Effizienz
-  beeinträchtigen.
-
-- INACTIVE-Geräte zählen bei ClientsCnt nicht mit – das erklärt
-  niedrige Quotienten auch bei technisch funktionierendem Cache.
-
-- applePendingVersion gesetzt = Gerät weiß von Update, hat es aber
-  noch nicht installiert. Häufig: Akku zu niedrig, Gerät nicht
-  über Nacht eingesteckt, oder Gerät war nicht im WLAN.
-
-- Bitte keine Rückschlüsse auf einzelne Geräte ziehen.
-  Die Analyse erfolgt ausschließlich auf Standortebene (aggregiert
-  pro Schulkürzel).
+Erstelle am Ende eine knappe Handlungsempfehlung:
+Welche Standorte sollten zuerst angesprochen oder technisch geprüft werden, und warum?
 ```
 
 ---
