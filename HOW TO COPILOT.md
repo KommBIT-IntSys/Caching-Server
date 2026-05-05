@@ -1,4 +1,5 @@
-Kurzanleitung zur standortbasierten Auswertung des iOS-Updatestands
+## Kurzanleitung
+zur standortbasierten Auswertung des iOS-Updatestands
 mit Microsoft Copilot. Ziel: für jeden Standort einschätzen,
 ob Update-Rückstände technische oder organisatorische Ursachen haben.
 
@@ -33,7 +34,7 @@ Gerätenamen entfernen, Organisationsname auf Kürzel kürzen.
 
 ---
 
-## Prompt für Microsoft Copilot
+## Prompt für MS Copilot
 
 ---
 
