@@ -42,6 +42,17 @@ Das Schulkürzel steht in organizationName in Klammern am Anfang,
 z. B. "(GYF) Gymnasium Friderici..." → Kürzel: GYF.
 Verknüpfe beide Dateien über dieses Kürzel mit dem Feld SiteCode aus der CO-CSV.
 
+Ausgewertet werden ausschließlich Standorte, die in BEIDEN Dateien
+vorhanden sind (SiteCode in CO-CSV ∩ organizationName in Relution-Export).
+
+Standorte, die nur in einer Datei vorkommen:
+- Nur in Relution (kein Mac Mini / keine CO-Daten): aus der Analyse
+  ausschließen, nicht bewerten, nicht in der Tabelle führen.
+- Nur in CO-CSV (kein Relution-Eintrag): als Datenlücke vermerken.
+
+Vor der Ausgabe bitte prüfen: Wie viele Standorte sind in beiden
+Dateien vorhanden? Diese Zahl muss mit der Zeilenanzahl der
+Standortübersicht übereinstimmen.
 ---
 
 KONTEXT
@@ -63,6 +74,15 @@ Das Ziel der Analyse ist es, für jeden Standort zu unterscheiden:
   iPads offline (deviceConnectionState = INACTIVE), niedrige Batterie,
   Update steht aus (applePendingVersion nicht leer), obwohl Cache
   technisch aktiv war
+
+WICHTIG ZUR AUSGABE
+
+Die Standortübersicht muss alle Standorte im gemeinsamen Scope
+vollständig ausgeben – keine Kürzung, kein Abbruch.
+Falls die Tabelle in der Ausgabe zu lang wird: in zwei Blöcken
+ausgeben (A–M, N–Z), aber niemals abschneiden.
+Aussagen über „kein technischer Problemstandort" o. ä. sind nur
+zulässig, wenn alle Standorte vollständig ausgewertet wurden.
 
 ---
 
@@ -92,6 +112,11 @@ ANALYSE-AUFGABEN
       - AppleTTFB dauerhaft über 500 ms
       - ServedDelta dauerhaft 0, obwohl iOSUpdates einen relevanten
         Versionsstand zeigt
+      - ServedDelta∅ = 0 UND OriginDelta∅ = 0 über den gesamten Zeitraum:
+        Cache-Dienst war mit hoher Wahrscheinlichkeit nicht aktiv
+        (kein lokales Ausliefern, kein Nachladen vom Origin).
+        Dies ist unabhängig vom Gerätezustand als TECHNISCH zu klassifizieren.
+        Handlungsvorschlag: Cache-Dienst auf dem Mac Mini prüfen / neu starten.
 
    B) Organisatorisch auffällig:
       - Viele Geräte INACTIVE oder mit niedrigem Akku
