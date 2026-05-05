@@ -2,15 +2,17 @@
 
 ## Verwendung
 
-Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
+Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben.
+Vorbereitung in dieser Reihenfolge:
 
-1. **CO-CSV** – zusammengeführte Cache-Logger-Daten aller Standorte
-   (`*_AssetCache_Co_v*.csv`, idealerweise als eine zusammengeführte Datei)
-2. **Relution-Export** – Geräteliste ohne Gerätenamen
-   (Felder: `model | osVersion | applePendingVersion | status | deviceConnectionState | batteryLevel | organizationName`)
+1. CO-CSV-Dateien zusammenführen (Shell- oder PowerShell-Skript, siehe unten)
+   → Ergebnis: `AssetCache_Co_alle_Standorte.csv`
 
-> Das Feld `lastIpAddress` im Relution-Export wird nicht benötigt
-> und kann vor der Übergabe entfernt werden.
+2. Relution-Export aus dem MDM exportieren, bereinigen
+   (`Relution-Export-Cleaner_Co.ps1` ausführen, siehe unten)
+   → Ergebnis: `Geraete_Global_Co_YYYY-MM-DD.csv`
+
+3. Beide Dateien zusammen mit diesem Prompt an Microsoft Copilot übergeben.
 
 ---
 
@@ -30,17 +32,22 @@ und mit `SiteCode` abgleichen.
 ```
 Ich übergebe dir zwei Dateien:
 
-Datei 1 – CO-CSV (Cache-Logger-Daten):
+Datei 1 – CO-CSV:
+Zusammengeführte Cache-Logger-Daten aller Standorte.
+Dateiname: AssetCache_Co_alle_Standorte.csv
 Felder: SiteCode, Timestamp, PeerCnt, ClientsCnt, iOSUpdates, iOSBytes,
 ServedDelta, OriginDelta, CacheUsed, CachePr, DNSRes, AppleReach, AppleTTFB, WiFiSNR
 
-Datei 2 – Relution-Export (iPad-Zustand):
-Felder: model, osVersion, applePendingVersion, status, deviceConnectionState,
-batteryLevel, organizationName
+ClientsCnt hat das Format "aktiv/gesamt" (z. B. "14/122").
+Extrahiere beide Werte getrennt für die Analyse.
 
-Das Schulkürzel steht in organizationName in Klammern am Anfang,
-z. B. "(GYF) Gymnasium Friderici..." → Kürzel: GYF.
-Verknüpfe beide Dateien über dieses Kürzel mit dem Feld SiteCode aus der CO-CSV.
+Datei 2 – Relution-Export (bereinigt):
+Dateiname: Geraete_Global_Co_YYYY-MM-DD.csv
+Felder: model, osVersion, applePendingVersion, lastConnectionDate,
+deviceConnectionState, status, batteryLevel, organizationName
+
+organizationName enthält bereits nur das Schulkürzel (z. B. "EPS").
+Verknüpfe direkt mit SiteCode aus der CO-CSV.
 
 ---
 
@@ -88,16 +95,16 @@ ANALYSE-AUFGABEN
    Trenne dabei:
 
    A) Technisch auffällig:
-      - DNSRes oder AppleReach wiederholt 0
-      - AppleTTFB dauerhaft über 500 ms
-      - ServedDelta dauerhaft 0, obwohl iOSUpdates einen relevanten
-        Versionsstand zeigt
+      - DNSRes oder AppleReach: Anteil der Messungen mit Wert 1 unter 80 %
+      - AppleTTFB∅ über 500 ms
+      - ServedDelta∅ = 0 über den gesamten Betrachtungszeitraum
+        (auch wenn OriginDelta = 0: Cache-Dienst möglicherweise inaktiv)
 
    B) Organisatorisch auffällig:
-      - Viele Geräte INACTIVE oder mit niedrigem Akku
-      - Viele Geräte mit ausstehendem Update (applePendingVersion gesetzt),
-        obwohl Cache technisch aktiv war (ServedDelta > 0)
-      - ClientsCnt dauerhaft niedrig relativ zur bekannten Gerätebasis
+      - Über 20 % der Geräte mit Akku unter 20 %
+      - Über 30 % der Geräte INACTIVE
+      - Über 20 % der Geräte mit gesetztem applePendingVersion,
+        obwohl ServedDelta > 0
 
    C) Gemischt oder unklar:
       - Kombination beider Muster, oder zu wenig Daten für eindeutige Aussage
@@ -120,12 +127,12 @@ ANALYSE-AUFGABEN
 
 HINWEISE ZUR INTERPRETATION
 
-- ServedDelta = 0 über viele Messungen bedeutet: Cache hat in diesem
-  Zeitraum nichts ausgeliefert. Das kann normal sein (kein Update-Anlass),
-  ist aber in Kombination mit NONCOMPLIANT-Geräten ein Warnsignal.
+- ServedDelta∅ = 0 UND OriginDelta∅ = 0: Cache-Dienst war
+  wahrscheinlich nicht aktiv. Netzanbindung separat prüfen.
 
-- OriginDelta hoch, ServedDelta niedrig: Cache lädt nach, hat aber
-  noch wenig lokal verteilt – möglicherweise frühe Update-Phase.
+- OriginDelta∅ hoch, ServedDelta∅ niedrig: Cache lädt aktiv nach,
+  hat aber wenig lokal verteilt. Typisch für frühe Update-Phase
+  oder zu wenige aktive Clients.
 
 - CachePr > 70: Cache steht unter Speicherdruck. Kann Effizienz
   beeinträchtigen.
@@ -136,6 +143,15 @@ HINWEISE ZUR INTERPRETATION
 - applePendingVersion gesetzt = Gerät weiß von Update, hat es aber
   noch nicht installiert. Häufig: Akku zu niedrig, Gerät nicht
   über Nacht eingesteckt, oder Gerät war nicht im WLAN.
+
+- ClientsCnt "aktiv/gesamt": Der Quotient zeigt, wie viele Geräte
+  den Cache tatsächlich genutzt haben. Dauerhaft niedrige Quotienten
+  trotz funktionierendem Cache deuten auf INACTIVE-Geräte oder
+  Ladeprobleme.
+
+- Standorte mit zwei Teilkürzeln (z. B. HHS-N / HHS-W) wurden
+  vor der Analyse zu einem Kürzel zusammengeführt und sind
+  als ein Standort zu behandeln.
 
 - Bitte keine Rückschlüsse auf einzelne Geräte ziehen.
   Die Analyse erfolgt ausschließlich auf Standortebene (aggregiert
@@ -267,6 +283,10 @@ Ausführen:
 powershell -ExecutionPolicy Bypass -File Relution-Export-Cleaner_Co.ps1
 ```
 
-Ergebnis: `Geraete_Global_Co_<Datum>.csv` – ohne Gerätenamen,
-`organizationName` auf Schulkürzel reduziert, bereit für den Copilot-Join.
+Ergebnis: `Geraete_Global_Co_YYYY-MM-DD.csv` – ohne Gerätenamen,
+`organizationName` reduziert auf Schulkürzel (z. B. "EPS").
+
+> **Hinweis HHS:** Falls ein Standort in Relution als HHS-N und HHS-W
+> geführt wird, beide vor der Übergabe manuell auf "HHS" vereinheitlichen,
+> damit der Join mit dem SiteCode der CO-CSV funktioniert.
 
