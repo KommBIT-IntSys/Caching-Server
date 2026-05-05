@@ -6,9 +6,11 @@ Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
 
 1. **CO-CSV** – zusammengeführte Cache-Logger-Daten aller Standorte
    (`*_AssetCache_Co_v*.csv`, siehe Skripte unter dem Prompt für Copilot)
+   
 2. **Relution-Export** – Geräteliste ohne Gerätenamen und ohne Schulnamen (siehe Skripte unter dem Prompt für Copilot)
    (Felder: `model | osVersion | applePendingVersion | status | deviceConnectionState | batteryLevel | organizationName`)
-
+   Geräte mit folgenden Suchbegriffen filtern: SuS Sport Koga Lehrer
+   => LDG-iPads werden nicht berücksichtig, da nicht alle immer vor Ort sind.
 ---
 
 ## Prompt für Copilot:
