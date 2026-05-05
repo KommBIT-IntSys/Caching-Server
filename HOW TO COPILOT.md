@@ -105,7 +105,11 @@ Interpretationslogik:
    oder ob die betrachtete Updatephase nicht aktiv war.
 - `ClientsCnt` niedrig allein = kein Beweis für ein Problem.
 
-Setze keine harte Schwelle wie „unter 50 % = kritisch“. Bewerte stattdessen Muster und Zusammenhänge.
+Setze keine harte Schwelle wie „unter 50 % = kritisch”. Bewerte stattdessen Muster und Zusammenhänge.
+
+Diese Auswertung ist eine explorative Bestandsaufnahme, keine abschließende Bewertung.
+Ziel ist es, durch wiederholte Auswertungsrunden ein belastbares Bild zu entwickeln –
+Schwellenwerte und Bewertungsmatrizen entstehen erst nach mehreren Zyklen mit echten Daten.
 
 Bitte liefere die Analyse standortweise mit folgenden Bestandteilen:
 
@@ -133,8 +137,13 @@ Bitte liefere die Analyse standortweise mit folgenden Bestandteilen:
    - Weise auf Unsicherheiten hin, zum Beispiel wenn Relution-Daten nur eine Momentaufnahme sind.
    - Weise darauf hin, wenn Cache-Daten und Relution-Daten zeitlich nicht perfekt deckungsgleich sind.
    - Weise darauf hin, wenn Werte nur gemeinsam interpretierbar sind.
+   - Unterscheide belegte Befunde (mehrere konsistente Signale) von Vermutungen
+     (einzelne Beobachtung oder widersprüchliche Signale).
+     Markiere Vermutungen ausdrücklich als Hypothese.
 
-Erstelle am Ende eine knappe Handlungsempfehlung:
-Welche Standorte sollten zuerst angesprochen oder technisch geprüft werden, und warum?
+Erstelle am Ende eine vorläufige Einschätzung:
+Welche Standorte zeigen die auffälligsten Muster und sollten zuerst näher betrachtet werden?
+Formuliere als Hypothesen, nicht als Urteile. Halte fest, welche Signale diese Einschätzung
+stützen und was noch unklar bleibt.
 ```
 
