@@ -9,20 +9,6 @@ Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
 2. **Relution-Export** – Geräteliste ohne Gerätenamen
    (Felder: `model | osVersion | applePendingVersion | status | deviceConnectionState | batteryLevel | organizationName`)
 
-> Das Feld `lastIpAddress` im Relution-Export wird nicht benötigt
-> und kann vor der Übergabe entfernt werden.
-
----
-
-## Hinweis: Join-Schlüssel
-
-Die CO-CSV enthält das Feld `SiteCode` (z. B. `GYF`).  
-Im Relution-Export steht das Schulkürzel in Klammern am Anfang von `organizationName`,  
-z. B. `(GYF) Gymnasium Friderici...`.
-
-Für den Join: Kürzel aus `organizationName` extrahieren (Inhalt der ersten Klammer)
-und mit `SiteCode` abgleichen.
-
 ---
 
 ## Prompt für Copilot:
