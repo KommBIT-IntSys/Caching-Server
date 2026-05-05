@@ -324,6 +324,9 @@ Dieses Feld verbindet technische Aktivität mit dem organisatorischen Standortko
 **Sonderfall:**  
 Wenn ein Hostname keiner bekannten Schule zugeordnet ist, wird nur die erkennbare aktive Client-Zahl protokolliert, ohne Prozentbezug.
 
+**Hinweis:**
+Dies ist eine Momentaktivität aus Logs, nicht identisch mit Updateerfolg; hohe ServedDelta bei niedriger ClientsCnt kann durchaus plausibel sein.
+
 **Darstellung:**
 - **RAW:** `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv`, wenn Standort unbekannt
 - **HU:** Prozentsatz (z. B. `3.3%`) oder nur `aktiv`, wenn Standort unbekannt
