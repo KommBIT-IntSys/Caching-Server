@@ -209,4 +209,3 @@ Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei, alle Standorte, ein
 > entweder den Einzeiler direkt ins PowerShell-Fenster einfügen,
 > oder einmalig für den aktuellen Benutzer freigeben:
 > `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
-
