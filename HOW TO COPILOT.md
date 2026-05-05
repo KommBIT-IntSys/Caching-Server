@@ -5,8 +5,8 @@
 Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
 
 1. **CO-CSV** – zusammengeführte Cache-Logger-Daten aller Standorte
-   (`*_AssetCache_Co_v*.csv`, idealerweise als eine zusammengeführte Datei)
-2. **Relution-Export** – Geräteliste ohne Gerätenamen
+   (`*_AssetCache_Co_v*.csv`, siehe Skripte unter dem Prompt für Copilot)
+2. **Relution-Export** – Geräteliste ohne Gerätenamen und ohne Schulnamen (siehe Skripte unter dem Prompt für Copilot)
    (Felder: `model | osVersion | applePendingVersion | status | deviceConnectionState | batteryLevel | organizationName`)
 
 ---
@@ -16,7 +16,7 @@ Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
 ```
 Ich übergebe dir folgende Dateien:
 
-Datei 1 – AssetCache_Co_alle_Standorte.csv (Cache-Logger-Daten):
+AssetCache_Co_alle_Standorte.csv (Cache-Logger-Daten):
 Felder: SiteCode, Timestamp, PeerCnt, ClientsCnt, iOSUpdates, iOSBytes,
 ServedDelta, OriginDelta, CacheUsed, CachePr, DNSRes, AppleReach, AppleTTFB, WiFiSNR
 
@@ -26,7 +26,7 @@ Extrahiere beide Werte getrennt:
 - Geräte gesamt laut Cache = Zahl nach dem Schrägstrich
 Der Quotient aktiv/gesamt zeigt die tatsächliche Cache-Nutzung.
 
-Datei 2 ff – Geraete_Global_Co_JJJJ-MM-TT.csv (iPad-Zustand, bereinigt):
+Geraete_Global_Co_JJJJ-MM-TT.csv (iPad-Zustand, bereinigt):
 Felder: model, osVersion, applePendingVersion, status, deviceConnectionState,
 batteryLevel, organizationName
 
