@@ -1,5 +1,3 @@
-# HOW TO COPILOT – iOS-Updatestand auswerten
-
 Kurzanleitung zur standortbasierten Auswertung des iOS-Updatestands
 mit Microsoft Copilot. Ziel: für jeden Standort einschätzen,
 ob Update-Rückstände technische oder organisatorische Ursachen haben.
