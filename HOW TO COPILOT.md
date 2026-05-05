@@ -189,10 +189,9 @@ HINWEISE ZUR INTERPRETATION
 
 ---
 
-
 ## PowerShell-Skript: CO-Dateien zusammenführen (Windows 11)
 
-### Variante 1 – Skriptdatei `merge_co_csv.ps1`
+### Skriptdatei `Merge_Co_CSV.ps1`
 
 Im Verzeichnis mit allen CO-CSV-Dateien ablegen und ausführen:
 
@@ -215,25 +214,74 @@ Write-Host "Fertig: $output ($($files.Count) Dateien zusammengeführt)"
 
 Ausführen:
 ```
-powershell -ExecutionPolicy Bypass -File merge_co_csv.ps1
+Rechtsklick => Mit PowerShell ausführen
 ```
-
----
-
-### Variante 2 – PowerShell-Einzeiler
-
-```powershell
-$f = Get-ChildItem "*_AssetCache_Co_v*.csv" | Sort-Object Name; Get-Content $f[0].FullName | Set-Content -Encoding UTF8 AssetCache_Co_alle_Standorte.csv; $f | Select-Object -Skip 1 | ForEach-Object { Get-Content $_.FullName | Select-Object -Skip 1 | Add-Content -Encoding UTF8 AssetCache_Co_alle_Standorte.csv }
-```
-
----
 
 Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei, alle Standorte, ein Header.
 
-> **Hinweis:** Falls PowerShell die Ausführung von `.ps1`-Dateien blockiert,
-> entweder den Einzeiler direkt ins PowerShell-Fenster einfügen,
-> oder einmalig für den aktuellen Benutzer freigeben:
-> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+## PowerShell-Skript: Relution-Export bereinigen (Windows 11)
+
+### Skriptdatei `Relution-Export-Cleaner_Co.ps1`
+
+Vor der Übergabe an Copilot den Relution-Export datenschutzkonform bereinigen:
+- Spalte `name` wird entfernt (enthält Gerätenamen mit Schülernamen)
+- `organizationName` wird auf das Schulkürzel gekürzt (Inhalt der ersten Klammer)
+
+Das Ergebnis ist die Datei `Geraete_Global_Co_JJJJ-MM-TT.csv`, die direkt
+für die Analyse verwendet werden kann.
+
+```powershell
+# Relution-Export-Cleaner_Co.ps1
+# Bereinigt den Relution-Export:
+# - entfernt Spalte "name" (Gerätename / Schülername)
+# - kürzt organizationName auf Schulkürzel (Inhalt der ersten Klammer)
+
+$input_file  = ".\Geraete_Global_*.csv"
+$output_file = "Geraete_Global_Co_$(Get-Date -Format 'yyyy-MM-dd').csv"
+
+$source = Get-ChildItem -Filter $input_file | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+if (-not $source) {
+    Write-Host "Keine passende Datei gefunden (Muster: $input_file)"
+    exit 1
+}
+
+Write-Host "Verarbeite: $($source.Name)"
+
+$data = Import-Csv -Path $source.FullName -Encoding UTF8
+
+$cleaned = $data | Select-Object `
+    @{Name="model";                Expression={$_.model}},
+    @{Name="osVersion";            Expression={$_.osVersion}},
+    @{Name="applePendingVersion";  Expression={$_.applePendingVersion}},
+    @{Name="lastConnectionDate";   Expression={$_.lastConnectionDate}},
+    @{Name="deviceConnectionState";Expression={$_.deviceConnectionState}},
+    @{Name="status";               Expression={$_.status}},
+    @{Name="batteryLevel";         Expression={$_.batteryLevel}},
+    @{Name="organizationName";     Expression={
+        if ($_.organizationName -match '^\(([^)]+)\)') {
+            $matches[1]
+        } else {
+            $_.organizationName
+        }
+    }}
+
+$cleaned | Export-Csv -Path $output_file -NoTypeInformation -Encoding UTF8
+
+Write-Host "Fertig: $output_file ($($cleaned.Count) Geräte)"
+```
+
+Ausführen:
+```
+powershell -ExecutionPolicy Bypass -File Relution-Export-Cleaner_Co.ps1
+```
+
+Ergebnis: `Geraete_Global_Co_JJJJ-MM-TT.csv` – ohne Gerätenamen,
+`organizationName` reduziert auf Schulkürzel (z. B. `EPS`).
+
+> **Hinweis HHS:** Falls der Standort in Relution als `HHS-N` und `HHS-W`
+> geführt wird, beide Einträge vor der Übergabe manuell auf `HHS` vereinheitlichen,
+> damit der Join mit dem `SiteCode` der CO-CSV funktioniert.
 
 ## Shell-Einzeiler: CO-Dateien zusammenführen (macOS)
 
