@@ -25,7 +25,7 @@ und mit `SiteCode` abgleichen.
 
 ---
 
-## Prompt
+## Prompt für Copilot:
 
 ```
 Ich übergebe dir zwei Dateien:
