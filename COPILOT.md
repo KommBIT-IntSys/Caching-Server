@@ -34,13 +34,25 @@ Datei 1 – CO-CSV (Cache-Logger-Daten):
 Felder: SiteCode, Timestamp, PeerCnt, ClientsCnt, iOSUpdates, iOSBytes,
 ServedDelta, OriginDelta, CacheUsed, CachePr, DNSRes, AppleReach, AppleTTFB, WiFiSNR
 
-Datei 2 – Relution-Export (iPad-Zustand):
+ClientsCnt hat das Format "aktiv/gesamt" (z. B. "14/122").
+Extrahiere beide Werte getrennt:
+- aktive Clients = Zahl vor dem Schrägstrich
+- Geräte gesamt laut Cache = Zahl nach dem Schrägstrich
+Der Quotient aktiv/gesamt zeigt die tatsächliche Cache-Nutzung.
+
+Datei 2 – Relution-Export (iPad-Zustand, bereinigt):
 Felder: model, osVersion, applePendingVersion, status, deviceConnectionState,
 batteryLevel, organizationName
 
-Das Schulkürzel steht in organizationName in Klammern am Anfang,
-z. B. "(GYF) Gymnasium Friderici..." → Kürzel: GYF.
-Verknüpfe beide Dateien über dieses Kürzel mit dem Feld SiteCode aus der CO-CSV.
+Das Feld organizationName enthält bereits nur das Schulkürzel (z. B. "EPS").
+Verknüpfe direkt mit SiteCode aus der CO-CSV – kein Extrahieren nötig.
+
+Hinweis: Falls HHS-N und HHS-W als separate Einträge vorhanden sind,
+beide als "HHS" behandeln und zusammenführen.
+
+---
+
+SCOPE
 
 Ausgewertet werden ausschließlich Standorte, die in BEIDEN Dateien
 vorhanden sind (SiteCode in CO-CSV ∩ organizationName in Relution-Export).
@@ -53,6 +65,7 @@ Standorte, die nur in einer Datei vorkommen:
 Vor der Ausgabe bitte prüfen: Wie viele Standorte sind in beiden
 Dateien vorhanden? Diese Zahl muss mit der Zeilenanzahl der
 Standortübersicht übereinstimmen.
+
 ---
 
 KONTEXT
@@ -74,6 +87,8 @@ Das Ziel der Analyse ist es, für jeden Standort zu unterscheiden:
   iPads offline (deviceConnectionState = INACTIVE), niedrige Batterie,
   Update steht aus (applePendingVersion nicht leer), obwohl Cache
   technisch aktiv war
+
+---
 
 WICHTIG ZUR AUSGABE
 
@@ -108,21 +123,22 @@ ANALYSE-AUFGABEN
    Trenne dabei:
 
    A) Technisch auffällig:
-      - DNSRes oder AppleReach wiederholt 0
-      - AppleTTFB dauerhaft über 500 ms
-      - ServedDelta dauerhaft 0, obwohl iOSUpdates einen relevanten
-        Versionsstand zeigt
+      - DNSRes oder AppleReach: Anteil der Messungen mit Wert 1 unter 80 %
+      - AppleTTFB∅ dauerhaft über 500 ms
       - ServedDelta∅ = 0 UND OriginDelta∅ = 0 über den gesamten Zeitraum:
-        Cache-Dienst war mit hoher Wahrscheinlichkeit nicht aktiv
-        (kein lokales Ausliefern, kein Nachladen vom Origin).
-        Dies ist unabhängig vom Gerätezustand als TECHNISCH zu klassifizieren.
+        Cache-Dienst war mit hoher Wahrscheinlichkeit nicht aktiv.
+        Klassifikation: TECHNISCH, unabhängig vom Gerätezustand.
         Handlungsvorschlag: Cache-Dienst auf dem Mac Mini prüfen / neu starten.
+      - ServedDelta dauerhaft 0, obwohl iOSUpdates einen relevanten
+        Versionsstand zeigt (und OriginDelta > 0)
 
    B) Organisatorisch auffällig:
-      - Viele Geräte INACTIVE oder mit niedrigem Akku
-      - Viele Geräte mit ausstehendem Update (applePendingVersion gesetzt),
-        obwohl Cache technisch aktiv war (ServedDelta > 0)
-      - ClientsCnt dauerhaft niedrig relativ zur bekannten Gerätebasis
+      - Über 30 % der Geräte INACTIVE
+      - Über 20 % der Geräte mit Akku < 20 %
+      - Über 20 % der Geräte mit gesetztem applePendingVersion,
+        obwohl Cache technisch aktiv war (ServedDelta∅ > 0)
+      - ClientsCnt-Quotient (aktiv/gesamt) dauerhaft unter 50 %
+        trotz technisch funktionierendem Cache
 
    C) Gemischt oder unklar:
       - Kombination beider Muster, oder zu wenig Daten für eindeutige Aussage
@@ -149,6 +165,10 @@ HINWEISE ZUR INTERPRETATION
   Zeitraum nichts ausgeliefert. Das kann normal sein (kein Update-Anlass),
   ist aber in Kombination mit NONCOMPLIANT-Geräten ein Warnsignal.
 
+- ServedDelta∅ = 0 UND OriginDelta∅ = 0: Cache-Dienst war nicht aktiv –
+  weder lokale Auslieferung noch Nachladen vom Origin.
+  Klassifikation: TECHNISCH, unabhängig vom Gerätezustand.
+
 - OriginDelta hoch, ServedDelta niedrig: Cache lädt nach, hat aber
   noch wenig lokal verteilt – möglicherweise frühe Update-Phase.
 
@@ -156,7 +176,7 @@ HINWEISE ZUR INTERPRETATION
   beeinträchtigen.
 
 - INACTIVE-Geräte zählen bei ClientsCnt nicht mit – das erklärt
-  niedrige Prozentwerte auch bei technisch funktionierendem Cache.
+  niedrige Quotienten auch bei technisch funktionierendem Cache.
 
 - applePendingVersion gesetzt = Gerät weiß von Update, hat es aber
   noch nicht installiert. Häufig: Akku zu niedrig, Gerät nicht
