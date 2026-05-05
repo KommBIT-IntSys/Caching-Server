@@ -41,109 +41,163 @@ Gerätenamen entfernen, Organisationsname auf Kürzel kürzen.
 ---
 
 ```
-Bitte analysiere die bereitgestellten Dateien `AssetCache_Co_alle_Standorte.csv` und `Geraete_Global_Co_YYYY-MM-DD.csv`
-gemeinsam.
+Bitte analysiere die bereitgestellten Dateien AssetCache_Co_alle_Standorte.csv und Geraete_Global_Co_YYYY-MM-DD.csv gemeinsam.
 
-Ziel der Analyse ist es, datenbasiert zu bewerten, welche Standorte im Zusammenhang mit iOS-/iPadOS-Updates zuerst
-betrachtet werden sollten. Dabei soll unterschieden werden, ob Auffälligkeiten eher auf
-Infrastruktur-/Cache-/Netzwerkprobleme oder eher auf organisatorische Ursachen hindeuten, zum Beispiel Geräte nicht
-ausreichend geladen, nicht regelmäßig online oder nicht im geeigneten Zeitfenster erreichbar.
+Ziel der Analyse ist es, standortweise zu bewerten, welche Auffälligkeiten beim iOS-/iPadOS-Updatezustand bestehen und ob diese eher auf infrastrukturelle Ursachen (Cache / Netzwerk), organisatorische Ursachen (Gerätenutzung / Ladeverhalten / Online-Zeiten) oder unklare Faktoren hindeuten.
 
-Wichtig: Der MDM-Status `COMPLIANT` darf nicht mit „aktuelles iOS/iPadOS“ gleichgesetzt werden.
+Die Auswertung ist explorativ. Es dürfen keine festen Schwellenwerte verwendet werden. Unsicherheiten müssen ausdrücklich benannt werden.
 
-Bewerte den Updatezustand primär anhand dieser Felder:
+---
 
-- `osVersion`
-- `applePendingVersion`
-- `iOSUpdates` aus der AssetCache-Co-Datei
+GRUNDPRINZIPIEN
 
-Leite aus `iOSUpdates` die aktuell erwartete Zielversion beziehungsweise die relevanten aktuellen iOS-/iPadOS-Versionen ab.
-Verwende `osVersion` als Hauptfeld, um zu bestimmen, ob ein Gerät bereits auf Zielversion ist oder darunter liegt.
-Verwende `applePendingVersion`, um zu erkennen, ob ein Update bereits als ausstehend erkannt wurde.
+- Keine Kennzahl darf isoliert bewertet werden. Alle Aussagen müssen auf Kombinationen mehrerer Signale basieren.
+- Der MDM-Status COMPLIANT ist kein Indikator für eine aktuelle OS-Version.
+- ClientsCnt ist kein Maß für Gesamtnutzung, sondern eine Intervall-Aktivitätskennzahl.
+- Relution-Daten sind eine Momentaufnahme, Cache-Daten sind Intervallwerte. Zeitliche Abweichungen sind möglich.
+- Widersprüche oder fehlende Daten sind als Unsicherheit zu kennzeichnen, nicht zu glätten.
 
-Der MDM-Status `status` darf separat ausgewertet werden, aber nur als MDM-/Compliance-Indikator.
-Er ist kein Ersatz für die OS-Versionsbewertung.
-Ein Gerät kann MDM-seitig `COMPLIANT` sein, obwohl es nicht auf der neuesten OS-Version ist.
-Umgekehrt kann ein Gerät nicht compliant sein, obwohl die OS-Version aktuell ist.
+---
 
-Stelle deshalb getrennt dar:
+ZIELVERSION UND OS-BEWERTUNG
+
+Leite die erwartete Zielversion aus dem Feld iOSUpdates (AssetCache) ab.
+
+- Wenn iOSUpdates je Standort konsistent ist: nutze diese als Referenz.
+- Wenn iOSUpdates fehlt, widersprüchlich oder uneinheitlich ist: kennzeichne die Zielversion als unsicher.
+
+Bewerte Geräte anhand:
+
+- osVersion → Hauptkriterium
+- applePendingVersion → zeigt erkannte Update-Bereitschaft
+
+Stelle getrennt dar:
 
 - Geräte auf Zielversion
 - Geräte unter Zielversion
-- Geräte mit `applePendingVersion`
+- Geräte mit applePendingVersion
 - Geräte mit älteren Major-Versionen
-- optional separat: MDM-Status `COMPLIANT` / `NONCOMPLIANT`
 
-Wichtig: `ClientsCnt` ist keine harte Erfolgsschwelle und darf nicht isoliert bewertet werden.
+Optional:
 
-`ClientsCnt` ist eine Intervall-/Aktivitätskennzahl aus den AssetCache-Logs. Sie zeigt, wie viele
-eindeutige private Client-IP-Adressen im betrachteten Logfenster gesehen wurden. In 15-Minuten-Intervallen
-ist es normal, dass nur ein Teil aller iPads gleichzeitig aktiv Cache-Anfragen erzeugt.
-Ein niedriger `ClientsCnt`-Wert allein beweist daher weder geringe Nutzung
-noch ein organisatorisches Problem.
+- MDM-Status (COMPLIANT / NONCOMPLIANT) separat darstellen, aber nicht zur OS-Bewertung verwenden
 
-Verwende `ClientsCnt` nur als Kontextsignal zusammen mit:
+---
 
-- `ServedDelta`
-- `OriginDelta`
-- `osVersion`
-- `applePendingVersion`
-- `lastConnectionDate`
-- `batteryLevel`
-- `DNSRes`
-- `AppleReach`
-- `AppleTTFB`
-- `CachePr`
+AKTIVITÄT UND CACHE-NUTZUNG
 
-Interpretationslogik:
+Verwende ausschließlich im Zusammenhang:
 
-- `ClientsCnt` niedrig + `ServedDelta` niedrig + viele Geräte nicht aktuell + alte `lastConnectionDate`
-   + niedrige Akkustände = möglicher Hinweis auf organisatorische Probleme, zum Beispiel Geräte nicht ausreichend
-   geladen, nicht regelmäßig online oder nicht im Updatefenster erreichbar.
-- `ClientsCnt` niedrig + `ServedDelta` hoch = kein direkter Fehler; der Cache kann trotzdem relevant ausgeliefert haben.
-- `ClientsCnt` hoch + `ServedDelta` niedrig = prüfen, ob nur kleine Requests stattfinden
-   oder ob die betrachtete Updatephase nicht aktiv war.
-- `ClientsCnt` niedrig allein = kein Beweis für ein Problem.
+- ClientsCnt
+- ServedDelta
+- OriginDelta
 
-Setze keine harte Schwelle wie „unter 50 % = kritisch”. Bewerte stattdessen Muster und Zusammenhänge.
+Interpretation:
 
-Diese Auswertung ist eine explorative Bestandsaufnahme, keine abschließende Bewertung.
-Ziel ist es, durch wiederholte Auswertungsrunden ein belastbares Bild zu entwickeln –
-Schwellenwerte und Bewertungsmatrizen entstehen erst nach mehreren Zyklen mit echten Daten.
+- Niedriger ClientsCnt allein ist kein Problemindikator
+- Niedriger ClientsCnt + niedriger ServedDelta kann auf geringe Nutzung hindeuten
+- Hoher ServedDelta bei niedrigem ClientsCnt ist möglich und kein Fehler
+- Hoher ClientsCnt bei niedrigem ServedDelta erfordert Kontext (z. B. kleine Requests oder falsches Zeitfenster)
 
-Bitte liefere die Analyse standortweise mit folgenden Bestandteilen:
+---
 
-1. Kurzbewertung je Standort
-   - Updatezustand
-   - Pending-Updates
-   - ältere Major-Versionen
-   - Akku-/Online-Auffälligkeiten
-   - Cache-Aktivität
-   - Infrastrukturindikatoren
+GERÄTEVERFÜGBARKEIT
 
-2. Priorisierte Standortliste
-   - höchste Priorität zuerst
-   - mit kurzer Begründung
-   - getrennt nach vermuteter Ursache:
-     - eher Infrastruktur / Cache / Netzwerk
-     - eher Organisation / Geräteprozess
-     - unklar / weiter prüfen
+Nutze:
 
-3. Keine Schuldzuweisung
-   - Formuliere sachlich.
-   - Ziel ist Ursachenklärung und Unterstützung, nicht Kontrolle oder Vorwurf.
+- lastConnectionDate
+- batteryLevel
 
-4. Methodische Hinweise
-   - Weise auf Unsicherheiten hin, zum Beispiel wenn Relution-Daten nur eine Momentaufnahme sind.
-   - Weise darauf hin, wenn Cache-Daten und Relution-Daten zeitlich nicht perfekt deckungsgleich sind.
-   - Weise darauf hin, wenn Werte nur gemeinsam interpretierbar sind.
-   - Unterscheide belegte Befunde (mehrere konsistente Signale) von Vermutungen
-     (einzelne Beobachtung oder widersprüchliche Signale).
-     Markiere Vermutungen ausdrücklich als Hypothese.
+Interpretation nur als Muster:
 
-Erstelle am Ende eine vorläufige Einschätzung:
-Welche Standorte zeigen die auffälligsten Muster und sollten zuerst näher betrachtet werden?
-Formuliere als Hypothesen, nicht als Urteile. Halte fest, welche Signale diese Einschätzung
-stützen und was noch unklar bleibt.
+- Viele alte Verbindungen + niedrige Akkustände → Hinweis auf organisatorische Probleme
+- Einzelwerte sind nicht aussagekräftig
+
+---
+
+INFRASTRUKTURINDIKATOREN
+
+Nutze:
+
+- DNSRes
+- AppleReach
+- AppleTTFB
+- CachePr
+- WiFiSNR
+
+Bewerte diese nur im Zusammenhang mit Aktivität und Updatezustand.
+
+---
+
+INTERPRETATIONSMUSTER
+
+Hinweis auf organisatorische Ursachen (Hypothese):
+
+- Viele Geräte unter Zielversion
+- Geringe Aktivität
+- Alte lastConnectionDate
+- Niedrige Akkustände
+
+Hinweis auf infrastrukturelle Ursachen (Hypothese):
+
+- Geräte sind aktiv
+- aber Updates kommen nicht voran
+- gleichzeitig auffällige Netzwerk- oder Cache-Indikatoren
+
+Unklare Situation:
+
+- widersprüchliche Signale
+- fehlende oder inkonsistente Daten
+
+In allen Fällen:
+
+- keine Urteile, nur Hypothesen
+- Hypothesen müssen begründet werden
+
+---
+
+ERGEBNISFORMAT
+
+1. Kurzbewertung je Standort:
+
+- Updatezustand
+- Pending Updates
+- ältere Versionen
+- Aktivität
+- Geräteverfügbarkeit
+- Infrastrukturindikatoren
+
+2. Priorisierte Standortliste:
+
+- sortiert nach Auffälligkeit (höchste Priorität zuerst)
+- Einordnung je Standort:
+  - eher Infrastruktur / Cache / Netzwerk
+  - eher Organisation / Geräteprozess
+  - unklar / weiter prüfen
+
+3. Begründung:
+
+- maximal 2–3 Sätze pro Standort
+- ausschließlich auf beobachteten Signalen basierend
+
+4. Methodische Hinweise:
+
+- explizite Nennung von Unsicherheiten
+- Hinweise auf Momentaufnahme (MDM) und Zeitversatz
+- klare Trennung zwischen:
+  - Befund (mehrere konsistente Signale)
+  - Hypothese (unsichere oder einzelne Signale)
+
+---
+
+ZUSAMMENFASSUNG
+
+Erstelle am Ende eine kompakte Gesamteinschätzung:
+
+- Welche Standorte sind aktuell am auffälligsten?
+- Welche Hypothesen ergeben sich daraus?
+- Welche Faktoren sind noch unklar?
+
+Keine Schuldzuweisungen. Ziel ist Ursachenklärung und Priorisierung für weitere Analyse.
 ```
 
