@@ -27,12 +27,7 @@ Gerätenamen entfernen, Organisationsname auf Kürzel kürzen.
 3. Beide CSV-Dateien hochladen
 4. Den Prompt unten vollständig hineinkopieren
 5. Auswertung erhalten
-
-> **Warum Microsoft Copilot?**
-> Nicht weil es die dafür beste KI wäre, sondern weil es derzeit
-> die einzige ist, die der bayerische ÖD erlaubt.
-> Allerdings: Gut gepromptet liefert auch diese aussagekräftige
-> und belastbare Ergebnisse.
+6. Weitere Fragen stellen
 
 ---
 
