@@ -1,26 +1,49 @@
-# Copilot-Prompt: AssetCache-Monitoring – Standortanalyse iOS-Update
+# HOW TO COPILOT – iOS-Updatestand auswerten
 
-## Verwendung
+Kurzanleitung zur standortbasierten Auswertung des iOS-Updatestands
+mit Microsoft Copilot. Ziel: für jeden Standort einschätzen,
+ob Update-Rückstände technische oder organisatorische Ursachen haben.
 
-Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
+## Was du brauchst
 
-1. **CO-CSV** – zusammengeführte Cache-Logger-Daten aller Standorte
-   (`*_AssetCache_Co_v*.csv`, siehe Skripte unter dem Prompt für Copilot)
-   
-2. **Relution-Export** – Geräteliste ohne Gerätenamen und ohne Schulnamen (siehe Skripte unter dem Prompt für Copilot)
-   (Felder: `model | osVersion | applePendingVersion | lastConnectionDate | deviceConnectionState | status | batteryLevel | organizationName`)
-Geräte auerdem vor dem Export mit folgenden Suchbegriffen filtern:
-SuS Sport Koga Lehrer
-=> LDG-iPads werden nicht berücksichtig, da nicht alle dauerhaft vor Ort sind.
+Zwei Dateien, die du vor der Auswertung vorbereitest:
+
+**1. AssetCache_Co_alle_Standorte.csv**
+Alle CO-CSV-Dateien der Caching-Server zu einer Datei zusammenführen.
+→ [`scripts/Merge_Co_CSV.ps1`](scripts/Merge_Co_CSV.ps1) (Windows)
+→ [`scripts/merge_co_csv.sh`](scripts/merge_co_csv.sh) (macOS)
+
+**2. Geraete_Global_Co_JJJJ-MM-TT.csv**
+MDM-Export datenschutzkonform bereinigen:
+Gerätenamen entfernen, Organisationsname auf Kürzel kürzen.
+→ [`scripts/Relution-Export-Cleaner_Co.ps1`](scripts/Relution-Export-Cleaner_Co.ps1) (Windows)
+→ [`scripts/relution_cleaner_co.sh`](scripts/relution_cleaner_co.sh) (macOS)
+
+## So geht's
+
+1. Beide Skripte ausführen → zwei CSV-Dateien liegen bereit
+2. Microsoft Copilot öffnen
+3. Beide CSV-Dateien hochladen
+4. Den Prompt unten vollständig hineinkopieren
+5. Auswertung erhalten
+
+> **Warum Microsoft Copilot?**
+> Nicht weil es die dafür beste KI wäre, sondern weil es derzeit
+> die einzige ist, die der bayerische ÖD erlaubt.
+> Allerdings: Gut gepromptet liefert auch diese aussagekräftige
+> und belastbare Ergebnisse.
+
 ---
 
-## Prompt für Copilot:
+## Prompt für Microsoft Copilot
+
+---
 
 ```
 Bitte analysiere die bereitgestellten Dateien `AssetCache_Co_alle_Standorte.csv` und `Geraete_Global_Co_YYYY-MM-DD.csv`
 gemeinsam.
 
-Ziel der Analyse ist es, datenbasiert zu bewerten, welche Schulstandorte im Zusammenhang mit iOS-/iPadOS-Updates zuerst
+Ziel der Analyse ist es, datenbasiert zu bewerten, welche Standorte im Zusammenhang mit iOS-/iPadOS-Updates zuerst
 betrachtet werden sollten. Dabei soll unterschieden werden, ob Auffälligkeiten eher auf
 Infrastruktur-/Cache-/Netzwerkprobleme oder eher auf organisatorische Ursachen hindeuten, zum Beispiel Geräte nicht
 ausreichend geladen, nicht regelmäßig online oder nicht im geeigneten Zeitfenster erreichbar.
@@ -152,7 +175,7 @@ Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei, alle Standorte, ein
 
 Vor der Übergabe an Copilot den Relution-Export datenschutzkonform bereinigen:
 - Spalte `name` wird entfernt (enthält Gerätenamen mit Schülernamen)
-- `organizationName` wird auf das Schulkürzel gekürzt (Inhalt der ersten Klammer)
+- `organizationName` wird auf das Standortkürzel gekürzt (Inhalt der ersten Klammer)
 
 Das Ergebnis ist die Datei `Geraete_Global_Co_JJJJ-MM-TT.csv`, die direkt
 für die Analyse verwendet werden kann.
@@ -161,7 +184,7 @@ für die Analyse verwendet werden kann.
 # Relution-Export-Cleaner_Co.ps1
 # Bereinigt den Relution-Export:
 # - entfernt Spalte "name" (Gerätename / Schülername)
-# - kürzt organizationName auf Schulkürzel (Inhalt der ersten Klammer)
+# - kürzt organizationName auf Standortkürzel (Inhalt der ersten Klammer)
 
 $input_file  = ".\Geraete_Global_*.csv"
 $output_file = "Geraete_Global_Co_$(Get-Date -Format 'yyyy-MM-dd').csv"
@@ -204,7 +227,7 @@ Rechtsklick => Mit PowerShell ausführen
 ```
 
 Ergebnis: `Geraete_Global_Co_JJJJ-MM-TT.csv` – ohne Gerätenamen,
-`organizationName` reduziert auf Schulkürzel (z. B. `EPS`).
+`organizationName` reduziert auf Standortkürzel (z. B. `EPS`).
 
 > **Hinweis HHS:** Falls der Standort in Relution als `HHS-N` und `HHS-W`
 > geführt wird, beide Einträge vor der Übergabe manuell auf `HHS` vereinheitlichen,
@@ -235,7 +258,7 @@ alle Standorte, ein Header.
 
 Vor der Übergabe an Copilot den Relution-Export datenschutzkonform bereinigen:
 - Spalte `name` wird entfernt (enthält Gerätenamen mit Schülernamen)
-- `organizationName` wird auf das Schulkürzel gekürzt (Inhalt der ersten Klammer)
+- `organizationName` wird auf das Standortkürzel gekürzt (Inhalt der ersten Klammer)
 
 Das Ergebnis ist die Datei `Geraete_Global_Co_JJJJ-MM-TT.csv`, die direkt
 für die Analyse verwendet werden kann.
@@ -245,7 +268,7 @@ für die Analyse verwendet werden kann.
 # relution_cleaner_co.sh
 # Bereinigt den Relution-Export:
 # - entfernt Spalte "name" (Gerätename / Schülername)
-# - kürzt organizationName auf Schulkürzel (Inhalt der ersten Klammer)
+# - kürzt organizationName auf Standortkürzel (Inhalt der ersten Klammer)
 
 input=$(ls Geraete_Global_*.csv 2>/dev/null | sort -r | head -1)
 
@@ -290,7 +313,7 @@ chmod +x relution_cleaner_co.sh
 ```
 
 Ergebnis: `Geraete_Global_Co_JJJJ-MM-TT.csv` – ohne Gerätenamen,
-`organizationName` reduziert auf Schulkürzel (z. B. `EPS`).
+`organizationName` reduziert auf Standortkürzel (z. B. `EPS`).
 
 > **Hinweis HHS:** Falls der Standort in Relution als `HHS-N` und `HHS-W`
 > geführt wird, beide Einträge vor der Übergabe manuell auf `HHS` vereinheitlichen,
