@@ -9,10 +9,6 @@ Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching 
 
 ---
 
-## Caching-Server Monitoring
-
-Dieses Repo enthält Skripte und Anleitungen zur Überwachung des Apple Content-Caching in Organisationen sowie zur Auswertung des iOS-Updatestands über das MDM-System Relution.
-
 ### Schnelleinstieg
 
 [HOW TO COPILOT.md](<HOW TO COPILOT.md>)
