@@ -17,12 +17,13 @@ SuS Sport Koga Lehrer
 ## Prompt für Copilot:
 
 ```
-Bitte analysiere die bereitgestellten Dateien `AssetCache_Co_alle_Standorte.csv` und `Geraete_Global_Co_YYYY-MM-DD.csv` gemeinsam.
+Bitte analysiere die bereitgestellten Dateien `AssetCache_Co_alle_Standorte.csv` und `Geraete_Global_Co_YYYY-MM-DD.csv`
+gemeinsam.
 
-Ziel der Analyse ist es, datenbasiert zu bewerten, welche Schulstandorte im Zusammenhang mit iOS-/iPadOS-Updates zuerst betrachtet
-werden sollten. Dabei soll unterschieden werden, ob Auffälligkeiten eher auf Infrastruktur-/Cache-/Netzwerkprobleme oder eher auf
-organisatorische Ursachen hindeuten, zum Beispiel Geräte nicht ausreichend geladen, nicht regelmäßig online oder nicht im geeigneten
-Zeitfenster erreichbar.
+Ziel der Analyse ist es, datenbasiert zu bewerten, welche Schulstandorte im Zusammenhang mit iOS-/iPadOS-Updates zuerst
+betrachtet werden sollten. Dabei soll unterschieden werden, ob Auffälligkeiten eher auf
+Infrastruktur-/Cache-/Netzwerkprobleme oder eher auf organisatorische Ursachen hindeuten, zum Beispiel Geräte nicht
+ausreichend geladen, nicht regelmäßig online oder nicht im geeigneten Zeitfenster erreichbar.
 
 Wichtig: Der MDM-Status `COMPLIANT` darf nicht mit „aktuelles iOS/iPadOS“ gleichgesetzt werden.
 
@@ -36,8 +37,10 @@ Leite aus `iOSUpdates` die aktuell erwartete Zielversion beziehungsweise die rel
 Verwende `osVersion` als Hauptfeld, um zu bestimmen, ob ein Gerät bereits auf Zielversion ist oder darunter liegt.
 Verwende `applePendingVersion`, um zu erkennen, ob ein Update bereits als ausstehend erkannt wurde.
 
-Der MDM-Status `status` darf separat ausgewertet werden, aber nur als MDM-/Compliance-Indikator. Er ist kein Ersatz für die OS-Versionsbewertung.
-Ein Gerät kann MDM-seitig `COMPLIANT` sein, obwohl es nicht auf der neuesten OS-Version ist. Umgekehrt kann ein Gerät nicht compliant sein, obwohl die OS-Version aktuell ist.
+Der MDM-Status `status` darf separat ausgewertet werden, aber nur als MDM-/Compliance-Indikator.
+Er ist kein Ersatz für die OS-Versionsbewertung.
+Ein Gerät kann MDM-seitig `COMPLIANT` sein, obwohl es nicht auf der neuesten OS-Version ist.
+Umgekehrt kann ein Gerät nicht compliant sein, obwohl die OS-Version aktuell ist.
 
 Stelle deshalb getrennt dar:
 
@@ -49,9 +52,11 @@ Stelle deshalb getrennt dar:
 
 Wichtig: `ClientsCnt` ist keine harte Erfolgsschwelle und darf nicht isoliert bewertet werden.
 
-`ClientsCnt` ist eine Intervall-/Aktivitätskennzahl aus den AssetCache-Logs. Sie zeigt, wie viele eindeutige private Client-IP-Adressen
-im betrachteten Logfenster gesehen wurden. In 15-Minuten-Intervallen ist es normal, dass nur ein Teil aller iPads gleichzeiti
-aktiv Cache-Anfragen erzeugt. Ein niedriger `ClientsCnt`-Wert allein beweist daher weder geringe Nutzung noch ein organisatorisches Problem.
+`ClientsCnt` ist eine Intervall-/Aktivitätskennzahl aus den AssetCache-Logs. Sie zeigt, wie viele
+eindeutige private Client-IP-Adressen im betrachteten Logfenster gesehen wurden. In 15-Minuten-Intervallen
+ist es normal, dass nur ein Teil aller iPads gleichzeiti
+aktiv Cache-Anfragen erzeugt. Ein niedriger `ClientsCnt`-Wert allein beweist daher weder geringe Nutzung
+noch ein organisatorisches Problem.
 
 Verwende `ClientsCnt` nur als Kontextsignal zusammen mit:
 
@@ -68,8 +73,9 @@ Verwende `ClientsCnt` nur als Kontextsignal zusammen mit:
 
 Interpretationslogik:
 
-- `ClientsCnt` niedrig + `ServedDelta` niedrig + viele Geräte nicht aktuell + alte `lastConnectionDate` + niedrige Akkustände
-= möglicher Hinweis auf organisatorische Probleme, zum Beispiel Geräte nicht ausreichend geladen, nicht regelmäßig online oder nicht im Updatefenster erreichbar.
+- `ClientsCnt` niedrig + `ServedDelta` niedrig + viele Geräte nicht aktuell + alte `lastConnectionDate`
++ niedrige Akkustände = möglicher Hinweis auf organisatorische Probleme, zum Beispiel Geräte nicht ausreichend
+geladen, nicht regelmäßig online oder nicht im Updatefenster erreichbar.
 - `ClientsCnt` niedrig + `ServedDelta` hoch = kein direkter Fehler; der Cache kann trotzdem relevant ausgeliefert haben.
 - `ClientsCnt` hoch + `ServedDelta` niedrig = prüfen, ob nur kleine Requests stattfinden oder ob die betrachtete Updatephase nicht aktiv war.
 - `ClientsCnt` niedrig allein = kein Beweis für ein Problem.
