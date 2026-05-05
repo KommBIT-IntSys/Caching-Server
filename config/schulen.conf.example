@@ -1,5 +1,7 @@
 # schulen.conf – Beispielkonfiguration
 #
+# DIESE DATEI MUSS PRODUKTIV GEPFLEGT WERDEN
+#
 # Zuordnung von Schulkürzeln zu iPad-Anzahl (SuS-Geräte).
 # Wird vom Monitoring-Skript gelesen für die ClientsCnt-Prozentberechnung.
 #
