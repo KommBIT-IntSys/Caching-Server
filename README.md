@@ -3,7 +3,7 @@
 [![ShellCheck](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml/badge.svg?branch=main)](https://github.com/KommBIT-IntSys/Caching-Server/actions/workflows/shellcheck.yml) [![Lizenz: EUPL-1.2](https://img.shields.io/badge/Lizenz-EUPL--1.2-blue)](LICENSE)
 
 Monitoring und Logging des Apple Content Caching.
-Besonders interessant, wemn mehrere Standorte abgefragt und verglichen werden können und sollen.
+Besonders interessant, wenn mehrere Standorte abgefragt und verglichen werden können und sollen.
 
 Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching und schreibt sie in drei CSV-Dateien: maschinenlesbar (RAW), menschenlesbar (HU) und datensparsam für KI-gestützte externe Auswertung (CO). Ziel ist es, Verzögerungen bei iOS-/iPadOS-Updates standortbasiert einordnen zu können – ob die Ursachen eher technischer oder organisatorischer Natur sind.
 
@@ -55,7 +55,7 @@ Ausgabe: Drei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/`:
 - MDM-System mit Root-Ausführungsrecht für Skripte (getestet mit Relution)
 - Internetverbindung zu `raw.githubusercontent.com`
 
-Das Deployment läuft über `scripts/deploy_assetcache_logger.sh`, ergänzt um die Tabelle der Standorte / Organistaionen als Heredoc (nicht im Repo).
+Das Deployment läuft über `scripts/deploy_assetcache_logger.sh`, ergänzt um die Tabelle der Standorte / Organisationen als Heredoc (nicht im Repo).
 Installationspfade, Artefakte und manuelle Installationsbefehle: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md) und [docs/Befehle_zum_Installieren.txt](docs/Befehle_zum_Installieren.txt).
 
 > **Hinweis Relution:** Das Deploy-Skript enthält Workarounds für einen bekannten Bug, der Punkte in Dateinamen und URLs durch Unterstriche ersetzt.
