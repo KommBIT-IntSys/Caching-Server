@@ -30,6 +30,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
   datenschutzkonform bereinigen
 
 ### Changed
+- Projekt erweitert um einen reproduzierbaren, Copilot-gestützten Analyse-Workflow zur standortbasierten Bewertung des iOS-/iPadOS-Updatestands
 - `COPILOT.md` umbenannt in `HOW TO COPILOT.md` – Zielrichtung
   gewechselt: von interner KI-Instruktion zu menschenlesbarer
   Schritt-für-Schritt-Anleitung für Anwender
@@ -69,6 +70,9 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - `CLAUDE.md`: Architekturhinweis zur RAW-first-Pipeline ergänzt.
 
 ### Notes
+- Diese Version führt erstmals eine durchgängige Auswertungskette ein:
+  AssetCache CO-Daten + bereinigter Relution-Export → strukturierte Analyse → priorisierte Standortbewertung
+- Der Fokus verschiebt sich damit von reinem Monitoring hin zu datenbasierter Entscheidungsunterstützung
 - Keine Änderung an CSV-Schemata, Feldnamen, Feldreihenfolge oder Messlogik.
 - Diese Version bereitet die spätere Weiterentwicklung der HU-Datei zur Bewertungs-/Entscheidungsansicht vor.
 - RAW bleibt die technische Wahrheit; HU und CO sind Views.
