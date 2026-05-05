@@ -2,7 +2,7 @@
 
 Dieses Projekt steht unter der European Union Public Licence (EUPL).
 Dies ist eine vereinfachte, nicht rechtsverbindliche Erläuterung.
-Rechtsverbindlich ist ausschließlich die Datei `LICENSE`
+Rechtsverbindlich ist ausschließlich die Datei [`LICENSE`](LICENSE)`
 Die vollständige deutsche Fassung findet man unter https://eupl.eu/1.2/de/
 
 ## Darf ich das verwenden?
