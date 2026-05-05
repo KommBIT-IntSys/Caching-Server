@@ -189,26 +189,6 @@ HINWEISE ZUR INTERPRETATION
 
 ---
 
-## Shell-Einzeiler: CO-Dateien zusammenführen
-
-Vor der Übergabe an Copilot alle CO-CSV-Dateien zu einer einzigen
-zusammenführen (Header nur einmal, aus der ersten Datei):
-
-```sh
-# Im Verzeichnis mit allen CO-CSV-Dateien ausführen:
-first=1
-for f in *_AssetCache_Co_v*.csv; do
-  if [ "$first" -eq 1 ]; then
-    cat "$f"
-    first=0
-  else
-    tail -n +2 "$f"
-  fi
-done > AssetCache_Co_alle_Standorte.csv
-```
-
-Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei,
-alle Standorte, ein Header.
 
 ## PowerShell-Skript: CO-Dateien zusammenführen (Windows 11)
 
@@ -254,3 +234,24 @@ Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei, alle Standorte, ein
 > entweder den Einzeiler direkt ins PowerShell-Fenster einfügen,
 > oder einmalig für den aktuellen Benutzer freigeben:
 > `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+## Shell-Einzeiler: CO-Dateien zusammenführen (macOS)
+
+Vor der Übergabe an Copilot alle CO-CSV-Dateien zu einer einzigen
+zusammenführen (Header nur einmal, aus der ersten Datei):
+
+```sh
+# Im Verzeichnis mit allen CO-CSV-Dateien ausführen:
+first=1
+for f in *_AssetCache_Co_v*.csv; do
+  if [ "$first" -eq 1 ]; then
+    cat "$f"
+    first=0
+  else
+    tail -n +2 "$f"
+  fi
+done > AssetCache_Co_alle_Standorte.csv
+```
+
+Ergebnis: `AssetCache_Co_alle_Standorte.csv` – eine Datei,
+alle Standorte, ein Header.
