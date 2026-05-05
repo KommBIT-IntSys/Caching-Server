@@ -9,8 +9,9 @@ Diesen Prompt zusammen mit zwei Dateien an Microsoft Copilot übergeben:
    
 2. **Relution-Export** – Geräteliste ohne Gerätenamen und ohne Schulnamen (siehe Skripte unter dem Prompt für Copilot)
    (Felder: `model | osVersion | applePendingVersion | status | deviceConnectionState | batteryLevel | organizationName`)
-   Geräte mit folgenden Suchbegriffen filtern: SuS Sport Koga Lehrer
-   => LDG-iPads werden nicht berücksichtig, da nicht alle immer vor Ort sind.
+Geräte auerdem vor dem Export mit folgenden Suchbegriffen filtern:
+SuS Sport Koga Lehrer
+=> LDG-iPads werden nicht berücksichtig, da nicht alle immer vor Ort sind.
 ---
 
 ## Prompt für Copilot:
