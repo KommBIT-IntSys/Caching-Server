@@ -22,7 +22,7 @@ Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching 
 | `Skripte/`                 | Hilfsskripte für Windows und macOS (Merge, Bereinigung) |
 | `Docs/`                    | Technische Hintergrunddokumentation                     |
 
-### Warum MSCopilot?
+### Warum MS Copilot?
 
 Nicht weil es die dafür beste KI wäre, sondern weil es derzeit die einzige ist, die der bayerische ÖD erlaubt.
 Allerdings: Gut gepromptet liefert auch diese aussagekräftige und belastbare Ergebnisse.
