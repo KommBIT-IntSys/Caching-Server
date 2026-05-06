@@ -87,7 +87,7 @@ nicht aussagekräftig.
 | `DNSRes`       | DNS-Auflösung für Apple-Hostnames                      | Latenz ms / Statuscode   | bei Latenz: niedriger = besser | **Semantik vor Implementierung verifizieren.**                                                                                                                                                                                       |
 | `AppleReach`   | Erreichbarkeit der Apple-Update-Server                 | Boolean / Statuscode     | true / OK = besser             | **Format verifizieren.**                                                                                                                                                                                                              |
 | `AppleTTFB`    | Time to First Byte zum Apple-Origin                    | ms                       | niedriger = besser             | Indikator für externe Anbindungsqualität.                                                                                                                                                                                            |
-| `CachePr`      | **Cache Pressure** — Auslastung des Cache-Speichers    | Prozent (0–100)          | **U-förmig**, siehe unten      | Cache-Größe variiert pro Standort und ist nicht in der CSV. Nur prozentuale Vergleiche zulässig, keine absoluten Speicheraussagen.                                                                                                  |
+| `CachePr`      | **Cache Pressure** — Auslastung des Cache-Speichers    | Prozent (0–100)          | **U-förmig**, siehe unten      | **`CachePr = 0` ist kein Hinweis auf Cache-Inaktivität** — es bedeutet, dass kein Speicherdruck gemessen wurde. Das ist bei normaler oder geringer Nutzung der Regelfall. Cache-Inaktivität ergibt sich ausschließlich aus `ServedDelta∅ = 0` UND `OriginDelta∅ = 0` — niemals aus `CachePr` allein. Cache-Größe variiert pro Standort und ist nicht in der CSV. Nur prozentuale Vergleiche zulässig, keine absoluten Speicheraussagen.                                                                                                  |
 | `WiFiSNR`      | Signal-Rausch-Verhältnis am Caching-Server             | dB                       | höher = besser                 | **Indirekt:** misst Anbindung des Servers, nicht der iPads im Klassenzimmer.                                                                                                                                                         |
 ### Hinweis zur Datei-Variante
 
@@ -104,6 +104,10 @@ Diese Datei kann in zwei Varianten vorliegen:
 
 ### Interpretation von `CachePr` (U-förmig)
 
+- **0 %** → kein Speicherdruck gemessen. Häufigster Normalzustand außerhalb
+  aktiver Update-Wellen. Kein Hinweis auf Cache-Inaktivität.
+  Cache-Inaktivität ergibt sich ausschließlich aus `ServedDelta∅ = 0`
+  UND `OriginDelta∅ = 0`.
 - **um 20 %** → Cache wird kaum gefüllt. Häufig korreliert mit
   niedrigem `ClientsCnt` und `ServedDelta`. Hypothese: geringe
   Nutzung oder Geräte erreichen den Cache nicht.
