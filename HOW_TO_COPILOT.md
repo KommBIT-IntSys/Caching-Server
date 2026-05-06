@@ -89,6 +89,18 @@ nicht aussagekräftig.
 | `AppleTTFB`    | Time to First Byte zum Apple-Origin                    | ms                       | niedriger = besser             | Indikator für externe Anbindungsqualität.                                                                                                                                                                                            |
 | `CachePr`      | **Cache Pressure** — Auslastung des Cache-Speichers    | Prozent (0–100)          | **U-förmig**, siehe unten      | Cache-Größe variiert pro Standort und ist nicht in der CSV. Nur prozentuale Vergleiche zulässig, keine absoluten Speicheraussagen.                                                                                                  |
 | `WiFiSNR`      | Signal-Rausch-Verhältnis am Caching-Server             | dB                       | höher = besser                 | **Indirekt:** misst Anbindung des Servers, nicht der iPads im Klassenzimmer.                                                                                                                                                         |
+### Hinweis zur Datei-Variante
+
+Diese Datei kann in zwei Varianten vorliegen:
+
+- **15-Minuten-Variante** (`AssetCache_Co_alle_Standorte.csv`):
+  `ServedDelta` und `OriginDelta` sind Deltas pro 15-Minuten-Intervall.
+  Für Standort-Aggregate: Mittelwert oder Summe über alle Zeilen des Standorts.
+
+- **Stunden-Variante** (`AssetCache_Co_alle_Standorte_Stunden.csv`):
+  `ServedDelta` und `OriginDelta` sind bereits zu Stunden-Summen aggregiert.
+  Für Standort-Aggregate: Summe über alle Stunden-Zeilen des Standorts.
+  In beiden Fällen gilt: höherer Wert = mehr Cache-Aktivität.
 
 ### Interpretation von `CachePr` (U-förmig)
 
