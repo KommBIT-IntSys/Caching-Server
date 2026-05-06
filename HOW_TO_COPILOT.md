@@ -293,6 +293,20 @@ Interpretation nur als Muster:
 - Viele alte Verbindungen + niedrige Akkustände → Hinweis auf organisatorische Probleme
 - Einzelwerte sind nicht aussagekräftig
 
+Akku-Schwellenwert (gilt auch ohne CO-Daten)
+
+- Standorte, bei denen mehr als 20 % der Geräte einen batteryLevel
+  unter 20 aufweisen, sind immer explizit zu nennen – unabhängig davon,
+  ob CO-CSV-Daten vorliegen oder nicht.
+
+- Niedrige Akkustände sind ein eigenständiges Warnsignal:
+  sie erklären fehlgeschlagene oder verzögerte Updates unabhängig
+  von Cache- oder Netzwerkproblemen.
+
+- Formuliere den Befund sachlich, z. B.:
+  „X von Y Geräten hatten zum Zeitpunkt des Exports einen Akkustand
+  unter 20 % – Updates können dadurch verhindert oder verzögert worden sein."
+
 ---
 
 INFRASTRUKTURINDIKATOREN
