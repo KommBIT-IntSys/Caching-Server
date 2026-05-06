@@ -75,7 +75,11 @@ TS_HU="$(date +"%Y-%m-%d %H:%M:%S")"
 HOST="$( /usr/sbin/scutil --get HostName 2>/dev/null || /usr/sbin/scutil --get LocalHostName 2>/dev/null || /bin/hostname -s 2>/dev/null || echo "" )"
 [[ -z "${HOST:-}" ]] && HOST="unknown"
 
-PREFIX="$(echo "$HOST" | awk -F'-' '{print $1}')"
+if [[ "$HOST" == *-Mac-Mini* ]]; then
+  PREFIX="${HOST%%-Mac-Mini*}"
+else
+  PREFIX="${HOST%%-*}"
+fi
 
 OUT_RAW="${OUTDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}.csv"
 OUT_HU="${OUTDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}.csv"
