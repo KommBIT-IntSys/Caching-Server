@@ -33,8 +33,6 @@ Gerätenamen entfernen, Organisationsname auf Kürzel kürzen.
 
 ## Prompt für MS Copilot
 
----
-
 ```
 # Datenmodell: Asset Cache & Relution Export
 
