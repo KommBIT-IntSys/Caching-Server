@@ -11,7 +11,7 @@ Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching 
 
 ### Schnelleinstieg
 
-[HOW TO COPILOT.md](<HOW TO COPILOT.md>)
+[HOW TO COPILOT.md](<HOW_TO_COPILOT.md>)
 
 ### Dateien im Überblick
 
