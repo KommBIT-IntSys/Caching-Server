@@ -83,7 +83,7 @@ Du analysierst zwei CSV-Dateien gemeinsam:
    - alternativ: AssetCache_Co_alle_Standorte.csv
 
 2. Relution-CO-Datei:
-   - Geraete_Global_Co_YYYY-MM-DD.csv
+   - Geraete_Global_Co_JJJJ-MM-TT.csv
    - oder ähnlich benannt
 
 Ziel:
@@ -233,13 +233,20 @@ WLAN-Indikatoren am Mac Mini, *nicht* an den iPad-Positionen — daher nur indir
 - `WifiNoise` (dBm): Störpegel. Nur zusammen mit `WiFiSNR` interpretieren.
 - `WifiCCA` (%): Clear Channel Assessment / Airtime-Auslastung. Höher = mehr Funkkanalbelegung.
 
+Lesart (gilt nur für den Server-Standort, nicht für die iPads):
+
+- `WiFiSNR` dauerhaft niedrig: Hinweis auf schlechte WLAN-Anbindung des Mac Mini, falls per WLAN angebunden. Einzelwerte nicht überbewerten.
+- `WifiCCA` dauerhaft hoch: Hinweis auf stark belegten Funkkanal bzw. Airtime-Engpass.
+- `WifiNoise`: nur zusammen mit `WiFiSNR` und `WifiCCA` bewerten; allein schwach.
+- Bei LAN-Betrieb: WLAN-Werte nicht als Standortqualität interpretieren.
+
 Bei LAN-Betrieb oder Serverraum ohne WLAN können die Werte fehlen.
 
 ---
 
 ## Datei 2: Relution-CO-Datei
 
-Möglicher Dateiname: `Geraete_Global_Co_YYYY-MM-DD.csv`. Eine Zeile pro iPad.
+Möglicher Dateiname: `Geraete_Global_Co_JJJJ-MM-TT.csv`. Eine Zeile pro iPad.
 
 Herkunft: Relution-Export, durch Cleaner-Skript datenschutzkonform aufbereitet — Gerätenamen entfernt, Organisationsnamen auf Standortkürzel reduziert.
 
@@ -474,6 +481,8 @@ Klassifikation: technisch.
 
 Die Frage ist nicht ob, sondern welcher technische Aspekt — möglich sind: Cache-Dienst lokal nicht aktiv, AssetCacheManagerUtil deaktiviert, Netzwerkpfad blockiert, oder Konfigurationsfehler.
 
+Vor der Bewertung den AssetCache-Zeitraum prüfen: Ferienwochen, Wochenenden außerhalb der Schulzeit, Update-Phasen ohne Aktivität oder Logging-Lücken können denselben Befund erzeugen, ohne dass ein technischer Defekt vorliegt. Wenn der Zeitraum solche Phasen enthält und keine zusätzlichen technischen Auffälligkeiten (`DNSRes`, `AppleReach`, `AppleTTFB`) vorliegen: nicht als Totalausfall klassifizieren, sondern als „Cache-Aktivität im beobachteten Zeitraum nicht beobachtbar — Auswertungszeitraum verlängern oder Vergleichszeitraum hinzunehmen".
+
 Handlungsvorschlag: Cache-Dienst auf dem lokalen Server prüfen, LaunchDaemon-Status prüfen, AssetCacheManagerUtil-Status prüfen, Netzwerkpfad zum Apple-Origin prüfen.
 
 Wenn die Datenlage so eingeschränkt ist, dass selbst der Totalausfall-Befund nicht sicher ist (z. B. nur eine Handvoll Zeilen vorhanden), das separat als Datenlückenproblem ausweisen — nicht als Klassifikations-Unsicherheit.
@@ -518,6 +527,8 @@ Kurz darstellen:
 ### 2. Rechnerische Standort-Aggregat-Tabelle
 
 Vollständig, alle Standorte im Scope, keine Kürzung. Falls zu lang: in Blöcke (z. B. A–M, N–Z) aufteilen. Diese Tabelle muss vor der Interpretation stehen.
+
+Wenn die vollständige Aggregat-Tabelle zu lang für eine einzelne Antwort wird (typisch ab ~25 Standorten): zuerst die vollständige Tabelle ausgeben und am Ende ankündigen, dass Abschnitte 3–5 (Priorisierung, Begründungen, Zusammenfassung) in einer Folge-Antwort kommen. Auf Aufforderung dann diese drei Abschnitte separat liefern. Niemals die Tabelle kürzen, um die Interpretation in dieselbe Antwort zu pressen — die Aggregatbasis hat Vorrang.
 
 ---
 
