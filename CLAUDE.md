@@ -25,8 +25,7 @@ The CSV files are not an end in themselves. The monitoring exists to answer one 
 **Implications for CO field design:**  
 CO fields must be Copilot/Excel-friendly: flat structure, numeric fields as actual numbers (not formatted strings), no nested values, no IP addresses, no full hostnames.
 
-Do not suggest Python/HTML analysis tooling — Copilot is the analysis layer.  
-Do not suggest merging analysis logic into the logger scripts.
+Do not propose Python/HTML as the operational analysis layer. The production analysis workflow is Copilot + CSV. Small local validation helpers are acceptable only if explicitly requested and must not replace the documented Copilot pipeline.
 
 **Analysis pipeline (Windows side):** The analyst works on a Windows admin workstation. Three PowerShell helpers prepare the data for Copilot: `Merge_Co_CSV.ps1` joins per-site CO-CSVs into one file, `AssetCache_Verdichten_Co.ps1` aggregates 15-minute rows into hourly rows (~75% fewer rows, time-series preserved), and `Relution-Export-Cleaner_Co.ps1` strips device names and reduces the organization name to the site code. macOS counterparts exist for admins working from a Mac.
 
