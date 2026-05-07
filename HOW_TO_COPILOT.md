@@ -29,7 +29,7 @@ Gerätenamen entfernen, Organisationsname auf Kürzel kürzen.
 5. Auswertung erhalten
 6. Weitere Fragen stellen
 
-## Empfohlen: CO-Dateien zuerst zusammenführen und anschließend mit AssetCache_Verdichten_Co.ps1 auf Stundenwerte verdichten. Die 15-Minuten-Datei nur für Detailfragen verwenden. Für Copilot Basic ist die Stundenvariante der Standard, weil große Dateien sonst still gekürzt oder falsch aggregiert werden können
+Empfohlen: CO-Dateien zuerst zusammenführen und anschließend mit AssetCache_Verdichten_Co.ps1 auf Stundenwerte verdichten. Die 15-Minuten-Datei nur für Detailfragen verwenden. Für Copilot Basic ist die Stundenvariante der Standard, weil große Dateien sonst still gekürzt oder falsch aggregiert werden können
 
 ---
 
