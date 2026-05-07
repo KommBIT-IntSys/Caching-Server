@@ -29,6 +29,8 @@ Gerätenamen entfernen, Organisationsname auf Kürzel kürzen.
 5. Auswertung erhalten
 6. Weitere Fragen stellen
 
+## Empfohlen: CO-Dateien zuerst zusammenführen und anschließend mit AssetCache_Verdichten_Co.ps1 auf Stundenwerte verdichten. Die 15-Minuten-Datei nur für Detailfragen verwenden. Für Copilot Basic ist die Stundenvariante der Standard, weil große Dateien sonst still gekürzt oder falsch aggregiert werden können
+
 ---
 
 ## Prompt für MS Copilot
@@ -101,6 +103,23 @@ Diese Datei kann in zwei Varianten vorliegen:
   `ServedDelta` und `OriginDelta` sind bereits zu Stunden-Summen aggregiert.
   Für Standort-Aggregate: Summe über alle Stunden-Zeilen des Standorts.
   In beiden Fällen gilt: höherer Wert = mehr Cache-Aktivität.
+
+## Schritt 1: Rechnerische Standort-Aggregate
+
+Bevor du interpretierst, erstelle zuerst eine Tabelle je Standort mit mindestens:
+- Anzahl Geräte laut Relution
+- Anteil Geräte auf Zielversion
+- Anteil Geräte unter Zielversion
+- Anteil Geräte mit applePendingVersion / OS Update Status
+- Anteil Geräte mit Batteriestand < 20 %
+- jüngste / älteste lastConnectionDate bzw. Letzte Verbindung
+- Summe ServedDelta
+- Summe OriginDelta
+- Durchschnitt / Maximum ClientsCnt
+- Durchschnitt / Maximum CachePr
+- DNSRes / AppleReach Auffälligkeiten
+
+Erst nach dieser Tabelle darfst du Ursachen einordnen.
 
 ### Interpretation von `CachePr` (U-förmig)
 
@@ -180,14 +199,17 @@ Updates können dadurch verhindert oder verzögert worden sein."
 
 ---
 
-## Vor Implementierung verifizieren
+## Schema-Prüfung zu Beginn
 
-- Genaue Spaltennamen für **Standort** und **Timestamp** in der CO-CSV.
-- Semantik von `DNSRes` (Latenz / Statuscode / Boolean).
-- Format von `AppleReach` (Boolean / Statuscode / Latenz).
-- Einheit von `batteryLevel` (0–100 oder 0–1).
-- Weitere Felder im AssetCache-Log, die der Prompt nicht referenziert.
-- Abweichende Spaltennamen in Relution-Varianten anderer Organisationen.
+Prüfe zuerst:
+- Welche Spalten tatsächlich vorhanden sind.
+- Welche erwarteten Spalten fehlen.
+- Welche Spaltennamen offensichtlich Aliase sind.
+- Ob numerische Werte als Zahlen gelesen wurden.
+- Ob batteryLevel/Batteriestand im Bereich 0–1 oder 0–100 vorliegt.
+- Ob AssetCache-Zeitraum und Relution-Exportdatum zusammenpassen.
+
+Wenn etwas unklar ist: nicht raten, sondern als Unsicherheit ausweisen.
 
 ---
 
