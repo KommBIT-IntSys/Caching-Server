@@ -268,4 +268,10 @@ kommen nicht voran + auffällige Netzwerk-/Cache-Indikatoren
 
 Keine Schuldzuweisungen. Ziel ist Ursachenklärung und Priorisierung.
 ```
+---
 
+## Hintergrund
+
+Wer den Prompt anpassen oder weiterentwickeln will, findet die
+methodischen Erkenntnisse aus seiner bisherigen Entwicklung in
+[docs/Prompt-Entwicklung.md](docs/Prompt-Entwicklung.md).
