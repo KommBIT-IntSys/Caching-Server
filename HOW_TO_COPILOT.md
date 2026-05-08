@@ -87,7 +87,7 @@ Du analysierst zwei CSV-Dateien gemeinsam:
    - oder ähnlich benannt
 
 Ziel:
-Standortweise bewerten, welche Auffälligkeiten beim iOS-/iPadOS-Updatestand bestehen und ob diese eher auf infrastrukturelle Ursachen, organisatorische Ursachen oder unklare Faktoren hindeuten.
+Standortweise bewerten, welche Auffälligkeiten beim -/iPadOS-Updatestand bestehen und ob diese eher auf infrastrukturelle Ursachen, organisatorische Ursachen oder unklare Faktoren hindeuten.
 
 Wichtig:
 Die Auswertung ist explorativ. Keine Schuldzuweisungen. Keine Scheinsicherheit. Unsicherheiten ausdrücklich benennen.
@@ -106,7 +106,7 @@ Keine Interpretation vor der rechnerischen Standort-Aggregat-Tabelle.
 
 ## Hintergrund: Apple Content Caching
 
-Apple Content Caching speichert iOS-/iPadOS-Updates und andere Apple-Inhalte lokal auf einem Mac Mini im Standortnetzwerk zwischen. Anfragen der iPads werden dadurch vom lokalen Cache bedient, statt jeden Download einzeln aus dem Apple-Origin zu ziehen.
+Apple Content Caching speichert -/iPadOS-Updates und andere Apple-Inhalte lokal auf einem Mac Mini im Standortnetzwerk zwischen. Anfragen der iPads werden dadurch vom lokalen Cache bedient, statt jeden Download einzeln aus dem Apple-Origin zu ziehen.
 
 Das spart Bandbreite und beschleunigt Update-Wellen, sofern:
 
@@ -154,39 +154,9 @@ Zeitpunkt der Messung; bestimmt den Auswertungszeitraum. Prüfe frühesten und s
 
 ### `iOSUpdates`
 
-Vom Cache erkannte verfügbare iOS-/iPadOS-Versionen, Primärquelle für die Zielversion. Kann mehrere Werte enthalten (Beispiel: `26.4|18.7.5`), weil ältere iPad-Modelle ältere Major-Versionen unterstützen — nicht jedes Gerät muss zwingend auf die höchste Major-Version.
+Die vom assetcache_logger.sh (Monitoring) von https://gdmf.apple.com/v2/pmv ausgelesenen letzten beiden iOS-/iPadOS-Versionen. Alle Modelle, die gerade in Verwendung sind, sind kompatibel mit iOS 26.x
+Wenn in Geraete_Global_Co_JJJJ-MM-TT.csv ältere Versionen als die aktuelle Zielversion auftauchen, dann ist das zugehörige Gerät als nicht aktuell zu betrachten.
 
-Wenn `iOSUpdates` inkonsistent oder leer ist: nicht raten, als Unsicherheit ausweisen, ggf. mit Relution-Modellinformationen plausibilisieren.
-## Hardware-Cutoff / modellabhängige Zielversionen
-
-Die Spalte `iOSUpdates` aus den AssetCache-Daten kann mehrere aktuelle Zielversionen enthalten, z. B. `26.4|18.7.5`.
-
-Diese Werte dürfen nicht pauschal so interpretiert werden, als müsste jedes iPad die höchste Major-Version erreichen. Unterschiedliche iPad-Modelle unterstützen unterschiedliche maximale iPadOS-Major-Versionen.
-
-Für die Bewertung gilt:
-
-| Modellfamilie / Modell | Max. Major bei aktuellem Zielschema `26.x|18.x` | Interpretation |
-|---|---:|---|
-| iPad 8. Generation und neuer | 26 | Gegen iPadOS 26.x bewerten |
-| iPad 7. Generation | 18 | Nicht gegen iPadOS 26.x bewerten; Ziel ist iPadOS 18.x |
-| iPad 6. Generation | 17 | Hardware-limitiert; nicht als normal updatefähig gegen 18.x/26.x bewerten |
-| iPad mini 5. Generation und neuer | 26 | Gegen iPadOS 26.x bewerten |
-| iPad Air 3. Generation und neuer | 26 | Gegen iPadOS 26.x bewerten |
-| iPad Pro 11″ 1. Generation und neuer | 26 | Gegen iPadOS 26.x bewerten |
-| iPad Pro 12,9″ 3. Generation und neuer | 26 | Gegen iPadOS 26.x bewerten |
-| iPad Pro 10,5″ | 17 | Hardware-limitiert; nicht als normal updatefähig gegen 18.x/26.x bewerten |
-| iPad Pro 12,9″ 2. Generation | 17 | Hardware-limitiert; nicht als normal updatefähig gegen 18.x/26.x bewerten |
-| Ältere oder unbekannte Modelle | unbekannt / ≤16 | Nicht raten. Als `Hardware-Cutoff unklar` markieren. |
-
-Pflichtregel:
-
-- Verwende das Gerätemodell aus dem Relution-Export, um die erwartbare Ziel-Major-Version zu bestimmen.
-- Ein iPad darf nur dann als „nicht aktuell“ gewertet werden, wenn seine installierte iPadOS-Version unterhalb der für dieses Modell erreichbaren Zielversion liegt.
-- Ein iPad 7. Generation auf iPadOS 18.x ist nicht deshalb veraltet, weil iPadOS 26.x existiert.
-- Ein iPad 6. Generation oder älter darf nicht als organisatorisches oder technisches Update-Problem gewertet werden, nur weil es iPadOS 18.x oder 26.x nicht erreicht.
-- Wenn das Modell fehlt, unklar ist oder nicht eindeutig zugeordnet werden kann, keine harte Bewertung vornehmen. Stattdessen als `Modellzuordnung unklar` ausweisen.
-- Hardware-limitiert bedeutet: Das Gerät kann die aktuelle Ziel-Major-Version nicht erreichen. Das ist kein Cache-Problem und kein Schulorganisationsproblem.
----
 
 ### `ClientsCnt`
 
@@ -408,15 +378,13 @@ Erst nach dieser Tabelle darfst du Ursachen einordnen.
 
 ## Zielversion und OS-Bewertung
 
-Leite die Zielversion aus `iOSUpdates` ab. Bei mehreren Zielversionen (z. B. `26.4|18.7.5`) berücksichtigen: verschiedene iPad-Modelle haben unterschiedliche höchste unterstützte Versionen, ältere Major-Versionen können für ältere Geräte korrekt sein, Modellinformationen einbeziehen falls vorhanden.
+Leite die Zielversion aus `iOSUpdates` ab. Die Zielversion ist die neueste, die gelistet wird.
 
 Stelle getrennt dar:
 
 - Geräte auf Zielversion
 - Geräte unter Zielversion
 - Geräte mit ausstehendem Update
-- Geräte mit älteren Major-Versionen
-- Geräte, die vermutlich durch Hardware-Cutoff begrenzt sind
 - MDM-Compliance separat, aber nicht als OS-Aktualität
 
 Keine Zielversion frei erfinden. Bei Unsicherheit als unsicher kennzeichnen und Analyse mit sichtbarer Einschränkung fortführen.
