@@ -320,8 +320,12 @@ MDM-Konformitätsstatus. `COMPLIANT` bedeutet *nicht*, dass die OS-Version aktue
 
 ### Modell
 
-iPad-Modell, falls vorhanden — wichtig für Hardware-Cutoff, da nicht jedes Modell jede neue Major-Version erhalten kann. Strukturell ausgeschlossene Modelle nicht als Updateversagen werten, sondern separat als Hardware-/Supportgrenze ausweisen.
-
+iPad-Modell, falls vorhanden. Aktuell sind folgende Modelle zu erwarten:
+iPad (A16)
+iPad (10th Gen)
+iPad (9th Gen)
+iPad (8th Gen)
+iPad Air (3rd Gen)
 ---
 
 ## Schema-Prüfung zu Beginn
