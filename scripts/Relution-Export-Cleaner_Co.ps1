@@ -1,31 +1,32 @@
 # Relution-Export-Cleaner_Co.ps1
 # Bereinigt den Relution-Export:
 # - entfernt personenbezogene Spalten (z.B. "name")
-# - extrahiert Standortkürzel aus organizationName (Inhalt der ersten Klammer)
+# - extrahiert Standortkuerzel aus organizationName (Inhalt der ersten Klammer)
 # - bringt Spalten in definierte Reihenfolge
-# - toleriert abweichende Spaltennamen und zusätzliche Spalten
-# - meldet fehlende Felder klar und lässt Nutzer entscheiden ob fortgefahren wird
+# - sortiert Zeilen alphabetisch nach Standort
+# - uebernimmt den Zeitstempel der Quelldatei in den Ausgabedateinamen
+# - toleriert abweichende Spaltennamen und zusaetzliche Spalten
+# - meldet fehlende Felder klar und laesst Nutzer entscheiden ob fortgefahren wird
 
 $input_pattern = ".\*_Global_*_????.csv"
-$output_file = "Geraete_Global_Co_$(Get-Date -Format 'yyyy-MM-dd_HHmm').csv"
 
-# Alle Felder die vorhanden sein sollten — Fehlen wird gemeldet, Nutzer entscheidet
+# Alle Felder die vorhanden sein sollten - Fehlen wird gemeldet, Nutzer entscheidet
 $criticalColumns = @('Standort', 'osVersion', 'model', 'lastConnectionDate', 'batteryLevel')
 
 # ---------- Hilfsfunktionen ----------
 
-# Fehlermeldung mit Abbruch — kein Fortfahren möglich (z.B. Datei nicht gefunden)
+# Fehlermeldung mit Abbruch - kein Fortfahren moeglich (z.B. Datei nicht gefunden)
 function Stop-WithError {
     param([string]$message)
     Write-Host ""
     Write-Host "FEHLER: $message" -ForegroundColor Red
     Write-Host ""
-    Write-Host "Drücke eine beliebige Taste zum Beenden..." -ForegroundColor Yellow
+    Write-Host "Druecke eine beliebige Taste zum Beenden..." -ForegroundColor Yellow
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
     exit 1
 }
 
-# Fehlermeldung mit Rückfrage — Nutzer kann trotzdem fortfahren
+# Fehlermeldung mit Rueckfrage - Nutzer kann trotzdem fortfahren
 function Ask-ContinueOnError {
     param([string]$message)
     Write-Host ""
@@ -38,14 +39,14 @@ function Ask-ContinueOnError {
     Write-Host ""
     if ($key.Character -ne 'j' -and $key.Character -ne 'J') {
         Write-Host "Abgebrochen." -ForegroundColor Red
-        Write-Host "Drücke eine beliebige Taste zum Beenden..." -ForegroundColor Yellow
+        Write-Host "Druecke eine beliebige Taste zum Beenden..." -ForegroundColor Yellow
         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         exit 1
     }
 }
 
 # ---------- Spalten-Mapping ----------
-# Ziel-Spaltenname -> Liste möglicher Quell-Namen, erster Treffer gewinnt
+# Ziel-Spaltenname -> Liste moeglicher Quell-Namen, erster Treffer gewinnt
 
 $columnMap = @{
     'Standort'              = @('organizationName', 'Organisation', 'Standort', 'SiteCode', 'Org')
@@ -82,6 +83,21 @@ if (-not $source) {
 
 Write-Host ""
 Write-Host "Verarbeite: $($source.Name)" -ForegroundColor Cyan
+
+# ---------- Zeitstempel aus Quelldateiname extrahieren ----------
+# Erwartet Format: ..._JJJJ-MM-TT_HHMM.csv
+# Beispiel: Geraete_Global_2026-05-12_1553.csv -> 2026-05-12_1553
+
+$timestamp = ""
+if ($source.Name -match '(\d{4}-\d{2}-\d{2}_\d{4})\.csv$') {
+    $timestamp = $matches[1]
+} else {
+    # Fallback: aktuelles Datum und Uhrzeit
+    $timestamp = Get-Date -Format 'yyyy-MM-dd_HHmm'
+    Write-Host "  Hinweis: Zeitstempel konnte nicht aus Dateiname extrahiert werden -- verwende aktuelle Zeit" -ForegroundColor DarkYellow
+}
+
+$output_file = "Geraete_Global_Co_$timestamp.csv"
 
 # ---------- Einlesen ----------
 
@@ -157,6 +173,10 @@ $cleaned = $data | ForEach-Object {
     [PSCustomObject]$outputRow
 }
 
+# ---------- Alphabetisch nach Standort sortieren ----------
+
+$cleaned = $cleaned | Sort-Object -Property Standort
+
 # ---------- Ausgabe schreiben ----------
 
 try {
@@ -168,17 +188,10 @@ try {
 Write-Host ""
 Write-Host "Fertig: $output_file" -ForegroundColor Green
 Write-Host "  Eingabe:  $($data.Count) Geraete" -ForegroundColor Gray
-Write-Host "  Ausgabe:  $($cleaned.Count) Geraete" -ForegroundColor Gray
+Write-Host "  Ausgabe:  $($cleaned.Count) Geraete, alphabetisch nach Standort" -ForegroundColor Gray
 if ($missingCritical) {
     Write-Host "  Achtung:  Fehlende Felder in der Ausgabe: $($missingCritical -join ', ')" -ForegroundColor Yellow
 }
 Write-Host ""
 Write-Host "Druecke eine beliebige Taste zum Beenden..." -ForegroundColor DarkGray
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-
-
-
-Write-Host "Fertig: $output_file" -ForegroundColor Green
-Write-Host "  Eingabe:  $($data.Count) Geräte" -ForegroundColor Gray
-Write-Host "  Ausgabe:  $($cleaned.Count) Geräte" -ForegroundColor Gray
-Write-Host "  Spalten:  $($outputColumns -join ', ')" -ForegroundColor Gray
+$null = $Host.UI.RawUI.ReadKey("NoEch
