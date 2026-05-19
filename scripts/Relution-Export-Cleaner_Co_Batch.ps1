@@ -242,7 +242,7 @@ function Convert-RelutionExportFile {
     $cleaned = $cleaned | Sort-Object -Property Standort
 
     try {
-        $cleaned | Export-Csv -Path $outputFile -NoTypeInformation -Encoding UTF8
+        $cleaned | Export-Csv -Path $outputFile -NoTypeInformation -Encoding UTF8 -Delimiter ";"
     } catch {
         Write-Host "FEHLER: Ausgabedatei konnte nicht geschrieben werden: $outputFile`n$($_.Exception.Message)" -ForegroundColor Red
         return $false
