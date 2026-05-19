@@ -1,5 +1,5 @@
 #!/bin/bash
-# Relution-Export-Cleaner_Co_Batch.sh
+# relution_cleaner_co.sh
 # Bereinigt Relution-Exporte im Skriptordner:
 # - verarbeitet mehrere Dateien nach Geraete_Global_202*.csv und Geräte_Global_202*.csv
 # - erzeugt pro Quelldatei eine datensparsame CO-Datei Geraete_Global_Co_<Zeitstempel>.csv
@@ -11,10 +11,14 @@
 # - schreibt UTF-8-CSV mit Semikolon als Trennzeichen
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || {
+    echo "FEHLER: Skriptordner konnte nicht betreten werden: $SCRIPT_DIR" >&2
+    exit 1
+}
 
 shopt -s nullglob
 SOURCES=()
-for candidate in "$SCRIPT_DIR"/Geraete_Global_202*.csv "$SCRIPT_DIR"/Geräte_Global_202*.csv; do
+for candidate in Geraete_Global_202*.csv Geräte_Global_202*.csv; do
     [ -f "$candidate" ] || continue
     base="$(basename "$candidate")"
     case "$base" in
@@ -184,6 +188,18 @@ sub normalize_version_text {
     return $value;
 }
 
+sub normalize_battery_level {
+    my ($value) = @_;
+    return '' unless defined $value;
+    $value =~ s/^\s+|\s+$//g;
+    return $value if $value eq '';
+    if ($value =~ /\A-?\d+(?:[,.]\d+)?\z/) {
+        $value =~ tr/,/./;
+        return sprintf('%.0f', $value);
+    }
+    return $value;
+}
+
 sub timestamp_from_name {
     my ($file_name) = @_;
     return $1 if $file_name =~ /(\d{4}-\d{2}-\d{2}_\d{4})\.csv\z/;
@@ -229,7 +245,7 @@ sub process_file {
     print "\nVerarbeite: $source_name\n";
 
     my $timestamp = timestamp_from_name($source_name);
-    my $output_path = "$script_dir/Geraete_Global_Co_$timestamp.csv";
+    my $output_path = "Geraete_Global_Co_$timestamp.csv";
     my $output_name = basename($output_path);
 
     my $text;
@@ -340,6 +356,7 @@ sub process_file {
             my $value = row_value($row, $resolved->{$target});
             $value = get_site_code($value) if $target eq 'Standort';
             $value = normalize_version_text($value) if $target eq 'osVersion' || $target eq 'applePendingVersion';
+            $value = normalize_battery_level($value) if $target eq 'batteryLevel';
             $out{$target} = $value;
         }
         push @cleaned, \%out;
@@ -403,7 +420,3 @@ print "  Uebersprungen/Fehler: $failed\n";
 
 exit($ok > 0 ? 0 : 1);
 PERL
-' "$input" > "$output"
-
-count=$(tail -n +2 "$output" | wc -l | tr -d ' ')
-echo "Fertig: $output ($count Geräte)"
