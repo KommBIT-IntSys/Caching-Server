@@ -300,6 +300,22 @@ new_german_summary() {
         fi
         print "Manipulierte Inhalte können unter Umständen einen Prozessabsturz verursachen." && return
     fi
+    [[ "$s" =~ 'content[[:space:]]security[[:space:]]policy|csp' ]] \
+        && print "Manipulierter Webinhalt kann unter Umständen eine wichtige Web-Sicherheitsregel umgehen." && return
+    if [[ "$s" =~ 'unexpected[[:space:]]process[[:space:]]crash|process[[:space:]]crash' ]]; then
+        if [[ "$s" =~ 'web[[:space:]]content|website|webkit|webrtc|safari' ]]; then
+            print "Manipulierter Webinhalt kann unter Umständen einen Prozess- oder Browserabsturz verursachen." && return
+        fi
+        print "Manipulierte Inhalte können unter Umständen einen Prozessabsturz verursachen." && return
+    fi
+    [[ "$s" =~ 'malicious[[:space:]]iframe.*download[[:space:]]settings|iframe.*download[[:space:]]settings' ]] \
+        && print "Ein manipuliertes eingebettetes Webelement kann unter Umständen Download-Einstellungen einer anderen Webseite missbrauchen." && return
+    [[ "$s" =~ 'leak[[:space:]]sensitive[[:space:]]kernel[[:space:]]state' ]] \
+        && print "Eine App kann unter Umständen sensible Kernel-Zustandsinformationen offenlegen." && return
+    [[ "$s" =~ 'maliciously[[:space:]]crafted[[:space:]]website.*leak[[:space:]]sensitive[[:space:]]data|website[[:space:]]may[[:space:]]leak[[:space:]]sensitive[[:space:]]data' ]] \
+        && print "Der Besuch einer manipulierten Webseite kann unter Umständen sensible Daten offenlegen." && return
+    [[ "$s" =~ 'corrupt[[:space:]]process[[:space:]]memory' ]] \
+        && print "Speicherfehler können unter Umständen sicherheitsrelevante Auswirkungen haben." && return
 
     # Schadcodeausführung
     if [[ "$s" =~ 'arbitrary[[:space:]]code[[:space:]]execution|execute[[:space:]]arbitrary[[:space:]]code|code[[:space:]]execution' ]]; then
@@ -359,6 +375,7 @@ new_risk_quality() {
 
     # Spezialfälle
     [[ "$s" =~ 'access[[:space:]]notes[[:space:]]attachments|notes[[:space:]]attachments' ]] && print "relevant" && return
+    [[ "$s" =~ 'maliciously[[:space:]]crafted[[:space:]]website.*leak[[:space:]]sensitive[[:space:]]data|website[[:space:]]may[[:space:]]leak[[:space:]]sensitive[[:space:]]data' ]] && print "relevant" && return
     [[ "$s" =~ 'crash[[:space:]]a[[:space:]]system[[:space:]]process|system[[:space:]]process.*crash|out[[:space:]]of[[:space:]]bounds[[:space:]]write' ]] && print "mittel" && return
 
     # Sehr relevant
