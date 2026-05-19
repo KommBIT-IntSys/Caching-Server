@@ -15,6 +15,44 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
+## [1.9.0] - 2026-05
+
+### Added
+- `assetcache_logger.sh`: dauerhaftes RAW-Journal unter
+  `/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/`
+  (überlebt macOS-Update-Neustarts; an `RAW_SCHEMA_VER` gebunden, nicht an `SCRIPT_VER`)
+- `assetcache_logger.sh`: Rebuild von HU und CO deterministisch aus RAW-Journal
+  (nach Neustart oder Verlust von `/Library/Logs/KommunalBIT`)
+- `assetcache_logger.sh`: Boot-Erkennung via `kern.boottime`; Rebuild wird bei
+  erkanntem Neustart ausgelöst
+- `assetcache_logger.sh`: dauerhaftes Statuslog unter
+  `/Library/Application Support/KommunalBIT/AssetCacheLogger/status.log`
+- `assetcache_logger.sh`: `EXPORT_VISIBLE_RAW=0` (Standard); sichtbares RAW nur
+  bei expliziter Aktivierung
+- `assetcache_logger.sh`: `iso_to_hu_ts()` – ISO-8601 → HU-lesbarer Zeitstempel
+  (für Rebuild ohne Live-Statefiles)
+
+### Changed
+- `assetcache_logger.sh`: `/Library/Logs/KommunalBIT` ist nur noch sichtbarer
+  Ausgabeort; RAW-Journal liegt dauerhaft unter Application Support
+- `assetcache_logger.sh`: Statefiles von `/var/tmp` nach
+  `Application Support/state/` verlagert; einmalige automatische Migration
+- `assetcache_logger.sh`: Archivierung via `cp` statt `mv`; RAW-Journal wird
+  niemals verschoben; nach Archiv-Copy werden sichtbare Dateien zurückgesetzt
+- `assetcache_logger.sh`: `GDMF_DEBUGLOG` liegt jetzt ebenfalls unter
+  Application Support (nicht mehr `/var/tmp`)
+- `SCRIPT_VER` → `1.9.0`
+
+### Notes
+- Keine Änderung an CSV-Schemata, Feldnamen oder Feldreihenfolge.
+- Erster Lauf nach Update von v1.8.x: Statefiles werden automatisch migriert;
+  neue HU-/CO-Dateien starten mit v1.9.0-Namen; altes RAW (v1.8.x) bleibt
+  unberührt.
+- `RAW_SCHEMA_VER="schema1"` – Journal-Name ändert sich bei zukünftigen
+  Patch-/Minor-Versionen nicht; nur bei bewusstem Schema-Bruch anheben.
+
+---
+
 ## [1.8.2] - 2026-05
 
 ### Changed

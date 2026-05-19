@@ -3,45 +3,104 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.8.2 (KommunalBIT)
+# Version 1.9.0 (KommunalBIT)
 # SPDX-License-Identifier: EUPL-1.2
 # Licensed under the EUPL, Version 1.2
 # https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
 # Copyright (C) 2026 Jens Luithle@KommunalBIT AöR
 #
-# Drei CSV-Ausgaben pro Host:
-#   RAW – vollständige Rohdaten, maschinenlesbar, ISO-8601-Zeitstempel
-#   HU  – menschenlesbar, Einheiten, n/a für fehlende Werte
-#   CO  – datensparsam, KI-/Analysegeeignet, kein voller Hostname, keine IPs
+# v1.9.0 Architektur:
+#   RAW  – dauerhaftes Journal unter /Library/Application Support/KommunalBIT/AssetCacheLogger/journal/
+#          (kanonische Wahrheit; überlebt macOS-Update-Neustarts)
+#   HU   – menschenlesbare View, sichtbar unter /Library/Logs/KommunalBIT/
+#   CO   – datensparsame Analyse-View, sichtbar unter /Library/Logs/KommunalBIT/
 #
-# - ClientsCnt RAW = active/total (e.g. 4/122), or just active if site unknown
-# - ClientsCnt HU  = percentage only (e.g. 3.3%), or just active if site unknown
-# - ClientsCnt CO  = active/total (wie RAW); Hostname-Feld = SiteCode (PREFIX)
-# - CSV output is fully quoted / CSV-safe, including header
-# - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
+# /Library/Logs/KommunalBIT ist nur noch sichtbarer Ausgabeort.
+# HU und CO können jederzeit deterministisch aus dem RAW-Journal wiederhergestellt werden.
+# RAW wird standardmäßig nicht sichtbar geschrieben (nur im Application-Support-Journal).
+#
+# Key deltas vs 1.8.2:
+# - RAW-Journal dauerhaft unter Application Support/journal/ (überdauert Neustarts)
+# - Statefiles von /var/tmp nach Application Support/state/ verlagert (mit Migrations-Logik)
+# - Boot-Erkennung via kern.boottime; nach Neustart Rebuild sichtbarer HU-/CO-Dateien
+# - Rebuild von HU und CO aus RAW-Journal (deterministisch, ohne Live-Statefiles)
+# - Archivierung via cp statt mv (sichtbare Dateien); RAW-Journal wird nie verschoben
+# - Statuslog unter Application Support (dauerhaft)
+# - EXPORT_VISIBLE_RAW=0: kein sichtbares RAW per Default
+# - RAW_SCHEMA_VER entkoppelt das Journal von SCRIPT_VER (kein Neubeginn bei Patch/Minor)
 
-SCRIPT_VER="1.8.2"
+SCRIPT_VER="1.9.0"
+RAW_SCHEMA_VER="schema1"
 
-OUTDIR="/Library/Logs/KommunalBIT"
-ARCHIVDIR="${OUTDIR}/Archiv"
-STATEFILE="/var/tmp/assetcache_logger_state.tsv"
+# Auf 1 setzen, um zusätzlich eine sichtbare RAW-Datei unter /Library/Logs/KommunalBIT zu schreiben
+EXPORT_VISIBLE_RAW=0
 
-# HU visibility block state for iOSUpdates (19 lines after a change = 20 total)
-IOSUPD_STATEFILE="/var/tmp/assetcache_iosupdates_hu_state.tsv"
+# =============================================================================
+# Verzeichnis-Konstanten (PREFIX-unabhängig)
+# =============================================================================
+
+VISIBLE_DIR="/Library/Logs/KommunalBIT"
+VISIBLE_ARCHIVDIR="${VISIBLE_DIR}/Archiv"
+
+APP_SUPPORT_BASE="/Library/Application Support/KommunalBIT/AssetCacheLogger"
+JOURNAL_DIR="${APP_SUPPORT_BASE}/journal"
+STATE_DIR="${APP_SUPPORT_BASE}/state"
+BOOT_DIR="${APP_SUPPORT_BASE}/boot"
+STATUS_LOG="${APP_SUPPORT_BASE}/status.log"
+
+# =============================================================================
+# Statefiles (PREFIX-unabhängig, jetzt unter STATE_DIR)
+# =============================================================================
+
+STATEFILE="${STATE_DIR}/assetcache_logger_state.tsv"
+IOSUPD_STATEFILE="${STATE_DIR}/assetcache_iosupdates_hu_state.tsv"
 IOSUPD_BLOCK_LEN=19
-
-# HU visibility block state for TotalsSince (19 lines after a change = 20 total)
-TOTALSSINCE_HU_STATEFILE="/var/tmp/assetcache_totalssince_hu_state.tsv"
+TOTALSSINCE_HU_STATEFILE="${STATE_DIR}/assetcache_totalssince_hu_state.tsv"
 TOTALSSINCE_BLOCK_LEN=19
+GDMF_STATEFILE="${STATE_DIR}/assetcache_gdmf_state.tsv"
+GDMF_DEBUGLOG="${STATE_DIR}/assetcache_gdmf_debug.log"
 
-# GDMF caching + debug
-GDMF_STATEFILE="/var/tmp/assetcache_gdmf_state.tsv"   # SIG<TAB>VER
-GDMF_DEBUGLOG="/var/tmp/assetcache_gdmf_debug.log"    # trimmed to last 1000 lines
+# =============================================================================
+# Zeitstempel
+# =============================================================================
 
-# ---------- SuS table – loaded from external config file ----------
-# Rule: only devices whose name contains "SuS" are counted as SuS base for ClientsCnt.
-# Format: one entry per line:  KÜRZEL<TAB>ANZAHL  (lines starting with # are ignored)
-# The file is managed via MDM and is not part of this script.
+TS_RAW="$(date +"%Y-%m-%dT%H:%M:%S%z" | sed -E 's/([+-][0-9]{2})([0-9]{2})$/\1:\2/')"
+TS_HU="$(date +"%Y-%m-%d %H:%M:%S")"
+
+# =============================================================================
+# Hostname und Prefix
+# =============================================================================
+
+HOST="$( /usr/sbin/scutil --get HostName 2>/dev/null \
+  || /usr/sbin/scutil --get LocalHostName 2>/dev/null \
+  || /bin/hostname -s 2>/dev/null \
+  || echo "" )"
+[[ -z "${HOST:-}" ]] && HOST="unknown"
+
+if [[ "$HOST" == *-Mac-Mini* ]]; then
+  PREFIX="${HOST%%-Mac-Mini*}"
+else
+  PREFIX="${HOST%%-*}"
+fi
+
+# =============================================================================
+# PREFIX-abhängige Pfade
+# =============================================================================
+
+OUT_HU="${VISIBLE_DIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}.csv"
+OUT_CO="${VISIBLE_DIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}.csv"
+OUT_RAW=""  # nur gesetzt wenn EXPORT_VISIBLE_RAW=1
+if [[ "${EXPORT_VISIBLE_RAW}" -eq 1 ]]; then
+  OUT_RAW="${VISIBLE_DIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}.csv"
+fi
+
+ARCHIVE_STATEFILE="${STATE_DIR}/assetcache_archive_state_${PREFIX}.tsv"
+RAW_JOURNAL="${JOURNAL_DIR}/${PREFIX}_AssetCacheRaw_${RAW_SCHEMA_VER}.csv"
+
+# =============================================================================
+# SuS-Tabelle – externe Konfigurationsdatei
+# =============================================================================
+# Format: KÜRZEL<TAB>ANZAHL  (Zeilen mit # werden ignoriert)
 typeset -A SUS_TOTAL_BY_SITE
 SCHULEN_CONF="/etc/kommunalbit/schulen.conf"
 if [[ -f "${SCHULEN_CONF}" ]]; then
@@ -51,6 +110,10 @@ if [[ -f "${SCHULEN_CONF}" ]]; then
   done < "${SCHULEN_CONF}"
 fi
 
+# =============================================================================
+# CSV-Header
+# =============================================================================
+
 CSV_HEADER_FIELDS=(
   "Hostname" "Timestamp" "TotalsSince" "Peers" "ClientsCnt" "iOSUpdates" "iOSBytes"
   "TotReturned" "TotOrigin" "ServedDelta" "OriginDelta" "CacheUsed" "CachePr"
@@ -58,38 +121,117 @@ CSV_HEADER_FIELDS=(
   "WiFiSNR" "WifiNoise" "WifiCCA"
 )
 
-# CO: datensparsam, ohne IPs und volle Hostnamen – für KI-gestützte externe Auswertung
 CSV_HEADER_FIELDS_CO=(
   "SiteCode" "Timestamp" "PeerCnt" "ClientsCnt" "iOSUpdates" "iOSBytes"
   "ServedDelta" "OriginDelta" "CacheUsed" "CachePr"
   "DNSRes" "AppleReach" "AppleTTFB" "WiFiSNR"
 )
 
-# RAW: ISO 8601 local time with offset
-TS_RAW="$(date +"%Y-%m-%dT%H:%M:%S%z" | sed -E 's/([+-][0-9]{2})([0-9]{2})$/\1:\2/')"
+# =============================================================================
+# Statuslog
+# =============================================================================
 
-# HU: pretty local time without offset
-TS_HU="$(date +"%Y-%m-%d %H:%M:%S")"
+status_log() {
+  local ts
+  ts="$(date '+%Y-%m-%d %H:%M:%S')"
+  printf "%s %s\n" "$ts" "$*" >> "${STATUS_LOG}" 2>/dev/null || true
+  # Auf 2000 Zeilen kürzen
+  if [[ -f "$STATUS_LOG" ]]; then
+    local lc
+    lc="$(/usr/bin/wc -l < "$STATUS_LOG" 2>/dev/null | tr -d ' ')"
+    if [[ -n "${lc:-}" && "$lc" -gt 2000 ]]; then
+      /usr/bin/tail -n 2000 "$STATUS_LOG" > "${STATUS_LOG}.tmp" 2>/dev/null \
+        && /bin/mv "${STATUS_LOG}.tmp" "$STATUS_LOG" 2>/dev/null || true
+    fi
+  fi
+}
 
-# Hostname: prefer HostName/LocalHostName to avoid DNS-inventory weirdness
-HOST="$( /usr/sbin/scutil --get HostName 2>/dev/null || /usr/sbin/scutil --get LocalHostName 2>/dev/null || /bin/hostname -s 2>/dev/null || echo "" )"
-[[ -z "${HOST:-}" ]] && HOST="unknown"
+# =============================================================================
+# Verzeichnisstruktur sicherstellen
+# =============================================================================
 
-if [[ "$HOST" == *-Mac-Mini* ]]; then
-  PREFIX="${HOST%%-Mac-Mini*}"
-else
-  PREFIX="${HOST%%-*}"
-fi
+ensure_app_support_dirs() {
+  local dir created_any=0
+  for dir in "$APP_SUPPORT_BASE" "$JOURNAL_DIR" "$STATE_DIR" "$BOOT_DIR"; do
+    if [[ ! -d "$dir" ]]; then
+      if /bin/mkdir -p "$dir" 2>/dev/null; then
+        /bin/chown root:wheel "$dir" 2>/dev/null || true
+        /bin/chmod 700 "$dir" 2>/dev/null || true
+        created_any=1
+      else
+        # Statuslog kann hier noch nicht sicher schreiben; stderr als Fallback
+        printf "%s ERROR failed to create dir %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$dir" >&2
+      fi
+    fi
+  done
+  for dir in "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR"; do
+    if [[ ! -d "$dir" ]]; then
+      /bin/mkdir -p "$dir" 2>/dev/null || true
+      /bin/chown root:wheel "$dir" 2>/dev/null || true
+      /bin/chmod 755 "$dir" 2>/dev/null || true
+    fi
+  done
+  [[ "$created_any" -eq 1 ]] && status_log "INFO Application-Support-Verzeichnisse angelegt"
+}
 
-OUT_RAW="${OUTDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}.csv"
-OUT_HU="${OUTDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}.csv"
-OUT_CO="${OUTDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}.csv"
+# =============================================================================
+# Migration: /var/tmp → STATE_DIR (einmalig)
+# =============================================================================
 
-# Archive state per prefix
-ARCHIVE_STATEFILE="/var/tmp/assetcache_archive_state_${PREFIX}.tsv"
+migrate_statefiles_from_var_tmp() {
+  local -a migrations=(
+    "/var/tmp/assetcache_logger_state.tsv:${STATEFILE}"
+    "/var/tmp/assetcache_iosupdates_hu_state.tsv:${IOSUPD_STATEFILE}"
+    "/var/tmp/assetcache_totalssince_hu_state.tsv:${TOTALSSINCE_HU_STATEFILE}"
+    "/var/tmp/assetcache_gdmf_state.tsv:${GDMF_STATEFILE}"
+    "/var/tmp/assetcache_gdmf_debug.log:${GDMF_DEBUGLOG}"
+    "/var/tmp/assetcache_archive_state_${PREFIX}.tsv:${ARCHIVE_STATEFILE}"
+  )
 
-# Ensure dirs exist early
-/bin/mkdir -p "$OUTDIR" "$ARCHIVDIR" 2>/dev/null || true
+  local entry src dst
+  for entry in "${migrations[@]}"; do
+    src="${entry%%:*}"
+    dst="${entry#*:}"
+    if [[ -f "$src" && ! -f "$dst" ]]; then
+      if /bin/cp "$src" "$dst" 2>/dev/null; then
+        /bin/chown root:wheel "$dst" 2>/dev/null || true
+        /bin/chmod 600 "$dst" 2>/dev/null || true
+        status_log "INFO migriert: $src → $dst"
+      else
+        status_log "WARN Migration fehlgeschlagen: $src → $dst"
+      fi
+    fi
+  done
+}
+
+# =============================================================================
+# Boot-Erkennung
+# =============================================================================
+# Gibt 1 zurück wenn sich die Boot-Zeit geändert hat, sonst 0.
+
+detect_boot_change() {
+  local cur_boot_sec
+  cur_boot_sec="$(sysctl kern.boottime 2>/dev/null \
+    | /usr/bin/grep -oE 'sec = [0-9]+' | awk '{print $3}')"
+  [[ -z "${cur_boot_sec:-}" ]] && return 0
+
+  local boot_file="${BOOT_DIR}/last_boot_time"
+  local prev_boot_sec=""
+  if [[ -f "$boot_file" ]]; then
+    prev_boot_sec="$(/bin/cat "$boot_file" 2>/dev/null | tr -d '\r\n')"
+  fi
+
+  if [[ "${cur_boot_sec:-}" != "${prev_boot_sec:-}" ]]; then
+    status_log "INFO Boot-Wechsel erkannt old=${prev_boot_sec:-none} new=${cur_boot_sec}"
+    printf "%s\n" "$cur_boot_sec" > "$boot_file" 2>/dev/null || true
+    return 1
+  fi
+  return 0
+}
+
+# =============================================================================
+# Hilfsfunktionen (unveränderter Kern aus v1.8.2)
+# =============================================================================
 
 site_code_for_clientscnt() {
   local pfx="${1:-}"
@@ -142,7 +284,6 @@ format_clientscnt_hu() {
     return
   fi
 
-  # Unknown site: just return active client count, no percentage
   if [[ -z "${total:-}" ]] || ! echo "$total" | /usr/bin/grep -Eq '^[0-9]+$'; then
     echo "$active"
     return
@@ -164,8 +305,6 @@ normalize_ios_version_2digit() {
   local v="${1:-}"
   [[ -z "${v:-}" ]] && { echo ""; return; }
 
-  # Nur einfache numerische Apple-Versionsmuster anfassen:
-  # 18.7, 18.7.7, 26.5, 26.5.1
   if ! echo "$v" | /usr/bin/grep -Eq '^[0-9]+(\.[0-9]+){1,2}$'; then
     echo "$v"
     return
@@ -222,7 +361,7 @@ emit_csv_line() {
   printf '\n' >> "$out"
 }
 
-# ---------- Timeout helper ----------
+# ---------- Timeout-Helfer ----------
 _timeout_run() {
   local secs="$1" outfile="$2"
   shift 2
@@ -237,7 +376,7 @@ _timeout_run() {
   wait "$wdog_pid" 2>/dev/null 2>&1
 }
 
-# ---------- Gather AssetCacheManagerUtil status ----------
+# ---------- AssetCacheManagerUtil-Status einlesen ----------
 _acmu_tmp="$(/usr/bin/mktemp /var/tmp/acmu_XXXXXX 2>/dev/null || echo "")"
 STATUS_TXT=""
 if [[ -n "${_acmu_tmp:-}" ]]; then
@@ -246,7 +385,6 @@ if [[ -n "${_acmu_tmp:-}" ]]; then
   /bin/rm -f "$_acmu_tmp" 2>/dev/null || true
 fi
 
-# ---------- Helpers ----------
 get_key() {
   local key="$1"
   echo "$STATUS_TXT" | awk -F': ' -v k="$key" '
@@ -317,10 +455,10 @@ bytes_human() {
 
   LC_ALL=C /usr/bin/awk -v x="$b" 'BEGIN{
     v=x+0; unit="B";
-    if (v>=1000000000000){v=v/1000000000000; unit="TB"}
-    else if (v>=1000000000) {v=v/1000000000; unit="GB"}
-    else if (v>=1000000)    {v=v/1000000; unit="MB"}
-    else if (v>=1000)       {v=v/1000; unit="KB"}
+    if      (v>=1000000000000){v=v/1000000000000; unit="TB"}
+    else if (v>=1000000000)   {v=v/1000000000;    unit="GB"}
+    else if (v>=1000000)      {v=v/1000000;       unit="MB"}
+    else if (v>=1000)         {v=v/1000;          unit="KB"}
     printf "%.2f%s", v, unit
   }'
 }
@@ -427,7 +565,7 @@ trim_gdmf_debuglog() {
   fi
 }
 
-# ---------- ClientsCnt: unique client IPv4s in last N minutes ----------
+# ---------- ClientsCnt ----------
 clients_count_last_minutes() {
   local mins="${1:-16}"
 
@@ -597,6 +735,9 @@ totalssince_hu_value() {
   fi
 }
 
+# ---------- Archivierung bei iOS-Update-Wechsel ----------
+# Kopiert sichtbare HU-/CO-Dateien ins Archiv (cp statt mv).
+# Das RAW-Journal wird nie verschoben oder archiviert.
 archive_csv_on_update() {
   local current_ver="${1:-}"
   [[ -z "${current_ver:-}" ]] && return
@@ -616,23 +757,311 @@ archive_csv_on_update() {
   local ts_arch
   ts_arch="$(date +%Y%m%d_%H%M%S)"
 
-  if [[ -f "$OUT_RAW" ]]; then
-    /bin/mv "$OUT_RAW" "${ARCHIVDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
-  fi
+  # HU kopieren, danach zurücksetzen (neuer iOS-Abschnitt beginnt frisch)
   if [[ -f "$OUT_HU" ]]; then
-    /bin/mv "$OUT_HU" "${ARCHIVDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
+    local dst_hu="${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}_${ts_arch}.csv"
+    if /bin/cp "$OUT_HU" "$dst_hu" 2>/dev/null; then
+      : > "$OUT_HU"
+      emit_csv_line "$OUT_HU" "${CSV_HEADER_FIELDS[@]}"
+      /bin/chmod 644 "$OUT_HU" 2>/dev/null || true
+    fi
   fi
+
+  # CO kopieren und zurücksetzen
   if [[ -f "$OUT_CO" ]]; then
-    /bin/mv "$OUT_CO" "${ARCHIVDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}_${ts_arch}.csv" 2>/dev/null || true
+    local dst_co="${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}_${ts_arch}.csv"
+    if /bin/cp "$OUT_CO" "$dst_co" 2>/dev/null; then
+      : > "$OUT_CO"
+      emit_csv_line "$OUT_CO" "${CSV_HEADER_FIELDS_CO[@]}"
+      /bin/chmod 644 "$OUT_CO" 2>/dev/null || true
+    fi
+  fi
+
+  # Optionale sichtbare RAW-Datei ebenfalls kopieren und zurücksetzen
+  if [[ "${EXPORT_VISIBLE_RAW}" -eq 1 && -n "${OUT_RAW:-}" && -f "$OUT_RAW" ]]; then
+    local dst_raw="${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}_${ts_arch}.csv"
+    if /bin/cp "$OUT_RAW" "$dst_raw" 2>/dev/null; then
+      : > "$OUT_RAW"
+      emit_csv_line "$OUT_RAW" "${CSV_HEADER_FIELDS[@]}"
+      /bin/chmod 644 "$OUT_RAW" 2>/dev/null || true
+    fi
   fi
 
   printf "%s\n" "$current_ver" > "$ARCHIVE_STATEFILE" 2>/dev/null || true
+  status_log "INFO Archiv erstellt ts=${ts_arch} ver=${current_ver}"
 }
 
 # =============================================================================
-# 1. Collect snapshot
+# ISO-8601-Zeitstempel → HU-lesbares Format (für Rebuild aus Journal)
 # =============================================================================
-# Einmalige Erfassung aller Systemwerte. Keine Ableitung, keine Formatierung.
+# Eingabe: 2026-05-20T12:34:56+02:00
+# Ausgabe: 2026-05-20 12:34:56
+
+iso_to_hu_ts() {
+  local s="${1:-}"
+  [[ -z "$s" ]] && echo "" && return
+  # Doppelpunkt aus Zeitzone entfernen: +02:00 → +0200
+  local s_fixed
+  s_fixed="$(echo "$s" | sed -E 's/([+-][0-9]{2}):([0-9]{2})$/\1\2/')"
+  /bin/date -j -f "%Y-%m-%dT%H:%M:%S%z" "$s_fixed" +"%Y-%m-%d %H:%M:%S" 2>/dev/null || echo ""
+}
+
+# =============================================================================
+# Rebuild: HU und CO aus RAW-Journal neu erzeugen
+# =============================================================================
+# Deterministisch – ohne Live-Statefiles.
+# Schreibt über temporäre Dateien, dann atomares mv.
+
+rebuild_visible_from_journal() {
+  if [[ ! -f "$RAW_JOURNAL" ]]; then
+    status_log "INFO kein RAW-Journal vorhanden, kein Rebuild möglich"
+    return 1
+  fi
+  if [[ ! -s "$RAW_JOURNAL" ]]; then
+    status_log "INFO RAW-Journal ist leer, kein Rebuild"
+    return 1
+  fi
+
+  status_log "INFO Rebuild HU/CO aus RAW-Journal gestartet: ${RAW_JOURNAL}"
+
+  local tmp_hu tmp_co
+  tmp_hu="$(/usr/bin/mktemp /var/tmp/rebuild_hu_XXXXXX 2>/dev/null || echo "")"
+  tmp_co="$(/usr/bin/mktemp /var/tmp/rebuild_co_XXXXXX 2>/dev/null || echo "")"
+
+  if [[ -z "${tmp_hu:-}" || -z "${tmp_co:-}" ]]; then
+    status_log "ERROR Rebuild: temporäre Dateien konnten nicht erstellt werden"
+    return 1
+  fi
+
+  : > "$tmp_hu"
+  : > "$tmp_co"
+  emit_csv_line "$tmp_hu" "${CSV_HEADER_FIELDS[@]}"
+  emit_csv_line "$tmp_co" "${CSV_HEADER_FIELDS_CO[@]}"
+
+  # Zustandsverfolgung für Block-Sichtbarkeit (deterministisch aus RAW)
+  local last_iosupdates="" iosupdates_count=0
+  local last_totalssince_hu="" totalssince_count=0
+
+  local lineno=0
+  local data_rows=0
+
+  while IFS= read -r raw_line; do
+    lineno=$((lineno + 1))
+    [[ "$lineno" -eq 1 ]] && continue  # Header überspringen
+    [[ -z "${raw_line:-}" ]] && continue
+
+    # Gequotetes CSV via perl parsen → Tab-separiert
+    local fields_str
+    fields_str="$(echo "$raw_line" | /usr/bin/perl -e '
+      use strict;
+      my $line = <STDIN>; chomp $line;
+      my @out;
+      while (length($line) > 0) {
+        if ($line =~ s/^"((?:[^"]|"")*)"(?:,|$)//) {
+          my $v = $1; $v =~ s/""/"/g; push @out, $v;
+        } elsif ($line =~ s/^([^,]*)(?:,|$)//) {
+          push @out, $1;
+        } else { last; }
+      }
+      print join("\t", @out) . "\n";
+    ' 2>/dev/null)"
+
+    [[ -z "${fields_str:-}" ]] && continue
+
+    # In zsh-Array aufteilen (1-basiert)
+    local -a f
+    f=("${(s:\t:)${fields_str%%$'\n'}}")
+
+    [[ "${#f}" -lt 23 ]] && continue  # unvollständige Zeile überspringen
+
+    local r_host="${f[1]:-}"  r_ts="${f[2]:-}"       r_totalssince="${f[3]:-}"
+    local r_peers="${f[4]:-}" r_clientscnt="${f[5]:-}" r_iosupdates="${f[6]:-}"
+    local r_iosbytes="${f[7]:-}"    r_totret="${f[8]:-}"      r_totorg="${f[9]:-}"
+    local r_serveddelta="${f[10]:-}" r_origindelta="${f[11]:-}" r_cacheused="${f[12]:-}"
+    local r_cachepr="${f[13]:-}"  r_en0="${f[14]:-}"        r_en1="${f[15]:-}"
+    local r_gatewayip="${f[16]:-}" r_defaultif="${f[17]:-}"   r_dnsres="${f[18]:-}"
+    local r_applereach="${f[19]:-}" r_applettfb="${f[20]:-}"  r_wifisnr="${f[21]:-}"
+    local r_wifinoise="${f[22]:-}"  r_wificca="${f[23]:-}"
+
+    # ----------------------------------------------------------------
+    # HU-Felder ableiten
+    # ----------------------------------------------------------------
+
+    # Timestamp
+    local hu_ts
+    hu_ts="$(iso_to_hu_ts "$r_ts")"
+    [[ -z "${hu_ts:-}" ]] && hu_ts="$r_ts"
+
+    # TotalsSince – Block-Sichtbarkeit
+    local hu_totalssince_cur
+    hu_totalssince_cur="$(iso_to_hu_ts "$r_totalssince")"
+    local hu_totalssince=""
+    if [[ -z "${last_totalssince_hu:-}" || "$hu_totalssince_cur" != "$last_totalssince_hu" ]]; then
+      last_totalssince_hu="$hu_totalssince_cur"
+      totalssince_count=$TOTALSSINCE_BLOCK_LEN
+      hu_totalssince="$hu_totalssince_cur"
+    elif [[ "$totalssince_count" -gt 0 ]]; then
+      totalssince_count=$((totalssince_count - 1))
+      hu_totalssince="$hu_totalssince_cur"
+    fi
+
+    # Peers – Anzahl
+    local hu_peers=""
+    if [[ -n "$r_peers" ]]; then
+      hu_peers="$(echo "$r_peers" | awk -F';' '{print NF}')"
+    fi
+
+    # ClientsCnt
+    local cc_active="" cc_total=""
+    if [[ "$r_clientscnt" == */* ]]; then
+      cc_active="${r_clientscnt%%/*}"
+      cc_total="${r_clientscnt##*/}"
+    elif [[ -n "$r_clientscnt" ]]; then
+      cc_active="$r_clientscnt"
+    fi
+    local hu_clientscnt
+    hu_clientscnt="$(format_clientscnt_hu "${cc_active:-}" "${cc_total:-}")"
+
+    # iOSUpdates – Block-Sichtbarkeit
+    local hu_iosupdates=""
+    if [[ -z "${last_iosupdates:-}" || "$r_iosupdates" != "$last_iosupdates" ]]; then
+      last_iosupdates="$r_iosupdates"
+      iosupdates_count=$IOSUPD_BLOCK_LEN
+      hu_iosupdates="$r_iosupdates"
+    elif [[ "$iosupdates_count" -gt 0 ]]; then
+      iosupdates_count=$((iosupdates_count - 1))
+      hu_iosupdates="$r_iosupdates"
+    fi
+
+    # Byte-Felder
+    local hu_iosbytes hu_totret hu_totorg hu_serveddelta hu_origindelta hu_cacheused
+    hu_iosbytes="$(bytes_human "${r_iosbytes:-}")"
+    hu_totret="$(bytes_human "${r_totret:-}")"
+    hu_totorg="$(bytes_human "${r_totorg:-}")"
+    hu_serveddelta="$(bytes_human "${r_serveddelta:-}")"
+    hu_origindelta="$(bytes_human "${r_origindelta:-}")"
+    hu_cacheused="$(bytes_human "${r_cacheused:-}")"
+
+    # CachePr
+    local hu_cachepr="0"
+    [[ -n "${r_cachepr:-}" ]] && hu_cachepr="$r_cachepr"
+
+    # Netzwerk
+    local hu_en0 hu_en1 hu_gateway
+    hu_en0="$(hu_iface_state "$r_en0")"
+    hu_en1="$(hu_iface_state "$r_en1")"
+    hu_gateway="$(hu_gateway_state "$r_gatewayip")"
+
+    # DNS + Apple
+    local hu_dnsres="no" hu_applereach="no" hu_applettfb="n/a"
+    [[ "$r_dnsres" == "1" ]] && hu_dnsres="yes"
+    if [[ "$r_applereach" == "1" ]]; then
+      hu_applereach="yes"
+      [[ -n "${r_applettfb:-}" ]] && hu_applettfb="${r_applettfb}ms" || hu_applettfb="n/a"
+    fi
+
+    # WiFi
+    local hu_wifisnr="n/a" hu_wifinoise="n/a" hu_wificca="n/a"
+    [[ -n "${r_wifisnr:-}" ]] && hu_wifisnr="${r_wifisnr}dB"
+    [[ -n "${r_wifinoise:-}" ]] && hu_wifinoise="${r_wifinoise}dBm"
+    [[ -n "${r_wificca:-}" ]] && hu_wificca="${r_wificca}%"
+
+    emit_csv_line "$tmp_hu" \
+      "$r_host" "$hu_ts" "$hu_totalssince" "$hu_peers" "$hu_clientscnt" \
+      "$hu_iosupdates" "${hu_iosbytes:-n/a}" "${hu_totret:-n/a}" "${hu_totorg:-n/a}" \
+      "${hu_serveddelta:-n/a}" "${hu_origindelta:-n/a}" "${hu_cacheused:-n/a}" \
+      "$hu_cachepr" "$hu_en0" "$hu_en1" "$hu_gateway" "$r_defaultif" \
+      "$hu_dnsres" "$hu_applereach" "$hu_applettfb" "$hu_wifisnr" "$hu_wifinoise" "$hu_wificca"
+
+    # ----------------------------------------------------------------
+    # CO-Felder ableiten
+    # ----------------------------------------------------------------
+    local co_iosupdates
+    co_iosupdates="$(normalize_iosupdates_list_2digit "${r_iosupdates:-}")"
+
+    emit_csv_line "$tmp_co" \
+      "$PREFIX" "$r_ts" "$hu_peers" "$r_clientscnt" "$co_iosupdates" \
+      "${r_iosbytes:-}" "${r_serveddelta:-}" "${r_origindelta:-}" "${r_cacheused:-}" \
+      "$r_cachepr" "$r_dnsres" "$r_applereach" "${r_applettfb:-}" "${r_wifisnr:-}"
+
+    data_rows=$((data_rows + 1))
+  done < "$RAW_JOURNAL"
+
+  # Atomar auf Zieldateien setzen
+  local rebuild_ok=0
+  if /bin/mv "$tmp_hu" "$OUT_HU" 2>/dev/null; then
+    /bin/chmod 644 "$OUT_HU" 2>/dev/null || true
+    status_log "INFO HU aus RAW-Journal wiederhergestellt (${data_rows} Datenzeilen)"
+    rebuild_ok=1
+  else
+    status_log "ERROR Rebuild HU: mv fehlgeschlagen → $OUT_HU"
+    /bin/rm -f "$tmp_hu" 2>/dev/null || true
+  fi
+
+  if /bin/mv "$tmp_co" "$OUT_CO" 2>/dev/null; then
+    /bin/chmod 644 "$OUT_CO" 2>/dev/null || true
+    status_log "INFO CO aus RAW-Journal wiederhergestellt (${data_rows} Datenzeilen)"
+  else
+    status_log "ERROR Rebuild CO: mv fehlgeschlagen → $OUT_CO"
+    /bin/rm -f "$tmp_co" 2>/dev/null || true
+    rebuild_ok=0
+  fi
+
+  return $((1 - rebuild_ok))
+}
+
+# =============================================================================
+# Sichtbare Dateien prüfen und ggf. aus Journal wiederherstellen
+# =============================================================================
+
+check_and_rebuild_visible_files() {
+  local needs_rebuild=0
+
+  # Sichtbarer Log-Ordner vorhanden?
+  if [[ ! -d "$VISIBLE_DIR" ]]; then
+    /bin/mkdir -p "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
+    /bin/chown root:wheel "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
+    /bin/chmod 755 "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
+    status_log "WARN sichtbarer Log-Ordner fehlte; neu angelegt"
+    needs_rebuild=1
+  fi
+
+  if [[ ! -f "$OUT_HU" || ! -s "$OUT_HU" ]]; then
+    status_log "INFO sichtbare HU-Datei fehlt oder leer"
+    needs_rebuild=1
+  fi
+
+  if [[ ! -f "$OUT_CO" || ! -s "$OUT_CO" ]]; then
+    status_log "INFO sichtbare CO-Datei fehlt oder leer"
+    needs_rebuild=1
+  fi
+
+  if [[ "$needs_rebuild" -eq 1 ]]; then
+    if [[ -f "$RAW_JOURNAL" && -s "$RAW_JOURNAL" ]]; then
+      rebuild_visible_from_journal
+    else
+      status_log "INFO kein Journal für Rebuild vorhanden – sichtbare Dateien entstehen ab diesem Lauf neu"
+    fi
+  fi
+}
+
+# =============================================================================
+# Startup-Sequenz
+# =============================================================================
+
+ensure_app_support_dirs
+migrate_statefiles_from_var_tmp
+status_log "INFO start v${SCRIPT_VER} schema=${RAW_SCHEMA_VER} host=${HOST} prefix=${PREFIX}"
+
+_boot_changed=0
+detect_boot_change || _boot_changed=1
+
+check_and_rebuild_visible_files
+
+# =============================================================================
+# 1. Snapshot erfassen
+# =============================================================================
+# Einmalige Messung aller Systemwerte.
 
 TotalsSince_src="$(get_key "TotalBytesAreSince")"
 
@@ -712,9 +1141,9 @@ if [[ -x "$WDUTIL" ]]; then
 fi
 
 # =============================================================================
-# 2. Build RAW fields
+# 2. RAW-Felder berechnen
 # =============================================================================
-# RAW ist die technische Wahrheit und primäre Datenquelle.
+# RAW ist die technische Wahrheit.
 
 TotalsSince_Raw="$(totals_since_raw "$TotalsSince_src")"
 
@@ -788,9 +1217,8 @@ if echo "${_wdutil_cca:-}" | /usr/bin/grep -Eq '^[0-9]+$'; then
 fi
 
 # =============================================================================
-# 3. Validate / normalize RAW
+# 3. RAW validieren / STATEFILE aktualisieren
 # =============================================================================
-# Konsistenz- und Ableitungslogik auf Basis der RAW-Felder. Keine neue Messung.
 
 if [[ -n "${TotalsSince_src:-}" ]]; then
   if is_uint "${TotRet_B:-}" && is_uint "${TotOrg_B:-}"; then
@@ -799,9 +1227,67 @@ if [[ -n "${TotalsSince_src:-}" ]]; then
 fi
 
 # =============================================================================
-# 4. Build HU fields from RAW
+# 4. RAW-Journal schreiben (dauerhaft, zuerst)
 # =============================================================================
-# HU ist eine menschenlesbare View. Keine eigene Messung.
+# Das Journal ist die kanonische Datenquelle. Wird geschrieben bevor HU/CO entstehen.
+
+# Journal anlegen (Header) wenn nicht vorhanden oder leer
+if [[ ! -f "$RAW_JOURNAL" || ! -s "$RAW_JOURNAL" ]]; then
+  : > "$RAW_JOURNAL" 2>/dev/null || {
+    status_log "ERROR RAW-Journal konnte nicht angelegt werden: $RAW_JOURNAL"
+  }
+  if [[ -f "$RAW_JOURNAL" ]]; then
+    /bin/chown root:wheel "$RAW_JOURNAL" 2>/dev/null || true
+    /bin/chmod 600 "$RAW_JOURNAL" 2>/dev/null || true
+    emit_csv_line "$RAW_JOURNAL" "${CSV_HEADER_FIELDS[@]}"
+    status_log "INFO neues RAW-Journal angelegt: $RAW_JOURNAL"
+  fi
+fi
+
+# Schutz gegen Doppelzeilen: letzten Timestamp prüfen
+_journal_skip=0
+if [[ -f "$RAW_JOURNAL" ]]; then
+  _last_journal_line="$(/usr/bin/tail -n 1 "$RAW_JOURNAL" 2>/dev/null || true)"
+  if echo "${_last_journal_line:-}" | /usr/bin/grep -qF "\"${TS_RAW}\""; then
+    status_log "WARN Doppelzeile erkannt (ts=${TS_RAW}), Journal-Append übersprungen"
+    _journal_skip=1
+  fi
+fi
+
+if [[ "$_journal_skip" -eq 0 ]]; then
+  if emit_csv_line "$RAW_JOURNAL" \
+    "$HOST" \
+    "$TS_RAW" \
+    "$TotalsSince_Raw" \
+    "$Peers" \
+    "$ClientsCnt_Raw" \
+    "$iOSUpdates_Raw" \
+    "${iOSBytes_B:-}" \
+    "${TotRet_B:-}" \
+    "${TotOrg_B:-}" \
+    "${ServedDelta_B:-}" \
+    "${OriginDelta_B:-}" \
+    "${CacheUsed_B:-}" \
+    "$CachePr_Raw" \
+    "$EN0" \
+    "$EN1" \
+    "$GatewayIP" \
+    "$DefaultIf" \
+    "$DNSRes_Raw" \
+    "$AppleReach_Raw" \
+    "$AppleTTFB_raw" \
+    "$WiFiSNR_raw" \
+    "$WifiNoise_raw" \
+    "$WifiCCA_raw" 2>/dev/null; then
+    status_log "INFO RAW-Zeile ins Journal geschrieben ts=${TS_RAW}"
+  else
+    status_log "ERROR RAW-Zeile konnte nicht ins Journal geschrieben werden"
+  fi
+fi
+
+# =============================================================================
+# 5. HU-Felder aus RAW ableiten
+# =============================================================================
 
 TotalsSince_Hu="$(totalssince_hu_value "$(totals_since_hu "$TotalsSince_src")")"
 
@@ -848,56 +1334,31 @@ WifiCCA_hu="n/a"
 [[ -n "${WifiCCA_raw:-}" ]] && WifiCCA_hu="${WifiCCA_raw}%"
 
 # =============================================================================
-# 5. Build CO fields from RAW
+# 6. CO-Felder aus RAW ableiten
 # =============================================================================
-# CO ist eine datensparsame Analyse-/Weitergabe-View. Keine eigene Messung.
 
 SiteCode_Co="${PREFIX}"
 PeerCnt_Co="${Peers_Hu:-}"
 iOSUpdates_Co="$(normalize_iosupdates_list_2digit "${iOSUpdates_Raw:-}")"
 
 # =============================================================================
-# 6. Write CSV files
+# 7. Archivierung bei iOS-Update-Wechsel
 # =============================================================================
-# RAW zuerst schreiben, danach HU und CO.
 
 archive_csv_on_update "${iOSUpdates_Raw:-}"
 
-if [[ ! -f "$OUT_RAW" ]]; then
-  : > "$OUT_RAW"
-  emit_csv_line "$OUT_RAW" "${CSV_HEADER_FIELDS[@]}"
-  /bin/chmod 644 "$OUT_RAW"
-fi
+# =============================================================================
+# 8. Sichtbare Dateien schreiben (HU, CO; RAW optional)
+# =============================================================================
 
-emit_csv_line "$OUT_RAW" \
-  "$HOST" \
-  "$TS_RAW" \
-  "$TotalsSince_Raw" \
-  "$Peers" \
-  "$ClientsCnt_Raw" \
-  "$iOSUpdates_Raw" \
-  "${iOSBytes_B:-}" \
-  "${TotRet_B:-}" \
-  "${TotOrg_B:-}" \
-  "${ServedDelta_B:-}" \
-  "${OriginDelta_B:-}" \
-  "${CacheUsed_B:-}" \
-  "$CachePr_Raw" \
-  "$EN0" \
-  "$EN1" \
-  "$GatewayIP" \
-  "$DefaultIf" \
-  "$DNSRes_Raw" \
-  "$AppleReach_Raw" \
-  "$AppleTTFB_raw" \
-  "$WiFiSNR_raw" \
-  "$WifiNoise_raw" \
-  "$WifiCCA_raw"
+# Verzeichnis noch einmal sicherstellen (kann nach Rebuild fehlen)
+[[ ! -d "$VISIBLE_DIR" ]] && /bin/mkdir -p "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
 
-if [[ ! -f "$OUT_HU" ]]; then
+# HU
+if [[ ! -f "$OUT_HU" || ! -s "$OUT_HU" ]]; then
   : > "$OUT_HU"
   emit_csv_line "$OUT_HU" "${CSV_HEADER_FIELDS[@]}"
-  /bin/chmod 644 "$OUT_HU"
+  /bin/chmod 644 "$OUT_HU" 2>/dev/null || true
 fi
 
 emit_csv_line "$OUT_HU" \
@@ -925,10 +1386,11 @@ emit_csv_line "$OUT_HU" \
   "$WifiNoise_hu" \
   "$WifiCCA_hu"
 
-if [[ ! -f "$OUT_CO" ]]; then
+# CO
+if [[ ! -f "$OUT_CO" || ! -s "$OUT_CO" ]]; then
   : > "$OUT_CO"
   emit_csv_line "$OUT_CO" "${CSV_HEADER_FIELDS_CO[@]}"
-  /bin/chmod 644 "$OUT_CO"
+  /bin/chmod 644 "$OUT_CO" 2>/dev/null || true
 fi
 
 emit_csv_line "$OUT_CO" \
@@ -947,7 +1409,38 @@ emit_csv_line "$OUT_CO" \
   "$AppleTTFB_raw" \
   "$WiFiSNR_raw"
 
+# Optionale sichtbare RAW-Datei (nur wenn EXPORT_VISIBLE_RAW=1)
+if [[ "${EXPORT_VISIBLE_RAW}" -eq 1 && -n "${OUT_RAW:-}" ]]; then
+  if [[ ! -f "$OUT_RAW" || ! -s "$OUT_RAW" ]]; then
+    : > "$OUT_RAW"
+    emit_csv_line "$OUT_RAW" "${CSV_HEADER_FIELDS[@]}"
+    /bin/chmod 644 "$OUT_RAW" 2>/dev/null || true
+  fi
+
+  emit_csv_line "$OUT_RAW" \
+    "$HOST" \
+    "$TS_RAW" \
+    "$TotalsSince_Raw" \
+    "$Peers" \
+    "$ClientsCnt_Raw" \
+    "$iOSUpdates_Raw" \
+    "${iOSBytes_B:-}" \
+    "${TotRet_B:-}" \
+    "${TotOrg_B:-}" \
+    "${ServedDelta_B:-}" \
+    "${OriginDelta_B:-}" \
+    "${CacheUsed_B:-}" \
+    "$CachePr_Raw" \
+    "$EN0" \
+    "$EN1" \
+    "$GatewayIP" \
+    "$DefaultIf" \
+    "$DNSRes_Raw" \
+    "$AppleReach_Raw" \
+    "$AppleTTFB_raw" \
+    "$WiFiSNR_raw" \
+    "$WifiNoise_raw" \
+    "$WifiCCA_raw"
+fi
+
 exit 0
-
-
-
