@@ -42,7 +42,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 > auswertung. Versionsreihe läuft parallel zur Hauptversionierung.
 
 ### macOS-Pendant
-- `scripts/lsi_apple_auswertung.sh` — funktional identisches macOS-Äquivalent
+- `scripts/LSI-Apple-Auswertung.sh` — funktional identisches macOS-Äquivalent
   zu `LSI-Apple-Auswertung-v5.2.ps1`.
   Abhängigkeiten: `curl` (macOS-nativ), `jq` (Homebrew), `python3` (macOS-nativ).
   Gleiche Parameter, gleiche CSV-Ausgaben (Semicolon, UTF-8, identische Spalten).

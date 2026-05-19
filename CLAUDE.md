@@ -44,7 +44,7 @@ Pre-aggregation is methodologically required, not an optimization. Copilot Basic
       archive_assetcache_logs.sh     # Archives existing CSV files before updates
       merge_co_csv.sh                # macOS: merge per-site CO-CSVs into one
       relution_cleaner_co.sh         # macOS: strip device names from Relution export
-      lsi_apple_auswertung.sh        # macOS: WID/Apple Security Advisory Auswertung für iOS-relevante LSIs
+      LSI-Apple-Auswertung.sh        # macOS: WID/Apple Security Advisory Auswertung für iOS-relevante LSIs
       Merge_Co_CSV.ps1               # Windows: same as merge_co_csv.sh
       AssetCache_Verdichten_Co.ps1   # Windows: aggregate 15-min rows to hourly rows
       LSI-Apple-Auswertung-v5.2.ps1  # Windows: WID/Apple Security Advisory Auswertung für iOS-relevante LSIs
@@ -322,9 +322,9 @@ fragt nur Neues nach. Erstlauf legt vollständig an.
 **Kein Teil der AssetCache-Messpipeline.** Nicht in deploy/uninstall/archive
 einbinden. Läuft manuell auf dem Windows-Adminarbeitsplatz bzw. dem Mac-Adminrechner.
 
-**macOS-Pendant:** `scripts/lsi_apple_auswertung.sh` — funktional identisch,
+**macOS-Pendant:** `scripts/LSI-Apple-Auswertung.sh` — funktional identisch,
 Abhängigkeiten: `curl` (macOS-nativ), `jq` (Homebrew), `python3` (macOS-nativ).
-Nutzung: `./lsi_apple_auswertung.sh [-d TAGE] [-m MAX] [-j] [-c] [-f]`
+Nutzung: `./LSI-Apple-Auswertung.sh [-d TAGE] [-m MAX] [-j] [-c] [-f]`
 
 **Konfiguration:** `$ScriptWidApiKey` und `$RELEVANT_VERSIONS`-Array im
 Skript-Header manuell pflegen.
