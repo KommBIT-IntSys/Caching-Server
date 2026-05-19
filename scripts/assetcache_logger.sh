@@ -3,7 +3,7 @@
 set -u
 
 # Asset Cache Monitoring / Logging
-# Version 1.8.1 (KommunalBIT)
+# Version 1.8.2 (KommunalBIT)
 # SPDX-License-Identifier: EUPL-1.2
 # Licensed under the EUPL, Version 1.2
 # https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
@@ -20,7 +20,7 @@ set -u
 # - CSV output is fully quoted / CSV-safe, including header
 # - SuS table is loaded from /etc/kommunalbit/schulen.conf (external config)
 
-SCRIPT_VER="1.8.1"
+SCRIPT_VER="1.8.2"
 
 OUTDIR="/Library/Logs/KommunalBIT"
 ARCHIVDIR="${OUTDIR}/Archiv"
@@ -158,6 +158,51 @@ csv_escape() {
   local s="${1-}"
   s="${s//\"/\"\"}"
   printf '"%s"' "$s"
+}
+
+normalize_ios_version_2digit() {
+  local v="${1:-}"
+  [[ -z "${v:-}" ]] && { echo ""; return; }
+
+  # Nur einfache numerische Apple-Versionsmuster anfassen:
+  # 18.7, 18.7.7, 26.5, 26.5.1
+  if ! echo "$v" | /usr/bin/grep -Eq '^[0-9]+(\.[0-9]+){1,2}$'; then
+    echo "$v"
+    return
+  fi
+
+  local IFS='.'
+  local -a parts out
+  local p
+  parts=(${=v})
+  out=()
+
+  for p in "${parts[@]}"; do
+    if echo "$p" | /usr/bin/grep -Eq '^[0-9]$'; then
+      out+=("0$p")
+    else
+      out+=("$p")
+    fi
+  done
+
+  echo "${(j:.:)out}"
+}
+
+normalize_iosupdates_list_2digit() {
+  local s="${1:-}"
+  [[ -z "${s:-}" ]] && { echo ""; return; }
+
+  local IFS='|'
+  local -a parts out
+  local p
+  parts=(${=s})
+  out=()
+
+  for p in "${parts[@]}"; do
+    out+=("$(normalize_ios_version_2digit "$p")")
+  done
+
+  echo "${(j:|:)out}"
 }
 
 emit_csv_line() {
@@ -809,6 +854,7 @@ WifiCCA_hu="n/a"
 
 SiteCode_Co="${PREFIX}"
 PeerCnt_Co="${Peers_Hu:-}"
+iOSUpdates_Co="$(normalize_iosupdates_list_2digit "${iOSUpdates_Raw:-}")"
 
 # =============================================================================
 # 6. Write CSV files
@@ -890,7 +936,7 @@ emit_csv_line "$OUT_CO" \
   "$TS_RAW" \
   "$PeerCnt_Co" \
   "$ClientsCnt_Raw" \
-  "$iOSUpdates_Raw" \
+  "$iOSUpdates_Co" \
   "${iOSBytes_B:-}" \
   "${ServedDelta_B:-}" \
   "${OriginDelta_B:-}" \
@@ -902,4 +948,6 @@ emit_csv_line "$OUT_CO" \
   "$WiFiSNR_raw"
 
 exit 0
+
+
 
