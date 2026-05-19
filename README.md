@@ -38,7 +38,7 @@ Nutzung, Anpassung und Weitergabe sind erlaubt.
 
 Details:
 - Rechtlich verbindlich: `LICENSE`
-- Verständlich erklärt: `LICENSE.de.md`
+- Verständlich erklärt: `LICENSE.De.md`
 
 ## Rechtlicher Hinweis
 
