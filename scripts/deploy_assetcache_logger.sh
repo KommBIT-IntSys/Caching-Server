@@ -2,6 +2,7 @@
 # =============================================================================
 # AssetCache Logger – MDM Deployment Script (KommunalBIT) v3
 # Deploys AssetCache Monitoring 1.9.0 via Relution MDM.
+# SPDX-License-Identifier: EUPL-1.2
 #
 # What this script does:
 #   1. Creates required log directories
