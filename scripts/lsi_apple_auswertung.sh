@@ -393,11 +393,11 @@ print(dt.strftime('%Y-%m-%dT00:00:00.000+00:00'))
     local encoded_from
     encoded_from=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$from_date")
 
-    print "Suche WID Security Advisories..."
-    print "Zeitraum ab:     $from_date"
-    print "OnlySubscribed:  $only_subscribed"
-    print "MaxAdvisories:   $max_advisories"
-    print ""
+    print "Suche WID Security Advisories..." >&2
+    print "Zeitraum ab:     $from_date" >&2
+    print "OnlySubscribed:  $only_subscribed" >&2
+    print "MaxAdvisories:   $max_advisories" >&2
+    print "" >&2
 
     local page=0 total=0 limit_reached=false
 
@@ -410,11 +410,14 @@ print(dt.strftime('%Y-%m-%dT00:00:00.000+00:00'))
         local total_pages
         total_pages=$(print -r -- "$resp" | jq -r '.totalPages // 1')
 
+        local resp_tmp="$WORK_DIR/wid_resp_${page}.json"
+        print -r -- "$resp" > "$resp_tmp"
+
         local matched
-        matched=$(print -r -- "$resp" | python3 - "$title_regex" "$max_advisories" "$total" <<'PYEOF'
+        matched=$(python3 - "$title_regex" "$max_advisories" "$total" "$resp_tmp" <<'PYEOF'
 import sys, json, re
 
-data    = json.load(sys.stdin)
+data    = json.load(open(sys.argv[4]))
 tregex  = sys.argv[1]
 cap     = int(sys.argv[2])
 already = int(sys.argv[3])
@@ -449,7 +452,7 @@ PYEOF
 
         print "Seite $page / $(( total_pages - 1 )): Kandidaten bisher $total" >&2
 
-        $limit_reached && break
+        [[ "$limit_reached" == true ]] && break
         (( page + 1 >= total_pages )) && break
         (( page++ ))
     done
@@ -461,12 +464,15 @@ PYEOF
 # =============================================================================
 parse_apple_page() {
     local url="$1"
-    curl --silent --fail --max-time 30 -L "$url" | python3 - "$url" <<'PYEOF'
+    local html_tmp
+    html_tmp=$(mktemp /tmp/lsi_apple_XXXXXX.html)
+    curl --silent --fail --max-time 30 -L "$url" > "$html_tmp" || { rm -f "$html_tmp"; return 1; }
+    python3 - "$url" "$html_tmp" <<'PYEOF'
 import sys, re, json
 from html import unescape
 
 url = sys.argv[1]
-raw = sys.stdin.read()
+with open(sys.argv[2]) as _f: raw = _f.read()
 
 for tag, repl in [
     (r'<br\s*/?>', '\n'), (r'</(?:p|h[23]|li)>', '\n'),
@@ -506,6 +512,9 @@ for e in entries:
     e['cves'] = ', '.join(sorted(set(e['cves'])))
     print(json.dumps(e, ensure_ascii=False))
 PYEOF
+    local rc=$?
+    rm -f "$html_tmp"
+    return $rc
 }
 
 # =============================================================================
@@ -596,7 +605,7 @@ get_lsi_apple_entries() {
         "$lsi_initialdatum" "$lsi_stand" \
         "$betroffene_norm" "$behoben_norm" \
         "$_COMPACT" "$_IOS18" "$_IOS26" "$_IPADOS18" "$_IPADOS26" \
-        < "$parsed_jsonl" <<'PYEOF'
+        "$parsed_jsonl" <<'PYEOF'
 import sys, json, csv
 from io import StringIO
 
@@ -604,7 +613,7 @@ from io import StringIO
  lsi_init, lsi_stand, betroffene, behoben,
  mf_compact, mf_ios18, mf_ios26, mf_ipados18, mf_ipados26) = sys.argv[1:15]
 
-entries = [json.loads(l) for l in sys.stdin if l.strip()]
+entries = [json.loads(l) for l in open(sys.argv[15]) if l.strip()]
 if not entries: sys.exit(0)
 
 # Deduplizierung: key=(component, cves) → merge AppleUrls
@@ -658,17 +667,21 @@ print(r[18] if len(r)>18 else '',end='')")
         kurz=$(new_german_summary "$impact" "$desc")
 
         # Letzten zwei Felder ersetzen
-        print -r -- "$csv_row" | python3 - "$qual" "$kurz" <<'PYEOF'
+        local row_tmp
+        row_tmp=$(mktemp /tmp/lsi_row_XXXXXX.txt)
+        print -r -- "$csv_row" > "$row_tmp"
+        python3 - "$qual" "$kurz" "$row_tmp" <<'PYEOF'
 import sys, csv
 from io import StringIO
 qual, kurz = sys.argv[1], sys.argv[2]
-row = next(csv.reader(sys.stdin, delimiter=';'))
+row = next(csv.reader(open(sys.argv[3]), delimiter=';'))
 if len(row) >= 22:
     row[-2] = qual; row[-1] = kurz
 buf = StringIO()
 csv.writer(buf, delimiter=';', quoting=csv.QUOTE_ALL, lineterminator='').writerow(row)
 print(buf.getvalue())
 PYEOF
+        rm -f "$row_tmp"
     done
 }
 
@@ -678,8 +691,8 @@ PYEOF
 # Liest neue von stdin; bestehende aus $1
 # =============================================================================
 merge_with_existing() {
-    local existing_csv="$1"
-    python3 - "$existing_csv" <<'PYEOF'
+    local existing_csv="$1" new_csv="$2"
+    python3 - "$existing_csv" "$new_csv" <<'PYEOF'
 import sys, csv
 from io import StringIO
 
@@ -690,7 +703,7 @@ with open(existing_path, encoding='utf-8', newline='') as f:
     fieldnames = reader.fieldnames
     existing = list(reader)
 
-new_rows = list(csv.DictReader(sys.stdin, delimiter=';'))
+new_rows = list(csv.DictReader(open(sys.argv[2], encoding='utf-8', newline=''), delimiter=';'))
 
 merged = {}
 for r in existing:
@@ -976,7 +989,7 @@ if [[ "$IS_FIRST_RUN" == true || -z "$EXISTING_FILE" ]]; then
 else
     new_count=$(tail -n +2 "$NEW_CSV" | grep -c . 2>/dev/null || print 0)
     print "Merge: $local_row_count bestehende + $new_count neue Einträge"
-    merge_with_existing "$EXISTING_FILE" < "$NEW_CSV" > "$ALL_CSV"
+    merge_with_existing "$EXISTING_FILE" "$NEW_CSV" > "$ALL_CSV"
     merged_total=$(tail -n +2 "$ALL_CSV" | grep -c . 2>/dev/null || print 0)
     print "Nach Merge: $merged_total Einträge"
     print ""
