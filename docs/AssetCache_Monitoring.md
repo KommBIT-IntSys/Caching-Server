@@ -1,7 +1,7 @@
 # Asset Cache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
-**Aktuelle Version: 1.8.0**
+**Aktuelle Version: 1.8.2**
 
 ---
 

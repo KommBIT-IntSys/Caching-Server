@@ -4,7 +4,7 @@
 
 **AssetCache Monitoring – KommunalBIT** is a macOS-based monitoring and logging system for Apple Content Caching on Mac Minis deployed in schools. It collects cache performance metrics every 15 minutes via a LaunchDaemon, writing three CSV files (machine-readable RAW, human-readable HU, and data-minimized CO) to `/Library/Logs/KommunalBIT/`. The primary goal is to distinguish between technical infrastructure issues and organizational/local factors when iOS/iPadOS update delivery is delayed.
 
-**Current version: 1.8.1**  
+**Current version: 1.8.2**  
 **Primary language of documentation and comments: German**  
 **Primary shell: zsh** (ShellCheck uses bash as closest approximation)
 
@@ -27,7 +27,7 @@ CO fields must be Copilot/Excel-friendly: flat structure, numeric fields as actu
 
 Do not propose Python/HTML as the operational analysis layer. The production analysis workflow is Copilot + CSV. Small local validation helpers are acceptable only if explicitly requested and must not replace the documented Copilot pipeline.
 
-**Analysis pipeline (Windows side):** The analyst works on a Windows admin workstation. Three PowerShell helpers prepare the data for Copilot: `Merge_Co_CSV.ps1` joins per-site CO-CSVs into one file, `AssetCache_Verdichten_Co.ps1` aggregates 15-minute rows into hourly rows (~75% fewer rows, time-series preserved), and `Relution-Export-Cleaner_Co.ps1` strips device names and reduces the organization name to the site code. macOS counterparts exist for admins working from a Mac.
+**Analysis pipeline (Windows side):** The analyst works on a Windows admin workstation. Three PowerShell helpers prepare the data for Copilot: `Merge_Co_CSV.ps1` joins per-site CO-CSVs into one file, `AssetCache_Verdichten_Co.ps1` aggregates 15-minute rows into hourly rows (~75% fewer rows, time-series preserved), and `Relution-Export-Cleaner_Co_Batch.ps1` strips device names and reduces the organization name to the site code. macOS counterparts exist for admins working from a Mac.
 
 Pre-aggregation is methodologically required, not an optimization. Copilot Basic in the browser silently truncates large input files and fabricates aggregates without flagging it. The hourly variant exists to keep input small enough for reliable processing.
 
@@ -46,7 +46,8 @@ Pre-aggregation is methodologically required, not an optimization. Copilot Basic
       relution_cleaner_co.sh         # macOS: strip device names from Relution export
       Merge_Co_CSV.ps1               # Windows: same as merge_co_csv.sh
       AssetCache_Verdichten_Co.ps1   # Windows: aggregate 15-min rows to hourly rows
-      Relution-Export-Cleaner_Co.ps1 # Windows: same as relution_cleaner_co.sh
+      LSI-Apple-Auswertung-v5.2.ps1  # Windows: WID/Apple Security Advisory Auswertung für iOS-relevante LSIs
+      Relution-Export-Cleaner_Co_Batch.ps1 # Windows: Batch-Version, verarbeitet alle passenden Exporte im Skriptordner
     launchd/
       de.kommunalbit.assetcachelogger.plist  # LaunchDaemon config (900s interval)
     config/
@@ -299,6 +300,29 @@ When working on this codebase, do not:
 
 
 **Note on operator input:** The operator may use speech-to-text dictation. Known transcription artifacts: "Cash" → "Cache", "Revolution" → "Relution". Interpret by technical context.
+
+---
+
+## LSI-Apple-Auswertung
+
+`scripts/LSI-Apple-Auswertung-v5.2.ps1` ist ein eigenständiges Windows-
+Hilfsskript zur Auswertung von WID-Sicherheitsmeldungen (BSI/LSI-Bayern)
+mit Bezug auf iOS/iPadOS/Safari. Es steht außerhalb des Hauptversionierungs-
+schemas des Monitoring-Projekts und hat eine eigene Versionsnummer.
+
+**Zweck:** Identifikation von iOS-/iPadOS-Schwachstellen im Feld anhand
+der WID-API (Bayerisches Landesamt für Sicherheit in der Informationstechnik).
+Ergebnis ist eine Gesamtauswertung als CSV mit Risikobewertung und
+deutscher Kurzbeschreibung je Schwachstelleneintrag.
+
+**Betriebsmodell:** Inkrementell — erkennt vorhandene Ausgabedatei und
+fragt nur Neues nach. Erstlauf legt vollständig an.
+
+**Kein Teil der AssetCache-Messpipeline.** Nicht in deploy/uninstall/archive
+einbinden. Läuft manuell auf dem Windows-Adminarbeitsplatz.
+
+**Konfiguration:** `$ScriptWidApiKey` und `$RELEVANT_VERSIONS`-Array im
+Skript-Header manuell pflegen.
 
 ---
 

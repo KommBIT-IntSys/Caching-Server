@@ -15,12 +15,66 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
+## [1.8.2] - 2026-05
+
+### Changed
+- `assetcache_logger.sh`: iOS-/iPadOS-Versionsnotation in der CO-Ausgabe
+  normalisiert (zweistellige Segmente): `18.7.7` → `18.07.07`,
+  `26.5` → `26.05`. RAW und HU bleiben Apple-nah unverändert.
+- `assetcache_logger.sh`: GDMF-Abfrage holt letzten zwei iOS-Hauptversionen
+  als `|`-getrennten String; GDMF-Debuglog mit automatischem Trim auf 1000 Zeilen.
+- `assetcache_logger.sh`: Archivierung triggert bei iOS-Versionswechsel
+  anhand GDMF-Signatur.
+- `.github/workflows/shellcheck.yml`: zsh-spezifische ShellCheck-Regeln
+  (SC2206, SC2296, SC2178, SC2128) zu den Excludes ergänzt; Konfiguration
+  auf `SHELLCHECK_OPTS` als Umgebungsvariable umgestellt.
+
+### Notes
+- Keine Änderung an CSV-Schemata, Feldnamen, Feldreihenfolge oder Messlogik.
+- Die Versionsnormalisierung gilt ausschließlich für CO-Ausgaben;
+  leere Versionen werden leer gelassen, nicht durch Nullwerte ersetzt.
+
+---
+
+## [LSI-Apple-Auswertung v5.2] - 2026-05
+
+> Eigenständiges Windows-Hilfsskript zur standortunabhängigen Sicherheits-
+> auswertung. Versionsreihe läuft parallel zur Hauptversionierung.
+
+### v5.2 (aktuell)
+- `$ScriptWidApiKey` direkt im Skript eintragbar — Rechtklick-Ausführung
+  ohne vorherige Umgebungsvariablen-Konfiguration möglich.
+- Ausgabedateien umbenannt: `LSI-Apple-Gesamtauswertung_*.csv` und
+  `LSI-Apple-Managementreport_*.csv`.
+- `ConvertTo-NormalizedAppleVersions` greift auch Marketingnamen
+  wie "macOS Sequoia < 15.03".
+
+### v5.1
+- Managementreport `AppleUrls`-Duplikate behoben: URLs werden aus
+  `|`-getrennten Feldern korrekt dedupliziert.
+- `LSI-Automatisch-Gefunden_*.csv` wird nicht mehr geschrieben;
+  Kandidatenliste erscheint nur noch in der Konsolenausgabe.
+
+### v5.0
+- Inkrementelles Betriebsmodell: Erstlauf legt Datei neu an (Deckel 100),
+  Folgeläufe arbeiten datums-basiert inkrementell (Deckel 50).
+- `RELEVANT_VERSIONS`-Array als Selbstwissen im Skript-Header;
+  veraltete Versionen werden aus bestehender Ausgabe bereinigt.
+- iOS-Versionsnotation in CO-Ausgaben normalisiert (führende Nullen).
+- `Invoke-WidApi`: UTF-8-Encoding-Fix für PS5/WID-API (Mojibake-Prävention).
+- Neue Spalten: `Exploit`, `NoPatch`, `MinFixVersions`,
+  `MinFixIosLinie18`, `MinFixIosLinie26`, `MinFixIpadOsLinie18`,
+  `MinFixIpadOsLinie26`.
+- Deduplikation mehrerer Apple-URLs pro LSI-Eintrag.
+
+---
+
 ## [1.8.1] - 2026-05-05
 
 ### Added
 - `scripts/Merge_Co_CSV.ps1` – CO-CSV-Dateien aller Standorte unter
   Windows zusammenführen (Header einmalig, Daten akkumuliert)
-- `scripts/Relution-Export-Cleaner_Co.ps1` – Relution-Export unter
+- `scripts/Relution-Export-Cleaner_Co_Batch.ps1` – Relution-Export unter
   Windows datenschutzkonform bereinigen: Gerätenamen entfernen,
   organizationName auf Standortkürzel kürzen, Dateiname mit Datum
 - `scripts/merge_co_csv.sh` – CO-CSV-Dateien unter macOS zusammenführen

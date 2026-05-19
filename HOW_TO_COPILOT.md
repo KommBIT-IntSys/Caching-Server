@@ -51,7 +51,7 @@ Ergebnis:
 
 Skripte:
 
-- Windows: `scripts/Relution-Export-Cleaner_Co.ps1`
+- Windows: `scripts/Relution-Export-Cleaner_Co_Batch.ps1`
 - macOS: `scripts/relution_cleaner_co.sh`
 
 ---
