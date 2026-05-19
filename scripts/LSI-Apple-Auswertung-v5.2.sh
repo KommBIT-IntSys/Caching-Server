@@ -913,7 +913,7 @@ else
     print "Vorhandene Datei:  $EXISTING_FILE"
     print "Einträge Bestand:  $local_row_count"
 
-    local newest_stand
+    newest_stand=""
     newest_stand=$(tail -n +2 "$EXISTING_FILE" | python3 -c "
 import sys, csv
 from datetime import datetime
@@ -927,7 +927,8 @@ if dates: print(max(dates).strftime('%Y-%m-%d'))
 
     if [[ -n "$newest_stand" ]]; then
         print "Neuester LsiStand: $newest_stand"
-        local days_since auto_days
+        days_since=""
+        auto_days=""
         days_since=$(python3 -c "
 from datetime import datetime
 import math
@@ -974,7 +975,7 @@ csv_header > "$NEW_CSV"
 while IFS= read -r cand; do
     [[ -z "$cand" ]] && continue
 
-    local lsi_id uuid exploit no_patch title
+    lsi_id="" uuid="" exploit="" no_patch="" title=""
     lsi_id=$(print -r -- "$cand" | jq -r '.LsiId')
     uuid=$(print -r -- "$cand" | jq -r '.Uuid // ""')
     exploit=$(print -r -- "$cand" | jq -r '.Exploit // ""')
@@ -985,7 +986,7 @@ while IFS= read -r cand; do
     print "Verarbeite: $lsi_id – $title"
     print "============================================================"
 
-    local raw_entries
+    raw_entries=""
     if ! raw_entries=$(get_lsi_apple_entries "$lsi_id" "$uuid" "$exploit" "$no_patch" 2>&1); then
         print "FEHLER bei $lsi_id" >&2
         print -r -- "{\"LsiId\":\"$lsi_id\",\"Title\":\"${title//\"/\\\"}\",\"Error\":\"Abruf fehlgeschlagen\"}" >> "$FAILED_JSONL"
@@ -995,7 +996,7 @@ while IFS= read -r cand; do
     # Qualität + Kurzbeschreibung ergänzen, dann mit Relevanz-Filter in neue CSV
     print -r -- "$raw_entries" | enrich_quality | while IFS= read -r enriched_row; do
         [[ -z "$enriched_row" ]] && continue
-        local betr beh
+        betr="" beh=""
         betr=$(print -r -- "$enriched_row" | python3 -c "import sys,csv; r=next(csv.reader(sys.stdin,delimiter=';')); print(r[7] if len(r)>7 else '',end='')")
         beh=$(print -r -- "$enriched_row"  | python3 -c "import sys,csv; r=next(csv.reader(sys.stdin,delimiter=';')); print(r[8] if len(r)>8 else '',end='')")
         if test_is_relevant_entry "$betr" "$beh"; then
@@ -1004,7 +1005,7 @@ while IFS= read -r cand; do
     done
 
     [[ "$KEEP_PER_ADVISORY_CSV" == true ]] && {
-        local sc="${OUT_DIR}/${lsi_id}_Apple-Auswertung_${TIMESTAMP}.csv"
+        sc="${OUT_DIR}/${lsi_id}_Apple-Auswertung_${TIMESTAMP}.csv"
         { csv_header; grep "\"${lsi_id}\"" "$NEW_CSV"; } > "$sc"
         print "Einzel-CSV: $sc"
     }

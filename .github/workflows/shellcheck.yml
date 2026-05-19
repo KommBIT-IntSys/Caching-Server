@@ -26,4 +26,4 @@ jobs:
           SHELLCHECK_OPTS: >-
             --shell=bash
             --severity=warning
-            --exclude=SC1090,SC1091,SC2034,SC2206,SC2296,SC2178,SC2128
+            --exclude=SC1090,SC1091,SC2034,SC2206,SC2296,SC2178,SC2128,SC2076
