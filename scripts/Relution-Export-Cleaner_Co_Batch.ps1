@@ -1,4 +1,4 @@
-﻿# Relution-Export-Cleaner_Co.ps1
+﻿# Relution-Export-Cleaner_Co_Batch.ps1
 # Bereinigt Relution-Exporte:
 # - verarbeitet alle Dateien im Skriptordner, die mit Geraete_Global_202 oder Geräte_Global_202 beginnen
 # - entfernt personenbezogene Spalten (z.B. "name") durch feste CO-Ausgabespalten

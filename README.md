@@ -18,7 +18,7 @@ Das Haupt-Skript erfasst alle 15 Minuten relevante Metriken des Content Caching 
 | Datei / Ordner                          | Inhalt                                                  |
 |-----------------------------------------|---------------------------------------------------------|
 | `scripts/assetcache_logger.sh`          | Hauptskript: erfasst Cache-Metriken der Mac Minis       |
-| `HOW TO COPILOT.md`                     | Anleitung zur Auswertung mit Microsoft Copilot          |
+| `HOW_TO_COPILOT.md`                     | Anleitung zur Auswertung mit Microsoft Copilot          |
 | `scripts/` (Merge- und Cleaner-Skripte) | Hilfsskripte für Windows und macOS (Merge, Bereinigung) |
 | `docs/`                                 | Technische Hintergrunddokumentation                     |
 
@@ -46,7 +46,7 @@ Dieses Repository enthält keine personenbezogenen Daten.
 Die DSGVO‑konforme Nutzung im Betrieb obliegt der verantwortlichen Stelle.
 Haftungsausschluss: [`DISCLAIMER`](DISCLAIMER)
 
-**Aktuelle Version: [1.8.1](CHANGELOG.md)**
+**Aktuelle Version: [1.8.2](CHANGELOG.md)**
 
 ---
 

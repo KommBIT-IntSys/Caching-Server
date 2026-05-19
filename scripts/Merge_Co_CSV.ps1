@@ -1,3 +1,12 @@
+# Merge_Co_CSV.ps1
+# Führt alle CO-CSV-Dateien der Caching-Server im Skriptordner zu einer
+# gemeinsamen Datei zusammen. Header wird einmalig übernommen, Datenzeilen
+# werden akkumuliert.
+#
+# Ergebnis: AssetCache_Co_alle_Standorte.csv
+# Nutzung: Rechtklick -> "Mit PowerShell ausführen"
+#          Oder: powershell.exe -ExecutionPolicy Bypass -File .\Merge_Co_CSV.ps1
+
 $output = "AssetCache_Co_alle_Standorte.csv"
 $files  = Get-ChildItem -Filter "*_AssetCache_Co_v*.csv" | Sort-Object Name
 
