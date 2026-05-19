@@ -16,14 +16,11 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: ShellCheck
-        uses: ludeeus/action-shellcheck@2.0.0
-        with:
-          # zsh nicht nativ unterstützt – bash als nächste Näherung
-          check_together: 'yes'
-          additional_files: 'scripts/*.sh'
-                   
-        env:
-          SHELLCHECK_OPTS: >-
-            --shell=bash
-            --severity=warning
-            --exclude=SC1090,SC1091,SC2034,SC2206,SC2296,SC2178,SC2128,SC2076
+        # zsh nicht nativ unterstützt – bash als nächste Näherung
+        run: |
+          shellcheck --version
+          shellcheck \
+            --shell=bash \
+            --severity=warning \
+            --exclude=SC1090,SC1091,SC2034,SC2206,SC2296,SC2178,SC2128,SC2076 \
+            scripts/*.sh
