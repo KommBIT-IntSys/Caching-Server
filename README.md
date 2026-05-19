@@ -37,8 +37,8 @@ Dieses Projekt steht unter der European Union Public Licence (EUPL) v1.2.
 Nutzung, Anpassung und Weitergabe sind erlaubt.
 
 Details:
-- Rechtlich verbindlich: `LICENSE`
-- Verständlich erklärt: `Lizenz.De.md`
+- Rechtlich verbindlich: [LICENSE](<LICENSE.md>)
+- Verständlich erklärt:  [Lizenz](<Lizenz.De.md>)
 
 ## Rechtlicher Hinweis
 
