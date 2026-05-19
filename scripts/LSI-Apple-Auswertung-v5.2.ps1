@@ -127,7 +127,7 @@ $ErrorActionPreference = "Stop"
 # Optional: API-Key direkt hier eintragen, damit das Skript auch auf einem
 # anderen Rechner ohne vorher gesetzte Umgebungsvariable laufen kann.
 # Platzhalter unverändert lassen, wenn der Key weiterhin über WID_API_KEY kommt.
-$ScriptWidApiKey = "lsiwid_1tnGp4AuV4z6J-uMnPkkgyCRAtSUTLoYfYCKOyMFjlY="
+$ScriptWidApiKey = "Dein-LSI-API-Key"
 
 function Set-WidApiKeyFromScript {
     param(
