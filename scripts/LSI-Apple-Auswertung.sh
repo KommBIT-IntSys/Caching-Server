@@ -268,13 +268,15 @@ new_german_summary() {
         && print "Der Gerätecode kann unter Umständen über VoiceOver vorgelesen werden." && return
     [[ "$s" =~ 's/mime|encrypted[[:space:]]e-mail|encrypted[[:space:]]email' ]] \
         && print "Bei S/MIME-verschlüsselten E-Mails können unter Umständen Klartextinhalte offengelegt werden." && return
+    [[ "$s" =~ 'bypass[[:space:]]privacy[[:space:]]preferences|bypass[[:space:]]certain[[:space:]]privacy' ]] \
+        && print "Eine App kann unter Umständen Datenschutzeinstellungen umgehen." && return
     [[ "$s" =~ 'bypass[[:space:]]gatekeeper|gatekeeper[[:space:]]checks|file[[:space:]]quarantine[[:space:]]bypass' ]] \
         && print "Ein manipuliertes Disk-Image kann unter Umständen Gatekeeper-Prüfungen umgehen." && return
     [[ "$s" =~ 'bypass[[:space:]]signature[[:space:]]validation|signature[[:space:]]validation' ]] \
         && print "Eine bösartige App kann unter Umständen Signaturprüfungen umgehen." && return
     [[ "$s" =~ 'bypass[[:space:]]sandbox[[:space:]]restrictions|circumvent[[:space:]]sandbox|break[[:space:]]out[[:space:]]of[[:space:]]web[[:space:]]content[[:space:]]sandbox' ]] \
         && print "Eine App oder Webseite kann unter Umständen Sandbox-Beschränkungen umgehen." && return
-    [[ "$s" =~ 'write[[:space:]]arbitrary[[:space:]]files|overwrite[[:space:]]arbitrary[[:space:]]files|read[[:space:]]arbitrary[[:space:]]files|delete[[:space:]]files|protected[[:space:]]system[[:space:]]files|protected[[:space:]]parts[[:space:]]of[[:space:]]the[[:space:]]file[[:space:]]system' ]] \
+    [[ "$s" =~ 'write[[:space:]]arbitrary[[:space:]]files|overwrite[[:space:]]arbitrary[[:space:]]files|read[[:space:]]arbitrary[[:space:]]files|delete[[:space:]]files|protected[[:space:]]system[[:space:]]files|protected[[:space:]]parts[[:space:]]of[[:space:]]the[[:space:]]file[[:space:]]system|access[[:space:]]arbitrary[[:space:]]files' ]] \
         && print "Eine App oder ein Angreifer kann unter Umständen Dateien lesen, verändern oder löschen, für die keine Berechtigung besteht." && return
     [[ "$s" =~ 'address[[:space:]]bar[[:space:]]spoofing|user[[:space:]]interface[[:space:]]spoofing|ui[[:space:]]spoofing' ]] \
         && print "Der Besuch einer manipulierten Webseite kann unter Umständen eine gefälschte Adresszeile anzeigen." && return
@@ -290,6 +292,14 @@ new_german_summary() {
         && print "Eine manipulierte USD-Datei kann unter Umständen Speicherinhalte offenlegen." && return
     [[ "$s" =~ 'maliciously[[:space:]]crafted[[:space:]]audio[[:space:]]file' ]] \
         && print "Eine manipulierte Audiodatei kann unter Umständen Nutzerdaten offenlegen." && return
+    [[ "$s" =~ 'unexpected[[:space:]]safari[[:space:]]crash' ]] \
+        && print "Manipulierter Webinhalt kann unter Umständen Safari zum Absturz bringen." && return
+    if [[ "$s" =~ 'terminate[[:space:]]the[[:space:]]process' ]]; then
+        if [[ "$s" =~ 'audio|media' ]]; then
+            print "Eine manipulierte Mediendatei kann unter Umständen einen Prozessabsturz verursachen." && return
+        fi
+        print "Manipulierte Inhalte können unter Umständen einen Prozessabsturz verursachen." && return
+    fi
 
     # Schadcodeausführung
     if [[ "$s" =~ 'arbitrary[[:space:]]code[[:space:]]execution|execute[[:space:]]arbitrary[[:space:]]code|code[[:space:]]execution' ]]; then
@@ -313,7 +323,7 @@ new_german_summary() {
         && print "Eine App kann unter Umständen Rechte im Betriebssystem-Kernel erlangen." && return
     [[ "$s" =~ 'write[[:space:]]kernel[[:space:]]memory|modify[[:space:]]kernel[[:space:]]memory' ]] \
         && print "Eine App kann unter Umständen Speicherbereiche des Betriebssystem-Kernels verändern." && return
-    [[ "$s" =~ 'read[[:space:]]kernel[[:space:]]memory|disclose[[:space:]]kernel[[:space:]]memory' ]] \
+    [[ "$s" =~ 'read[[:space:]]kernel[[:space:]]memory|disclose[[:space:]]kernel[[:space:]]memory|determine[[:space:]]kernel[[:space:]]memory' ]] \
         && print "Eine App kann unter Umständen Speicherinhalte des Betriebssystem-Kernels auslesen." && return
     [[ "$s" =~ 'break[[:space:]]out[[:space:]]of[[:space:]]its[[:space:]]sandbox|escape[[:space:]]its[[:space:]]sandbox|sandbox[[:space:]]escape' ]] \
         && print "Eine bösartige App kann unter Umständen aus ihrer Sandbox ausbrechen." && return
@@ -327,7 +337,7 @@ new_german_summary() {
         && print "Eine App kann unter Umständen Standortinformationen offenlegen." && return
     [[ "$s" =~ 'contacts|photos|calendar|microphone|camera' ]] \
         && print "Eine App kann unter Umständen auf Kontakte, Fotos, Kalender oder Kamera zugreifen." && return
-    [[ "$s" =~ 'fingerprinting|tracking' ]] \
+    [[ "$s" =~ 'fingerprint|tracking|track[[:space:]]user' ]] \
         && print "Eine App oder ein Webinhalt kann unter Umständen Nutzer wiedererkennen oder verfolgen." && return
     [[ "$s" =~ 'spoofing|spoofed' ]] \
         && print "Eine bösartige Komponente kann unter Umständen eine Identität oder Quelle vortäuschen." && return
@@ -363,7 +373,7 @@ new_risk_quality() {
 
     [[ "$s" =~ 'denial[[:space:]]of[[:space:]]service|denial-of-service' ]] && print "mittel" && return
     [[ "$s" =~ 'unexpected.*crash|process[[:space:]]crash|terminate[[:space:]]the[[:space:]]process|unexpected.*termination|app[[:space:]]termination|app[[:space:]]crash|system[[:space:]]crash|device[[:space:]]may[[:space:]]restart' ]] && print "mittel" && return
-    [[ "$s" =~ 'memory[[:space:]]corruption|out-of-bounds|use[[:space:]]after[[:space:]]free|integer[[:space:]]overflow|integer[[:space:]]underflow' ]] && print "mittel" && return
+    [[ "$s" =~ 'memory[[:space:]]corruption|corrupt[[:space:]]process[[:space:]]memory|out-of-bounds|use[[:space:]]after[[:space:]]free|integer[[:space:]]overflow|integer[[:space:]]underflow' ]] && print "mittel" && return
     [[ "$s" =~ 'local[[:space:]]network|physical[[:space:]]access' ]] && print "mittel" && return
 
     print "prüfen"
@@ -820,7 +830,10 @@ for lsi_id in sorted(groups):
     mit  = sum(1 for x in r if x.get('Qualitaet') == 'mittel')
     pru  = sum(1 for x in r if x.get('Qualitaet') == 'prüfen')
     th   = themes(r)
-    bsp  = list(dict.fromkeys(x.get('KurzbeschreibungDE','') for x in r if x.get('Qualitaet')=='sehr relevant'))[:5]
+    bsp  = list(dict.fromkeys(
+        x.get('KurzbeschreibungDE','') for x in r
+        if x.get('Qualitaet')=='sehr relevant' and x.get('KurzbeschreibungDE','').strip()
+    ))[:5]
     pru_txt = f' {pru} Einträge müssen fachlich nachgeprüft werden.' if pru else ''
     th_txt  = ', '.join(th) if th else 'mehrere unterschiedliche Schwachstellenarten'
     fazit = (f"Die Meldung ist vom LSI als '{first.get('LsiRisiko','')}' eingestuft und betrifft "
@@ -1017,27 +1030,27 @@ if (( final_count > 0 )); then
     print ""
 
     print "Qualitätsverteilung:"
-    tail -n +2 "$GESAMT_CSV" | python3 -c "
-import sys, csv
+    python3 -c "
+import csv
 from collections import Counter
-c = Counter(r.get('Qualitaet','') for r in csv.DictReader(sys.stdin, delimiter=';'))
+c = Counter(r.get('Qualitaet','') for r in csv.DictReader(open('$GESAMT_CSV'), delimiter=';'))
 for k,v in sorted(c.items()): print(f'  {k}: {v}')
 "
     print ""
 
     print "LSI-Verteilung:"
-    tail -n +2 "$GESAMT_CSV" | python3 -c "
-import sys, csv
+    python3 -c "
+import csv
 from collections import Counter
-c = Counter(r.get('LsiId','') for r in csv.DictReader(sys.stdin, delimiter=';'))
+c = Counter(r.get('LsiId','') for r in csv.DictReader(open('$GESAMT_CSV'), delimiter=';'))
 for k,v in sorted(c.items()): print(f'  {k}: {v}')
 "
     print ""
 
     print "Prüffälle:"
-    tail -n +2 "$GESAMT_CSV" | python3 -c "
-import sys, csv
-rows = [r for r in csv.DictReader(sys.stdin, delimiter=';') if r.get('Qualitaet')=='prüfen']
+    python3 -c "
+import csv
+rows = [r for r in csv.DictReader(open('$GESAMT_CSV'), delimiter=';') if r.get('Qualitaet')=='prüfen']
 if not rows: print('  Keine')
 for r in rows: print(f\"  {r.get('LsiId','')}  {r.get('Komponente','')}  {r.get('CVEs','')}\")
 "
