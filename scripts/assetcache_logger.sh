@@ -797,7 +797,8 @@ archive_csv_on_update() {
   # HU: durable Kopie unter Application Support, sichtbare Datei zurücksetzen
   local hu_lines=0
   if [[ -f "$OUT_HU" ]]; then
-    local dst_hu="${arch_dir}/$(basename "$OUT_HU")"
+    local dst_hu
+    dst_hu="${arch_dir}/$(basename "$OUT_HU")"
     if /bin/cp "$OUT_HU" "$dst_hu" 2>/dev/null; then
       hu_lines="$(/usr/bin/wc -l < "$OUT_HU" 2>/dev/null | tr -d ' ')"
       /bin/chown root:wheel "$dst_hu" 2>/dev/null || true
@@ -813,7 +814,8 @@ archive_csv_on_update() {
   # CO: durable Kopie unter Application Support, sichtbare Datei zurücksetzen
   local co_lines=0
   if [[ -f "$OUT_CO" ]]; then
-    local dst_co="${arch_dir}/$(basename "$OUT_CO")"
+    local dst_co
+    dst_co="${arch_dir}/$(basename "$OUT_CO")"
     if /bin/cp "$OUT_CO" "$dst_co" 2>/dev/null; then
       co_lines="$(/usr/bin/wc -l < "$OUT_CO" 2>/dev/null | tr -d ' ')"
       /bin/chown root:wheel "$dst_co" 2>/dev/null || true
@@ -830,7 +832,8 @@ archive_csv_on_update() {
   # unangetastet; nur eine eventuell zusätzlich sichtbare RAW-Datei wird wie
   # HU/CO als sichtbare Arbeitsdatei behandelt.
   if [[ "${EXPORT_VISIBLE_RAW}" -eq 1 && -n "${OUT_RAW:-}" && -f "$OUT_RAW" ]]; then
-    local dst_raw="${arch_dir}/$(basename "$OUT_RAW")"
+    local dst_raw
+    dst_raw="${arch_dir}/$(basename "$OUT_RAW")"
     if /bin/cp "$OUT_RAW" "$dst_raw" 2>/dev/null; then
       /bin/chown root:wheel "$dst_raw" 2>/dev/null || true
       /bin/chmod 640 "$dst_raw" 2>/dev/null || true
