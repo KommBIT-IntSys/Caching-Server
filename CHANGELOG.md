@@ -15,6 +15,29 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
+## [1.9.1] - 2026-05-20
+
+### Added
+- Durable RAW journal under `/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/`.
+- Rebuild mechanism for visible HU/CO CSV files from the RAW journal.
+- Secure archive location under `/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/`.
+- Admin ACL handling in the Relution deploy script for local inspection/copying.
+
+### Changed
+- `/Library/Logs/KommunalBIT` is now only the visible working/output directory for HU and CO files.
+- RAW is no longer written visibly by default; the canonical RAW data lives in the Application Support journal.
+- The manual archive script moves only visible HU/CO files to the Application Support archive and stops the daemon without restarting it.
+- The deploy script explicitly re-enables, bootstraps and starts the LaunchDaemon after deployment.
+
+### Fixed
+- Prevented data loss when `/Library/Logs/KommunalBIT` disappears during macOS update/reboot.
+- Removed use of `/Library/Logs/KommunalBIT/Archiv` as authoritative archive location.
+- Fixed zsh glob handling in archive/logger scripts with `NULL_GLOB`.
+- Fixed Relution dot-mangling issues for `.sh`, `.plist`, `.out`, `.err`, and `.conf`.
+- Fixed rebuild handling of empty CSV fields and visible epoch handling around iOS update changes.
+
+---
+
 ## [1.9.0] - 2026-05
 
 ### Added
