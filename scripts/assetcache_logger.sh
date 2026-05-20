@@ -2,6 +2,11 @@
 
 set -u
 
+if [[ "$(id -u)" -ne 0 ]]; then
+  echo "ERROR: assetcache_logger.sh must run as root. Use sudo or run via LaunchDaemon/Relution." >&2
+  exit 77
+fi
+
 # Asset Cache Monitoring / Logging
 # Version 1.9.0 (KommunalBIT)
 # SPDX-License-Identifier: EUPL-1.2
@@ -211,9 +216,12 @@ migrate_statefiles_from_var_tmp() {
 
 detect_boot_change() {
   local cur_boot_sec
-  cur_boot_sec="$(sysctl kern.boottime 2>/dev/null \
-    | /usr/bin/grep -oE 'sec = [0-9]+' | awk '{print $3}')"
-  [[ -z "${cur_boot_sec:-}" ]] && return 0
+  cur_boot_sec="$(/usr/sbin/sysctl kern.boottime 2>/dev/null \
+    | /usr/bin/sed -E 's/.*sec = ([0-9]+), usec = [0-9]+.*/\1/')"
+  if ! echo "${cur_boot_sec:-}" | /usr/bin/grep -Eq '^[0-9]+$'; then
+    status_log "WARN Boot-Time konnte nicht sauber gelesen werden"
+    return 0
+  fi
 
   local boot_file="${BOOT_DIR}/last_boot_time"
   local prev_boot_sec=""
