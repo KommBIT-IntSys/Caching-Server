@@ -38,7 +38,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
-## [1.9.0] - 2026-05
+## [1.9.0] - 2026-05-19
 
 ### Hinzugefügt
 - `assetcache_logger.sh`: dauerhaftes RAW-Journal unter
