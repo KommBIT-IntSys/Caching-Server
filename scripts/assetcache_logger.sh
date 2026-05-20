@@ -1,6 +1,7 @@
 #!/bin/zsh
 
 set -u
+setopt NULL_GLOB
 
 if [[ "$(/usr/bin/id -u)" -ne 0 ]]; then
   echo "ERROR: assetcache_logger.sh must run as root. Use sudo or run via LaunchDaemon/Relution." >&2
