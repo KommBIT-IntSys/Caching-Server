@@ -1,6 +1,6 @@
 # Asset Cache Monitoring – KommunalBIT
 
-Monitoring und Logging des Apple Content Caching auf geeigneten macOS-Devices an Standorten.  
+Monitoring und Logging des Apple Content Caching auf geeigneten macOS-Devices an mehreren, strukturel verschiedenen Standorten.  
 **Aktuelle Version: 1.9.1**
 
 ---
