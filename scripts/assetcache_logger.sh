@@ -51,6 +51,7 @@ APP_SUPPORT_BASE="/Library/Application Support/KommunalBIT/AssetCacheLogger"
 JOURNAL_DIR="${APP_SUPPORT_BASE}/journal"
 STATE_DIR="${APP_SUPPORT_BASE}/state"
 BOOT_DIR="${APP_SUPPORT_BASE}/boot"
+ARCHIVE_BASE_DIR="${APP_SUPPORT_BASE}/archive"
 STATUS_LOG="${APP_SUPPORT_BASE}/status.log"
 
 # =============================================================================
@@ -101,6 +102,7 @@ fi
 
 ARCHIVE_STATEFILE="${STATE_DIR}/assetcache_archive_state_${PREFIX}.tsv"
 RAW_JOURNAL="${JOURNAL_DIR}/${PREFIX}_AssetCacheRaw_${RAW_SCHEMA_VER}.csv"
+VISIBLE_EPOCH_FILE="${STATE_DIR}/visible_epoch_${PREFIX}.tsv"
 
 # =============================================================================
 # SuS-Tabelle – externe Konfigurationsdatei
@@ -157,7 +159,7 @@ status_log() {
 
 ensure_app_support_dirs() {
   local dir created_any=0
-  for dir in "$APP_SUPPORT_BASE" "$JOURNAL_DIR" "$STATE_DIR" "$BOOT_DIR"; do
+  for dir in "$APP_SUPPORT_BASE" "$JOURNAL_DIR" "$STATE_DIR" "$BOOT_DIR" "$ARCHIVE_BASE_DIR"; do
     if [[ ! -d "$dir" ]]; then
       if /bin/mkdir -p "$dir" 2>/dev/null; then
         /bin/chown root:wheel "$dir" 2>/dev/null || true
@@ -753,8 +755,9 @@ totalssince_hu_value() {
 }
 
 # ---------- Archivierung bei iOS-Update-Wechsel ----------
-# Kopiert sichtbare HU-/CO-Dateien ins Archiv (cp statt mv).
-# Das RAW-Journal wird nie verschoben oder archiviert.
+# Schreibt durables Archiv unter Application Support/archive/.
+# Sichtbare HU/CO werden zurückgesetzt; RAW-Journal bleibt unberührt.
+# Setzt visible_epoch_<PREFIX>.tsv damit Rebuild nur den neuen Abschnitt aufbaut.
 archive_csv_on_update() {
   local current_ver="${1:-}"
   [[ -z "${current_ver:-}" ]] && return
@@ -774,38 +777,98 @@ archive_csv_on_update() {
   local ts_arch
   ts_arch="$(date +%Y%m%d_%H%M%S)"
 
-  # HU kopieren, danach zurücksetzen (neuer iOS-Abschnitt beginnt frisch)
+  # Durables Archivverzeichnis unter Application Support
+  local arch_dir="${ARCHIVE_BASE_DIR}/${ts_arch}_${PREFIX}"
+  if ! /bin/mkdir -p "$arch_dir" 2>/dev/null; then
+    status_log "ERROR Archiv-Verzeichnis konnte nicht angelegt werden: $arch_dir"
+    printf "%s\n" "$current_ver" > "$ARCHIVE_STATEFILE" 2>/dev/null || true
+    return
+  fi
+  /bin/chown root:wheel "$arch_dir" 2>/dev/null || true
+  /bin/chmod 700 "$arch_dir" 2>/dev/null || true
+
+  # Letzten Journal-Timestamp für visible_epoch ermitteln
+  local last_journal_ts=""
+  if [[ -f "$RAW_JOURNAL" ]]; then
+    last_journal_ts="$(/usr/bin/tail -n 1 "$RAW_JOURNAL" 2>/dev/null \
+      | /usr/bin/perl -e '
+        my $line = <STDIN>; chomp $line;
+        if ($line =~ /^"[^"]*","([^"]*)"/) { print $1; }
+      ' 2>/dev/null)"
+  fi
+
+  # HU: durable Kopie, Komfortkopie, zurücksetzen
+  local hu_lines=0
   if [[ -f "$OUT_HU" ]]; then
-    local dst_hu="${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}_${ts_arch}.csv"
+    local dst_hu="${arch_dir}/$(basename "$OUT_HU")"
     if /bin/cp "$OUT_HU" "$dst_hu" 2>/dev/null; then
+      hu_lines="$(/usr/bin/wc -l < "$OUT_HU" 2>/dev/null | tr -d ' ')"
+      /bin/chown root:wheel "$dst_hu" 2>/dev/null || true
+      /bin/chmod 640 "$dst_hu" 2>/dev/null || true
+      /bin/cp "$dst_hu" \
+        "${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}_${ts_arch}.csv" \
+        2>/dev/null || true
       : > "$OUT_HU"
       emit_csv_line "$OUT_HU" "${CSV_HEADER_FIELDS[@]}"
       /bin/chmod 644 "$OUT_HU" 2>/dev/null || true
     fi
   fi
 
-  # CO kopieren und zurücksetzen
+  # CO: durable Kopie, Komfortkopie, zurücksetzen
+  local co_lines=0
   if [[ -f "$OUT_CO" ]]; then
-    local dst_co="${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}_${ts_arch}.csv"
+    local dst_co="${arch_dir}/$(basename "$OUT_CO")"
     if /bin/cp "$OUT_CO" "$dst_co" 2>/dev/null; then
+      co_lines="$(/usr/bin/wc -l < "$OUT_CO" 2>/dev/null | tr -d ' ')"
+      /bin/chown root:wheel "$dst_co" 2>/dev/null || true
+      /bin/chmod 640 "$dst_co" 2>/dev/null || true
+      /bin/cp "$dst_co" \
+        "${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}_${ts_arch}.csv" \
+        2>/dev/null || true
       : > "$OUT_CO"
       emit_csv_line "$OUT_CO" "${CSV_HEADER_FIELDS_CO[@]}"
       /bin/chmod 644 "$OUT_CO" 2>/dev/null || true
     fi
   fi
 
-  # Optionale sichtbare RAW-Datei ebenfalls kopieren und zurücksetzen
+  # Optionale sichtbare RAW-Datei
   if [[ "${EXPORT_VISIBLE_RAW}" -eq 1 && -n "${OUT_RAW:-}" && -f "$OUT_RAW" ]]; then
-    local dst_raw="${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}_${ts_arch}.csv"
+    local dst_raw="${arch_dir}/$(basename "$OUT_RAW")"
     if /bin/cp "$OUT_RAW" "$dst_raw" 2>/dev/null; then
+      /bin/chown root:wheel "$dst_raw" 2>/dev/null || true
+      /bin/chmod 640 "$dst_raw" 2>/dev/null || true
+      /bin/cp "$dst_raw" \
+        "${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}_${ts_arch}.csv" \
+        2>/dev/null || true
       : > "$OUT_RAW"
       emit_csv_line "$OUT_RAW" "${CSV_HEADER_FIELDS[@]}"
       /bin/chmod 644 "$OUT_RAW" 2>/dev/null || true
     fi
   fi
 
+  # Manifest
+  {
+    printf "Host:           %s\n" "$HOST"
+    printf "Prefix:         %s\n" "$PREFIX"
+    printf "Archiviert:     %s\n" "$(date '+%Y-%m-%d %H:%M:%S')"
+    printf "Script-Version: %s\n" "$SCRIPT_VER"
+    printf "Anlass:         iOS-Versionsaenderung → %s (war: %s)\n" \
+      "$current_ver" "${last_archived}"
+    printf "Journal:        %s\n" "$RAW_JOURNAL"
+    printf "HU-Zeilen:      %s\n" "$hu_lines"
+    printf "CO-Zeilen:      %s\n" "$co_lines"
+    [[ -n "${last_journal_ts:-}" ]] && \
+      printf "visible_epoch:  %s\n" "$last_journal_ts"
+  } > "${arch_dir}/manifest.txt" 2>/dev/null || true
+
+  # visible_epoch setzen: Rebuild zeigt künftig nur Zeilen nach diesem Zeitpunkt
+  if [[ -n "${last_journal_ts:-}" ]]; then
+    printf "%s\n" "$last_journal_ts" > "$VISIBLE_EPOCH_FILE" 2>/dev/null || true
+    status_log "INFO visible_epoch gesetzt: ${last_journal_ts}"
+  fi
+
   printf "%s\n" "$current_ver" > "$ARCHIVE_STATEFILE" 2>/dev/null || true
-  status_log "INFO Archiv erstellt ts=${ts_arch} ver=${current_ver}"
+  status_log "INFO Archiv erstellt ts=${ts_arch} ver=${current_ver} dir=${arch_dir}"
 }
 
 # =============================================================================
@@ -859,6 +922,15 @@ rebuild_visible_from_journal() {
   local last_iosupdates="" iosupdates_count=0
   local last_totalssince_hu="" totalssince_count=0
 
+  # visible_epoch lesen – wenn gesetzt, nur Zeilen nach diesem Zeitpunkt rebuilden.
+  # Kein Marker = komplette Journal-Historie verwenden.
+  local rebuild_epoch=""
+  if [[ -f "$VISIBLE_EPOCH_FILE" ]]; then
+    rebuild_epoch="$(/bin/cat "$VISIBLE_EPOCH_FILE" 2>/dev/null | tr -d '\r\n')"
+    [[ -n "${rebuild_epoch:-}" ]] && \
+      status_log "INFO Rebuild: visible_epoch=${rebuild_epoch} – ältere Zeilen übersprungen"
+  fi
+
   local lineno=0
   local data_rows=0
 
@@ -896,6 +968,11 @@ rebuild_visible_from_journal() {
     [[ "${#f}" -lt 24 ]] && continue  # 23 Datenfelder + Sentinel erwartet
 
     local r_host="${f[1]:-}"  r_ts="${f[2]:-}"       r_totalssince="${f[3]:-}"
+
+    # Zeilen vor/bei visible_epoch überspringen (archivierter Abschnitt)
+    if [[ -n "${rebuild_epoch:-}" && "${r_ts:-}" <= "${rebuild_epoch:-}" ]]; then
+      continue
+    fi
     local r_peers="${f[4]:-}" r_clientscnt="${f[5]:-}" r_iosupdates="${f[6]:-}"
     local r_iosbytes="${f[7]:-}"    r_totret="${f[8]:-}"      r_totorg="${f[9]:-}"
     local r_serveddelta="${f[10]:-}" r_origindelta="${f[11]:-}" r_cacheused="${f[12]:-}"
