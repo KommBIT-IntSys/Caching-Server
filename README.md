@@ -67,6 +67,21 @@ Ausgabe: Drei CSV-Dateien pro Host unter `/Library/Logs/KommunalBIT/`:
 
 **RAW ist die primäre technische Datenbasis; _HU und _CO werden daraus abgeleitet.** _CO ist das bevorzugte Format für KI-gestützte oder externe Auswertung.
 
+### Speicherorte ab v1.9.1
+
+Ab Version 1.9.1 trennt das Projekt zwischen dauerhaftem Speicher und sichtbarer Ausgabe:
+
+- `/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/`  
+  Dauerhaftes RAW-Journal. Dies ist die kanonische Datenquelle und soll macOS-Updates/Neustarts überstehen.
+
+- `/Library/Logs/KommunalBIT/`  
+  Sichtbarer Arbeitsordner für die aktuell erzeugten HU- und CO-Dateien. Dieser Ordner kann bei Bedarf aus dem RAW-Journal wiederhergestellt werden.
+
+- `/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/`  
+  Sicherer Archivbereich für HU-/CO-Dateien, die durch automatische iOS-Versionswechsel oder das manuelle Archivierungsskript abgelegt werden.
+
+Der alte Ordner `/Library/Logs/KommunalBIT/Archiv` wird ab v1.9.1 nicht mehr verwendet.
+
 `<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`. Vollständige Feldbeschreibung: [docs/AssetCache_Monitoring.md](docs/AssetCache_Monitoring.md).
 
 ---
