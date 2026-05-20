@@ -2,7 +2,7 @@
 
 set -u
 
-if [[ "$(id -u)" -ne 0 ]]; then
+if [[ "$(/usr/bin/id -u)" -ne 0 ]]; then
   echo "ERROR: assetcache_logger.sh must run as root. Use sudo or run via LaunchDaemon/Relution." >&2
   exit 77
 fi
@@ -227,6 +227,15 @@ detect_boot_change() {
   local prev_boot_sec=""
   if [[ -f "$boot_file" ]]; then
     prev_boot_sec="$(/bin/cat "$boot_file" 2>/dev/null | tr -d '\r\n')"
+  fi
+
+  # Korrupten Altwert (z. B. durch grep-usec-Bug) still überschreiben,
+  # ohne einen Boot-Wechsel auszulösen.
+  if [[ -n "${prev_boot_sec:-}" ]] && \
+     ! echo "${prev_boot_sec}" | /usr/bin/grep -Eq '^[0-9]{9,11}$'; then
+    status_log "INFO Boot-Datei ungültiger Wert korrigiert (war: ${prev_boot_sec})"
+    printf "%s\n" "$cur_boot_sec" > "$boot_file" 2>/dev/null || true
+    prev_boot_sec="$cur_boot_sec"
   fi
 
   if [[ "${cur_boot_sec:-}" != "${prev_boot_sec:-}" ]]; then
@@ -858,7 +867,8 @@ rebuild_visible_from_journal() {
     [[ "$lineno" -eq 1 ]] && continue  # Header überspringen
     [[ -z "${raw_line:-}" ]] && continue
 
-    # Gequotetes CSV via perl parsen → Tab-separiert
+    # Gequotetes CSV via perl parsen → Tab-separiert, exakt 23 Felder + Sentinel
+    # Sentinel verhindert, dass zsh trailing-leere Felder beim Split verwirft.
     local fields_str
     fields_str="$(echo "$raw_line" | /usr/bin/perl -e '
       use strict;
@@ -871,16 +881,19 @@ rebuild_visible_from_journal() {
           push @out, $1;
         } else { last; }
       }
+      push @out, "" while @out < 23;
+      @out = @out[0..22];
+      push @out, "__END__";
       print join("\t", @out) . "\n";
     ' 2>/dev/null)"
 
     [[ -z "${fields_str:-}" ]] && continue
 
-    # In zsh-Array aufteilen (1-basiert)
+    # In zsh-Array aufteilen (1-basiert); Sentinel als f[24] sichert leere Trailing-Felder
     local -a f
     f=("${(s:\t:)${fields_str%%$'\n'}}")
 
-    [[ "${#f}" -lt 23 ]] && continue  # unvollständige Zeile überspringen
+    [[ "${#f}" -lt 24 ]] && continue  # 23 Datenfelder + Sentinel erwartet
 
     local r_host="${f[1]:-}"  r_ts="${f[2]:-}"       r_totalssince="${f[3]:-}"
     local r_peers="${f[4]:-}" r_clientscnt="${f[5]:-}" r_iosupdates="${f[6]:-}"
