@@ -3,10 +3,12 @@
 # Asset Cache Monitoring – Deinstaller (KommunalBIT)
 # Entfernt:
 # - LaunchDaemon (korrekte .plist und historische _plist-Variante)
-# - Monitoring-Script /usr/local/bin/assetcache_logger.sh
-# - Konfigurationsdatei /etc/kommunalbit/schulen.conf
-# - Log-/CSV-Dateien (aktuell, versioniert, historische Altlasten)
-# - State-/Debug-/Temp-Dateien in /var/tmp
+# - Monitoring-Script /usr/local/bin/assetcache_logger.sh (+ Relution _sh-Variante)
+# - Konfigurationsdatei /etc/kommunalbit/schulen.conf (+ Relution _conf-Variante)
+# - Sichtbare Log-/CSV-Dateien unter /Library/Logs/KommunalBIT
+# - Dauerhafte Datenablage unter /Library/Application Support/KommunalBIT
+#   (RAW-Journal, State, Boot-Tracker, Archiv, status.log)
+# - State-/Debug-/Temp-Dateien in /var/tmp (inkl. Legacy-Pfade vor 1.9.1)
 # Statuslog: /var/tmp/assetcache_uninstall.log
 
 STATUS_FILE="/var/tmp/assetcache_uninstall.log"
@@ -28,9 +30,15 @@ PLIST_LABEL="de.kommunalbit.assetcachelogger"
 PLIST_PATH="/Library/LaunchDaemons/${PLIST_LABEL}${PLIST_EXT}"
 PLIST_PATH_BAD="/Library/LaunchDaemons/${PLIST_LABEL}_plist"
 SCRIPT_PATH="/usr/local/bin/assetcache_logger.sh"
+SCRIPT_PATH_BAD="/usr/local/bin/assetcache_logger_sh"
 LOG_DIR="/Library/Logs/KommunalBIT"
 ARCHIV_DIR="${LOG_DIR}/Archiv"
 SCHULEN_CONF="/etc/kommunalbit/schulen.conf"
+SCHULEN_CONF_BAD="/etc/kommunalbit/schulen_conf"
+
+# v1.9.1: dauerhafte Datenablage unter Application Support
+APP_SUPPORT_PARENT="/Library/Application Support/KommunalBIT"
+APP_SUPPORT_BASE="${APP_SUPPORT_PARENT}/AssetCacheLogger"
 
 HOST="$(/usr/sbin/scutil --get HostName 2>/dev/null \
   || /usr/sbin/scutil --get LocalHostName 2>/dev/null \
@@ -55,9 +63,11 @@ log "--- Dateien entfernen ---"
 /bin/rm -f "$PLIST_PATH"           >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f "$PLIST_PATH_BAD"       >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f "$SCRIPT_PATH"          >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f "$SCRIPT_PATH_BAD"      >> "$STATUS_FILE" 2>&1 || true
 
 # --- 3. Konfigurationsdatei entfernen ----------------------------------------
 /bin/rm -f "$SCHULEN_CONF"         >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f "$SCHULEN_CONF_BAD"     >> "$STATUS_FILE" 2>&1 || true
 /bin/rmdir /etc/kommunalbit        >> "$STATUS_FILE" 2>&1 || true
 
 # --- 4. Log-/CSV-Dateien entfernen -------------------------------------------
@@ -76,6 +86,13 @@ log "--- CSV-Dateien entfernen ---"
 /bin/rmdir "$ARCHIV_DIR" >> "$STATUS_FILE" 2>&1 || true
 /bin/rmdir "$LOG_DIR"    >> "$STATUS_FILE" 2>&1 || true
 
+# --- 4b. Dauerhafte Datenablage entfernen (v1.9.1) --------------------------
+# Enthält RAW-Journal, state/, boot/, archive/, status.log.
+# Vollständige Entfernung, da Deinstallation = Komplettrückbau.
+log "--- Application Support entfernen ---"
+/bin/rm -rf "$APP_SUPPORT_BASE"       >> "$STATUS_FILE" 2>&1 || true
+/bin/rmdir  "$APP_SUPPORT_PARENT"     >> "$STATUS_FILE" 2>&1 || true
+
 # --- 5. State-/Temp-/Debug-Dateien in /var/tmp entfernen --------------------
 log "--- Temp-Dateien entfernen ---"
 /bin/rm -f /var/tmp/assetcache_logger_state.tsv          >> "$STATUS_FILE" 2>&1 || true
@@ -88,6 +105,7 @@ log "--- Temp-Dateien entfernen ---"
 /bin/rm -f /var/tmp/assetcache_logger.err                >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f /var/tmp/assetcache_logger_download.sh        >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f /var/tmp/assetcache_deploy.log                >> "$STATUS_FILE" 2>&1 || true
+/bin/rm -f /var/tmp/assetcache_archive.log               >> "$STATUS_FILE" 2>&1 || true
 # Alte Installer-/Cleanup-Statusdateien frueherer Laeufe
 /bin/rm -f /var/tmp/assetcache_relution_installer_status.txt >> "$STATUS_FILE" 2>&1 || true
 /bin/rm -f /var/tmp/assetcache_relution_cleanup_status.txt   >> "$STATUS_FILE" 2>&1 || true
@@ -105,6 +123,9 @@ if [ -e "$SCRIPT_PATH" ]; then
 fi
 if /bin/launchctl list 2>/dev/null | /usr/bin/grep -q "$PLIST_LABEL"; then
   fail "LaunchDaemon laut launchctl noch geladen."
+fi
+if [ -d "$APP_SUPPORT_BASE" ]; then
+  fail "Application-Support-Datenablage noch vorhanden: $APP_SUPPORT_BASE"
 fi
 
 # Verbleibende Reste im Log-Verzeichnis protokollieren (kein Fehler, nur Info)
