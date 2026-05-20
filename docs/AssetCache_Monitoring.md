@@ -1,702 +1,713 @@
 # Asset Cache Monitoring – KommunalBIT
 
 Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
-**Aktuelle Version: 1.8.2**
+**Aktuelle Version: 1.9.1**
 
 ---
 
-## Motivation
+## Ziel des Projekts
 
-In einer Umgebung mit vielen iOS- /iPad-Devices ist Apple Content Caching ein wichtiger technischer Baustein, um Last, Bandbreite und Updateverteilung sinnvoll zu steuern. Da Verzögerungen bei der Installation aktueller iOS-Updates ein Sicherheitsrisiko darstellen, ist es das Ziel, an überall die bestmöglichen Voraussetzungen zu schaffen, um so viele Geräte wie möglich zeitnah zu aktualisieren.
+Das Projekt dient nicht der Datensammlung um der Datensammlung willen. Es soll handlungsfähig machen.
 
-Die entscheidenden Fragen:
+In einer Umgebung mit vielen iPads ist Apple Content Caching ein wichtiger technischer Baustein, um Last, Bandbreite und Updateverteilung sinnvoll zu steuern. Verzögerungen bei iOS-/iPadOS-Updates können ein Sicherheitsrisiko darstellen. Deshalb soll das Monitoring helfen, standortbezogen zu klären, ob Update-Rückstände eher technische Ursachen haben oder ob die Ursache eher im organisatorischen Umgang mit Geräten liegt, etwa Ladezustand, WLAN-Erreichbarkeit oder Zeitpunkt der Nutzung.
+
+Die zentralen Fragen sind:
 
 - Wird der Cache tatsächlich genutzt?
 - Wird er zum richtigen Zeitpunkt genutzt?
-- Passt die Aktivität zur bekannten Geräteanzahl eines Standorts?
-- Deuten Auffälligkeiten auf Infrastruktur- oder Konfigurationsprobleme hin – oder liegt die Ursache eher vor Ort, etwa beim Handling der iPads bzgl. Ladezustand und WLAN-Erreichbarkeit?
+- Passt die Cache-Aktivität zur bekannten Geräteanzahl eines Standorts?
+- Ist der Standort technisch grundsätzlich updatefähig?
+- Deuten Auffälligkeiten auf Infrastruktur-, Netzwerk-, WLAN- oder Konfigurationsprobleme hin?
+- Wo sollte zuerst gehandelt werden, um Updatefähigkeit und Resilienz messbar zu verbessern?
 
-Der Schwerpunkt liegt nicht auf dem reinen Sammeln von Zahlen, sondern auf datenbasierter Einordnung. Das Ziel ist maximale Risikoreduktion und Resilienz an jedem Standort.
+Die Auswertung soll zwei Entscheidungsmodi unterstützen:
 
----
+1. **Statistik / Flottenwirkung**  
+   Wo kann mit vertretbarem Aufwand ein großer messbarer Anteil des Gesamtbestands verbessert werden?
 
-## Funktionsweise
+2. **Relevanz / Sicherheitswirkung**  
+   Wo liegen die kritischeren Update- oder Erreichbarkeitsprobleme, unabhängig davon, ob dort sehr viele Geräte betroffen sind?
 
-Das Skript läuft auf einem Rechner mit macOS und aktiviertem Apple Content Caching und wird alle **15 Minuten** durch einen LaunchDaemon ausgeführt. Es liest Metriken aus `AssetCacheManagerUtil`, ergänzt sie um Netzwerk- und WLAN-Diagnosewerte und schreibt sie in drei CSV-Dateien (RAW, HU und CO).
-
----
-
-## Interne Datenverarbeitung (RAW-first-Prinzip)
-
-Das Monitoring-Skript arbeitet nach einem klaren, einheitlichen Verarbeitungsmodell:
-
-1. **Collect (Snapshot)**
-   Alle relevanten Systemwerte werden einmalig im selben Durchlauf erfasst
-   (Content Caching, Netzwerk, Apple-Erreichbarkeit, WLAN).
-
-2. **RAW-Datenbasis**
-   Aus diesem Snapshot wird die vollständige RAW-Datenstruktur aufgebaut.
-   Diese bildet die vollständige, technische Datenbasis des Systems.
-
-3. **Ableitung von HU und CO**
-   Die beiden weiteren CSV-Formate werden ausschließlich aus der RAW-Datenbasis erzeugt:
-   - **HU (Human Readable)**: menschenlesbare Darstellung mit Einheiten und vereinfachter Sicht
-   - **CO (Companion / KI-Format)**: datensparsame, maschinenlesbare Auswahl für externe Auswertung
-
-4. **Keine zusätzlichen Systemabfragen**
-   HU und CO führen keine eigenen Messungen durch.
-   Alle drei CSV-Dateien basieren auf demselben technischen Zustand.
-
-Dieses Prinzip stellt sicher, dass alle Ausgaben konsistent sind und sich direkt miteinander vergleichen lassen.
+Diese beiden Perspektiven dürfen nicht vermischt werden. Ein Standort kann statistisch wichtig sein, ohne sicherheitskritisch ganz oben zu stehen. Umgekehrt kann ein kleiner Standort sicherheitsrelevant auffallen, obwohl er für die Gesamtquote kaum Gewicht hat.
 
 ---
 
-## Skripte im MDM-/Relution-Betrieb
+## Kurzüberblick
 
-Das Projekt besteht nicht nur aus dem eigentlichen Monitoring-Skript, sondern aus mehreren Skripten mit klar getrennter Zuständigkeit im Betriebsmodell.
+Das Hauptskript `scripts/assetcache_logger.sh` läuft auf einem Mac mini mit aktiviertem Apple Content Caching. Es wird über einen LaunchDaemon alle 15 Minuten gestartet.
 
-Kurz gesagt:
+Der Logger sammelt in einem Durchlauf:
 
-- `assetcache_logger.sh` misst und protokolliert
-- `deploy_assetcache_logger.sh` installiert und aktiviert
-- `uninstall_assetcache_logger.sh` entfernt und bereinigt
-- Archiv-/Hilfsskripte sichern Übergänge bei Update, Wartung und Rollout
+- Content-Caching-Metriken aus `AssetCacheManagerUtil`
+- Cache-Deltas seit dem letzten Lauf
+- erkannte Peers
+- aktive Clients im letzten Zeitfenster
+- aktuelle iOS-/iPadOS-Versionen aus Apple GDMF
+- Netzwerkstatus, Default Gateway und DNS
+- Apple-CDN-Erreichbarkeit und TTFB
+- WLAN-Metriken, falls der Mac mini per WLAN betrieben wird
 
-Nicht jedes Skript läuft dauerhaft. Die Betriebs- und Hilfsskripte werden bei Bedarf über Relution ausgeführt. Das eigentliche Monitoring läuft danach lokal und autonom über den LaunchDaemon weiter.
-
----
-
-### `scripts/assetcache_logger.sh`
-
-Das ist das eigentliche Monitoring-Skript.
-
-Es erfasst die relevanten Content-Caching-, Netzwerk-, Reachability- und WLAN-Daten und schreibt drei CSV-Dateien: RAW als technische Primärquelle, HU und CO als daraus abgeleitete Views. Hier entsteht die fachliche Datengrundlage des Projekts.
-
-**Aufgaben:**
-
-- Metriken aus `AssetCacheManagerUtil` auslesen
-- Delta-Werte berechnen
-- Peer-, Client-, Netzwerk- und Apple-Erreichbarkeitsdaten erfassen
-- RAW-, HU- und CO-CSV schreiben (RAW als Primärquelle, HU und CO als Ableitungen)
-- State-Dateien verwalten
-- CSV-Dateien bei neuen iOS-/iPadOS-Versionen archivieren.
+Ab Version 1.9.1 trennt das System strikt zwischen dauerhaftem Speicher und sichtbarer Ausgabe.
 
 ---
 
-### `scripts/deploy_assetcache_logger.sh`
+## Speicherarchitektur ab v1.9.1
 
-Das ist das Installations- und Bereitstellungsskript, ausführbar lokal oder über ein MDM.
+Version 1.9.1 führt einen dauerhaften RAW-Journal-Speicher unter `Application Support` ein. Dieser ist die kanonische Datenquelle. Die sichtbaren HU-/CO-Dateien unter `/Library/Logs/KommunalBIT` sind daraus ableitbare Arbeitsdateien.
 
-Es bringt das Zielsystem in den gewünschten Zustand: Hauptskript, LaunchDaemon, Verzeichnisse, Rechte und produktive `schulen.conf`.
+| Bereich | Pfad | Zweck |
+|---|---|---|
+| Dauerhaftes RAW-Journal | `/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/` | Technische Wahrheit; soll macOS-Updates und Neustarts überstehen |
+| State-Dateien | `/Library/Application Support/KommunalBIT/AssetCacheLogger/state/` | Laufzustände, Deltas, GDMF-Cache, Archivstatus, sichtbare Epoche |
+| Boot-Erkennung | `/Library/Application Support/KommunalBIT/AssetCacheLogger/boot/` | Erkennung von Neustarts über `kern.boottime` |
+| Sicheres Archiv | `/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/` | Archivierte HU-/CO-Dateien bei manueller Archivierung oder iOS-Versionswechsel |
+| Statuslog | `/Library/Application Support/KommunalBIT/AssetCacheLogger/status.log` | Dauerhaftes Betriebs-/Diagnoseprotokoll des Loggers |
+| Sichtbarer Arbeitsordner | `/Library/Logs/KommunalBIT/` | Aktuelle HU-/CO-Dateien für Sichtprüfung und Export |
 
-**Aufgaben:**
+Der alte Ordner `/Library/Logs/KommunalBIT/Archiv` wird ab Version 1.9.1 nicht mehr verwendet.
 
-- `assetcache_logger.sh` bereitstellen oder aktualisieren
-- LaunchDaemon anlegen oder aktualisieren
-- Verzeichnisse und Rechte herstellen
-- `schulen.conf` mitgeben
-- Regelbetrieb aktivieren
+---
 
-**Besonderheit:**  
-Es enthält Workarounds für einen derzeitigen Relution-Bug, bei dem Punkte in bestimmten Strings oder Dateinamen durch Unterstriche ersetzt werden können.
+## Dateinamen
 
+### Dauerhaftes RAW-Journal
 
-#### Herkunft und Pflege der Standorttabelle
+Das RAW-Journal ist nicht mehr an die Skriptversion gekoppelt, sondern an `RAW_SCHEMA_VER`.
 
-Die produktive `schulen.conf` wird nicht im öffentlichen Repository gepflegt.
-
-Grundlage für diese Tabelle ist eine geeignete interne Auswertung aus Relution, aus der hervorgeht, wie viele relevante SuS-iPads einem Standort aktuell zugeordnet sind. Diese Information wird auf einem lokalen, passwortgeschützten Admin-Rechner weiterverarbeitet und in das für das Monitoring benötigte Format überführt.
-
-Für diese interne Auswertung gilt das Prinzip der Datenminimierung. Für die standortbezogene Ableitung der Tabelle werden Organisationszuordnung und fachlich notwendige Zustandsdaten benötigt; Gerätebezeichnungen einzelner iPads werden dafür bewusst nicht benötigt und sollen nicht Bestandteil des Standardexports sein.
-
-Verwendet wird dabei eine tabgetrennte Tabelle nach dem Muster:
+Beispiel:
 
 ```text
-SCHULKÜRZEL<TAB>ANZAHL
+/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/TEN_AssetCacheRaw_schema1.csv
 ```
 
-Diese Tabelle wird vor dem Ausrollen des Deploy-Skripts manuell in die Relution-Version des Skripts eingefügt bzw. dort aktualisiert. Das Repository enthält dafür nur die veröffentlichbare Logik und gegebenenfalls eine Beispielkonfiguration, nicht jedoch die produktiven Standortdaten.
+Dadurch kann ein Patch- oder Minor-Update des Skripts erfolgen, ohne das dauerhafte RAW-Journal künstlich neu zu beginnen. Solange sich das RAW-Schema nicht ändert, bleibt `schema1` bestehen.
 
-Pflegen, erzeugen und einfügen können diese Tabelle nur Personen mit entsprechendem Zugriff auf die Relution-Auswertung und auf die MDM-Deployment-Verwaltung. Dadurch bleiben öffentliches Repository, produktive Standortdaten und tatsächlicher Rollout organisatorisch und technisch voneinander getrennt.
+### Sichtbare HU-/CO-Dateien
 
----
+Die sichtbaren Arbeitsdateien tragen weiter die Skriptversion.
 
-### `scripts/uninstall_assetcache_logger.sh`
+Beispiele:
 
-Das ist das Rückbau- und Bereinigungsskript.
+```text
+/Library/Logs/KommunalBIT/TEN_AssetCache_Hu_v1.9.1.csv
+/Library/Logs/KommunalBIT/TEN_AssetCache_Co_v1.9.1.csv
+```
 
-Es entfernt das Monitoring sauber vom System und beseitigt dabei auch Altlasten früherer Versionen oder problematischer Deployments.
+### Sichtbare RAW-Datei
 
-**Aufgaben:**
+Standardmäßig wird keine sichtbare RAW-Datei mehr geschrieben. Die RAW-Daten liegen dauerhaft im Journal unter Application Support.
 
-- LaunchDaemon stoppen und entfernen
-- installiertes Monitoring-Skript entfernen
-- State-Dateien bereinigen
-- historische Altlasten oder falsch benannte Dateien entfernen
-- sauberen Ausgangszustand für Neuinstallation oder Test herstellen
+Im Skript existiert dafür:
 
-**Wichtig:**  
-Es ist nicht nur ein formales Gegenstück zum Deploy-Skript, sondern ausdrücklich auch ein Bereinigungswerkzeug.
+```zsh
+EXPORT_VISIBLE_RAW=0
+```
 
----
-
-### Archiv- und Hilfsskripte
-
-Diese Skripte unterstützen Rollout, Wartung und Versionswechsel.
-
-Ihre Aufgabe ist nicht das laufende Monitoring, sondern ein sauberer Übergang zwischen Betriebszuständen, etwa durch Stoppen des Daemon, Archivieren bestehender CSV-Dateien oder Vorbereiten eines neuen Deployments.
-
-**Typische Aufgaben:**
-
-- Daemon vor Wartung oder Archivierung stoppen
-- bestehende CSV-Dateien ins Archiv verschieben
-- Schreibkonflikte vermeiden
-- Folge-Deployment vorbereiten
-
-**Nicht ihre Aufgabe:** vollständige Inbetriebnahme oder fachliche Messung.
+Wird dieser Wert bewusst auf `1` gesetzt, kann zusätzlich eine sichtbare RAW-Datei unter `/Library/Logs/KommunalBIT` erzeugt werden. Der Normalbetrieb benötigt das nicht.
 
 ---
 
-### Typischer Ablauf im Betrieb
+## Verarbeitungsmodell
 
-1. System bei Bedarf bereinigen
-2. bestehende CSV-Dateien vor Update archivieren
-3. neue Version per Deploy-Skript ausrollen
-4. LaunchDaemon übernimmt den Regelbetrieb
-5. `assetcache_logger.sh` läuft lokal alle 15 Minuten
-6. Wartung, Update oder Bereinigung bei Bedarf gezielt über Hilfsskripte anstoßen
+Das Skript arbeitet RAW-first.
 
----
+1. **Startup**
+   - Verzeichnisstruktur unter Application Support sicherstellen
+   - alte State-Dateien aus `/var/tmp` nach Application Support migrieren
+   - Boot-Wechsel erkennen
+   - sichtbare HU-/CO-Dateien bei Bedarf aus dem RAW-Journal rekonstruieren
 
-### Warum diese Trennung wichtig ist
+2. **Collect**
+   - alle relevanten Systemwerte einmalig im aktuellen Durchlauf erfassen
+   - keine getrennten Messungen für RAW, HU oder CO
 
-Die Aufteilung auf mehrere Skripte trennt Messlogik, Verteilung, Bereinigung und Wartung sauber voneinander.
+3. **RAW berechnen**
+   - vollständige technische Datenstruktur erzeugen
+   - Delta-Werte aus State-Dateien ableiten
 
-Das macht das Projekt robuster, verständlicher und im Relution-Betrieb besser beherrschbar.
+4. **RAW-Journal schreiben**
+   - RAW-Zeile zuerst dauerhaft ins Journal schreiben
+   - Journal ist die kanonische Datenquelle
 
----
+5. **HU ableiten**
+   - menschenlesbare View mit Einheiten, `yes/no`, `n/a` und reduzierten IP-Details
 
-## Ausgabeformat
+6. **CO ableiten**
+   - datensparsame Analyse-View für Copilot/Excel/standortbezogene Auswertung
 
-Pro Host werden drei parallele CSV-Dateien geschrieben, jeweils unter `/Library/Logs/KommunalBIT/`:
+7. **Sichtbare Dateien schreiben**
+   - HU und CO werden unter `/Library/Logs/KommunalBIT` erzeugt oder fortgeschrieben
 
-| Datei | Zweck |
-|---|---|
-| `<PREFIX>_AssetCacheRaw_v<VERSION>.csv` | Maschinenlesbar – reine Zahlenwerte, leere Felder, ISO-8601-Zeitstempel mit Zeitzone |
-| `<PREFIX>_AssetCache_Hu_v<VERSION>.csv` | Menschenlesbar – Einheiten (GB, %, ms, dB), `n/a` für fehlende Werte |
-| `<PREFIX>_AssetCache_Co_v<VERSION>.csv` | Datensparsam – kein voller Hostname, keine IPs, maschinenlesbar, für KI-gestützte externe Auswertung |
-
-`<PREFIX>` entspricht in der Regel dem ersten Teil des Hostnamens vor dem ersten `-`.
-
-**Grundregel:** RAW ist die primäre technische Datenbasis; HU und CO werden daraus abgeleitet. **CO ist das bevorzugte Format für KI-gestützte oder externe Auswertung** – insbesondere in Kombination mit einem datensparsam vorbereiteten Relution-/MDM-Export.
-
-Bei Erkennung einer neuen iOS-Version werden alle drei CSV-Dateien automatisch in `/Library/Logs/KommunalBIT/Archiv/` verschoben.
+HU und CO führen keine eigenen Systemabfragen durch. Beide sind Ableitungen aus derselben RAW-Zeile.
 
 ---
 
-## Grundprinzip der CSV-Ausgaben
+## Rebuild-Mechanismus
 
-Das Monitoring erzeugt drei CSV-Dateien mit unterschiedlicher Zielrichtung:
+Wenn `/Library/Logs/KommunalBIT` fehlt oder die sichtbaren HU-/CO-Dateien fehlen oder leer sind, baut der Logger diese Dateien aus dem RAW-Journal neu auf.
 
-- **RAW-CSV**: für maschinelle Auswertung, Skripte, Filter und Import in Analysewerkzeuge – vollständig, verlustfrei, intern
-- **HU-CSV**: für schnelle Sichtprüfung durch Menschen – lesbar, mit Einheiten, intern
-- **CO-CSV**: für KI-gestützte oder externe Auswertung – datensparsam, keine IPs, kein voller Hostname
+Das ist der Kern der v1.9.1-Härtung: Wenn ein macOS-Update, ein Neustart oder ein anderes Systemverhalten den sichtbaren Logordner entfernt, bleiben die Daten unter Application Support erhalten.
 
-Die **RAW-CSV** ist streng, nüchtern und möglichst verlustfrei formatiert.  
-Die **HU-CSV** ist darauf optimiert, dass man sie direkt öffnet und zügig versteht.  
-Die **CO-CSV** ist auf sichere, datensparsame Weitergabe optimiert – insbesondere zur Kombination mit einem geeignet reduzierten Relution-/MDM-Export für KI-gestützte Standortanalyse.
+Typischer Ablauf:
 
-RAW ist die primäre Datenquelle; HU und CO werden intern aus RAW abgeleitet, ohne eigene Systemabfragen.
+1. `/Library/Logs/KommunalBIT` fehlt.
+2. Logger startet über LaunchDaemon.
+3. Logger legt den sichtbaren Ordner neu an.
+4. Logger rekonstruiert HU und CO aus dem RAW-Journal.
+5. Logger schreibt anschließend die aktuelle RAW-Zeile ins Journal und aktualisiert die sichtbaren HU-/CO-Dateien.
 
-Die Human-readable-Datei soll innerhalb weniger Sekunden Antworten auf drei Fragen geben:
-
-1. Ist der Cache grundsätzlich aktiv und liefert er Daten aus?
-2. Gibt es Hinweise auf Engpässe, Netzwerkprobleme oder Fehlkonfiguration?
-3. Passt die Aktivität grob zur erwartbaren Zahl der iPads am Standort?
-
-Sie ist also kein Rohdatenarchiv, sondern ein bewusst lesbares Diagnoseprotokoll.
-
-> **Für KI-gestützte Auswertung:** Bevorzugt die **CO-CSV** verwenden, nicht RAW oder HU. CO enthält keine konkreten IP-Adressen, keinen vollen Hostnamen und keine reinen Troubleshooting-Felder. In Kombination mit einem ebenfalls datensparsam vorbereiteten Relution-Export (Felder: Organisation | OS Version | OS Update Status | Letzte Verbindung) ist CO das geeignete Eingabeformat für KI-Assistenten wie Microsoft Copilot.
+Der Rebuild ist bewusst deterministisch. Er verwendet das RAW-Journal als Quelle, nicht Live-Statefiles. Leere CSV-Felder bleiben erhalten.
 
 ---
 
-## CO-CSV-Felder (14 Spalten)
+## Automatische Archivierung bei iOS-/iPadOS-Versionswechsel
 
-Die CO-Datei enthält eine bewusst reduzierte Auswahl aus dem Gesamtdatenmodell. Sie folgt dem Prinzip der Datensparsamkeit: Es werden nur Felder aufgenommen, die für die kombinierte Auswertung mit Relution-/MDM-Daten fachlich notwendig sind.
+Der Logger erkennt Änderungen der aktuell relevanten iOS-/iPadOS-Versionen über Apple GDMF.
 
-**Nicht enthalten in CO:** voller Hostname, TotalsSince, TotReturned, TotOrigin, EN0/EN1 (IP), GatewayIP, DefaultIf, WifiNoise, WifiCCA.
+Wenn sich `iOSUpdates` ändert, archiviert der Logger die aktuellen sichtbaren HU-/CO-Dateien unter:
+
+```text
+/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/
+```
+
+Dabei gilt:
+
+- Das RAW-Journal bleibt unverändert.
+- HU und CO werden als sichtbare Dateien neu begonnen.
+- Ein Manifest wird im Archivordner abgelegt.
+- `visible_epoch_<PREFIX>.tsv` wird gesetzt, damit ein späterer Rebuild nur den neuen sichtbaren Abschnitt rekonstruiert.
+- Die neue iOS-Version wird in HU für ein Sichtfenster mehrfach angezeigt, damit der Versionswechsel beim Öffnen der Datei auffällt.
+
+Die alte Archivlogik unter `/Library/Logs/KommunalBIT/Archiv` wird nicht mehr verwendet.
+
+---
+
+## Manuelle Archivierung über Relution
+
+Das manuelle Archivierungsskript `scripts/archive_assetcache_logs.sh` hat eine bewusst enge Aufgabe.
+
+Es tut genau dies:
+
+1. LaunchDaemon stoppen und deaktivieren.
+2. eventuell noch laufenden Loggerprozess beenden.
+3. aktuelle sichtbare HU-/CO-Dateien aus `/Library/Logs/KommunalBIT` nach `/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/` verschieben.
+4. nicht neu starten.
+
+Es tut ausdrücklich nicht:
+
+- keine neuen Messdaten erzeugen
+- keinen Rebuild auslösen
+- keine Statusdateien erzeugen
+- das RAW-Journal verschieben, kopieren, löschen oder zurücksetzen
+- den Daemon danach wieder starten
+
+Visuelle Kontrolle nach der Archivierung:
+
+```text
+/Library/Logs/KommunalBIT/
+```
+
+enthält keine aktuellen HU-/CO-Dateien mehr.
+
+```text
+/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/
+```
+
+enthält die verschobenen HU-/CO-Dateien.
+
+Der Neustart erfolgt erst wieder durch das Deploy-Skript oder eine bewusste manuelle Aktivierung des LaunchDaemons.
+
+---
+
+## Deploy über Relution
+
+Das Deploy-Skript `scripts/deploy_assetcache_logger.sh` bringt den Ziel-Mac in den produktiven Zustand.
+
+Aufgaben:
+
+- sichtbaren Arbeitsordner unter `/Library/Logs/KommunalBIT` anlegen
+- Application-Support-Struktur anlegen
+- ACL für den lokalen Benutzer `admin` setzen, damit der Bereich im Finder inspiziert und kopiert werden kann
+- `assetcache_logger.sh` von GitHub herunterladen
+- Skript nach `/usr/local/bin/assetcache_logger.sh` installieren
+- LaunchDaemon-Plist schreiben
+- LaunchDaemon explizit aktivieren, bootstrappen und starten
+- Workarounds gegen Relution-Dot-Mangling anwenden
+
+Das Deploy-Skript archiviert keine bestehenden Monitoringdaten. Archivierung ist Aufgabe des separaten Archivierungsskripts.
+
+Wichtig: Wenn vorher das Archivierungsskript gelaufen ist, ist der LaunchDaemon absichtlich deaktiviert. Das Deploy-Skript aktiviert ihn wieder.
+
+---
+
+## Relution-Dot-Mangling
+
+In Relution wurden in der Praxis Punkte in bestimmten Strings oder Dateinamen zu Unterstrichen verändert. Betroffen waren unter anderem:
+
+- `.plist`
+- `.sh`
+- `.out`
+- `.err`
+- `.conf`
+- `raw.githubusercontent.com`
+
+Die Relution-facing Skripte bauen solche Teile deshalb zur Laufzeit über eine `DOT`-Variable zusammen, zum Beispiel:
+
+```zsh
+DOT="$(printf '\x2e')"
+SH_EXT="${DOT}sh"
+PLIST_EXT="${DOT}plist"
+```
+
+Diese Umgehung ist Absicht und soll nicht „vereinfacht“ werden.
+
+---
+
+## Standortkonfiguration `schulen.conf`
+
+Die Datei:
+
+```text
+/etc/kommunalbit/schulen.conf
+```
+
+enthält die bekannte relevante SuS-iPad-Gesamtzahl je Standort.
+
+Format:
+
+```text
+KÜRZEL<TAB>ANZAHL
+```
+
+Beispiel:
+
+```text
+TEN	99
+GSW	173
+ASGS	122
+```
+
+Diese Werte werden für `ClientsCnt` verwendet. In RAW und CO erscheint `ClientsCnt` als `aktiv/gesamt`, wenn die Gesamtzahl bekannt ist. In HU wird daraus ein Prozentwert.
+
+Die produktive Standorttabelle wird nicht im öffentlichen Repository gepflegt. Sie stammt aus interner Relution-Auswertung und wird im produktiven Relution-Deploy-Skript gepflegt oder ergänzt. Das Repository kann Beispielwerte oder eine Beispielkonfiguration enthalten, aber keine verbindliche produktive Standortliste.
+
+---
+
+## CSV-Ausgaben
+
+### RAW-Journal
+
+Das RAW-Journal enthält die vollständige technische Datenbasis.
+
+Eigenschaften:
+
+- dauerhaft unter Application Support
+- ISO-8601-Zeitstempel mit Zeitzone
+- Zahlenwerte als Bytes oder Integer
+- leere Felder für nicht verfügbare Werte
+- IP-Adressen können enthalten sein
+- technische Grundlage für Rebuild und tiefe Diagnose
+
+Normaler Pfad:
+
+```text
+/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/<PREFIX>_AssetCacheRaw_schema1.csv
+```
+
+### HU-Datei
+
+HU steht für Human Readable.
+
+Eigenschaften:
+
+- sichtbar unter `/Library/Logs/KommunalBIT`
+- für schnelle Sichtprüfung durch Menschen
+- lesbare Einheiten wie `GB`, `MB`, `ms`, `dB`
+- `yes/no` statt 0/1 bei Erreichbarkeit
+- IP-Details werden in menschenlesbarer Form reduziert
+- nicht primär für maschinelle Auswertung gedacht
+
+Beispiel:
+
+```text
+/Library/Logs/KommunalBIT/TEN_AssetCache_Hu_v1.9.1.csv
+```
+
+### CO-Datei
+
+CO ist die datensparsame Analyse-View.
+
+Eigenschaften:
+
+- sichtbar unter `/Library/Logs/KommunalBIT`
+- kein voller Hostname
+- keine IP-Adressen
+- flache Struktur
+- numerische Werte möglichst als Zahlen
+- geeignet für Microsoft Copilot, Excel und standortbezogene Auswertung
+
+Beispiel:
+
+```text
+/Library/Logs/KommunalBIT/TEN_AssetCache_Co_v1.9.1.csv
+```
+
+Für KI-gestützte Auswertungen ist CO das bevorzugte Format.
+
+---
+
+## CO-CSV-Felder
+
+Die CO-Datei enthält 14 Spalten.
 
 | Feld | Format | Nutzen |
 |---|---|---|
-| `SiteCode` | Zeichenkette (PREFIX) | Standortbezug für Join mit Relution-Export; kein voller Hostname |
-| `Timestamp` | ISO 8601 mit Zeitzone | zeitliche Einordnung; maschinenlesbar und stabil |
-| `PeerCnt` | Integer | Anzahl erkannter Cache-Peers; strukturelle Einordnung, keine IP-Adressen |
-| `ClientsCnt` | `aktiv/gesamt` oder `aktiv` | Aktivitätsverhältnis; zentraler Einordnungswert |
-| `iOSUpdates` | Versionsliste | aktuell relevante iOS-/iPadOS-Versionen; Update-Kontext |
-| `iOSBytes` | Bytes (Integer) | iOS-Softwareanteil im Cache; unterscheidet allgemeine von update-bezogener Nutzung |
-| `ServedDelta` | Bytes (Integer) | primärer Aktivitätsindikator im Intervall |
-| `OriginDelta` | Bytes (Integer) | Nachladebedarf im Intervall; zusammen mit ServedDelta entscheidend |
-| `CacheUsed` | Bytes (Integer) | aktueller Cachebelegungsstand |
-| `CachePr` | Integer 0–100 | Cache-Druckindikator; wichtiger Gesundheitswert |
-| `DNSRes` | 0 / 1 | DNS-Auflösung funktionsfähig |
-| `AppleReach` | 0 / 1 | Apple CDN erreichbar |
-| `AppleTTFB` | Millisekunden (Integer) | Apple CDN-Latenz aus Standortsicht |
-| `WiFiSNR` | Integer (dB), leer wenn LAN | WLAN-Signalqualität; relevant wenn Mac Mini per WLAN betrieben wird |
+| `SiteCode` | Standortkürzel | Join mit Relution-Export; kein voller Hostname |
+| `Timestamp` | ISO 8601 mit Zeitzone | zeitliche Einordnung |
+| `PeerCnt` | Integer oder leer | Anzahl erkannter Cache-Peers |
+| `ClientsCnt` | `aktiv/gesamt` oder `aktiv` | Aktivitätsverhältnis im letzten Zeitfenster |
+| `iOSUpdates` | Versionsliste | aktuell relevante iOS-/iPadOS-Versionen |
+| `iOSBytes` | Bytes | iOS-Softwareanteil im Cache |
+| `ServedDelta` | Bytes | im Intervall an Clients ausgelieferte Daten |
+| `OriginDelta` | Bytes | im Intervall vom Origin/CDN nachgeladene Daten |
+| `CacheUsed` | Bytes | belegter Cache |
+| `CachePr` | 0–100 oder leer | Cache-Druckindikator |
+| `DNSRes` | 0 / 1 | DNS-Auflösung für Apple-Update-Infrastruktur |
+| `AppleReach` | 0 / 1 | Apple-CDN erreichbar |
+| `AppleTTFB` | Millisekunden | Time to First Byte zu Apple |
+| `WiFiSNR` | dB oder leer | WLAN-Signalqualität, relevant bei WLAN-Betrieb |
 
-**Bewusste Designentscheidungen für CO:**
-- `SiteCode` statt `Hostname`: Das Schulkürzel (z. B. `ASGS`) ist für die standortbezogene Analyse ausreichend; unnötige Infrastrukturdetails wie vollständiger Gerätename entfallen.
-- Keine IP-Adressen (EN0/EN1, GatewayIP): Für die Frage „Ist der Standort technisch unauffällig?" genügen `DNSRes` und `AppleReach`.
-- Keine kumulativen Totals (TotReturned, TotOrigin): Für Intervallanalyse sind Deltawerte aussagekräftiger.
-- `TotalsSince` entfällt: Für KI-Auswertung nicht notwendig; wird nur für tiefes technisches Troubleshooting benötigt.
-- `WiFiSNR` inklusive: Kann leer sein (LAN-Betrieb), gibt aber bei WLAN-Problemen wichtigen Kontext.
+Nicht enthalten in CO:
 
----
-
-## CSV-Felder (23 Spalten)
-
-### Hostname
-
-**Bedeutung:**  
-Der Name des Rechners, auf dem das Monitoring läuft.
-
-**Nutzen:**  
-Wichtig, wenn CSV-Dateien aus mehreren Schulen oder Testsystemen zusammengeführt werden. Der Hostname macht sofort sichtbar, von welchem Mac Mini ein Datensatz stammt.
-
-**Darstellung:**
-- **RAW:** Hostname des Mac Mini
-- **HU:** identisch zu RAW
+- voller Hostname
+- konkrete IP-Adressen
+- `TotalsSince`
+- kumulative Totals (`TotReturned`, `TotOrigin`)
+- Interface-IP-Werte `EN0`, `EN1`
+- `GatewayIP`
+- `DefaultIf`
+- `WifiNoise`
+- `WifiCCA`
 
 ---
 
-### Timestamp
+## RAW-/HU-Felder
 
-**Bedeutung:**  
-Zeitpunkt der Messung.
+RAW und HU verwenden dieselbe 23-Spalten-Struktur. RAW enthält technische Werte, HU enthält lesbare Ableitungen.
 
-**Nutzen:**  
-Erlaubt die zeitliche Einordnung jedes Datensatzes. Zusammen mit den Delta-Werten lässt sich nachvollziehen, ob in einem bestimmten Intervall tatsächlich Cache-Aktivität stattfand.
-
-**Darstellung:**
-- **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-04-02T10:15:00+02:00`
-- **HU:** lokal lesbar ohne Offset, z. B. `2026-04-02 10:15:00`
-
----
-
-### TotalsSince
-
-**Bedeutung:**  
-Zeitpunkt, seit dem die vom System gemeldeten kumulierten Gesamtzähler gelten.
-
-**Nutzen:**  
-Die Gesamtwerte des Content Cache sind nicht „für immer“, sondern beziehen sich auf eine Zählerbasis, die sich ändern kann, etwa nach Neustarts oder internen Resets. `TotalsSince` markiert den Startpunkt dieser Zählperiode.
-
-**Interpretation:**  
-Wenn sich `TotalsSince` ändert, dürfen Delta-Werte nicht blind mit der vorherigen Zeile verglichen werden.
-
-**Darstellung:**
-- **RAW:** ISO-8601 mit Zeitzone, z. B. `2026-02-01T10:15:00+02:00`
-- **HU:** lesbares Datum, z. B. `2026-02-01` – wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer (analog zu `iOSUpdates`)
-
----
-
-### Peers
-
-**Bedeutung:**  
-Liste anderer im Netz erkannter Content-Caching-Peers.
-
-**Nutzen:**  
-Zeigt, ob der Cache andere Caches in seiner Umgebung sieht. Das kann für Architektur, Reichweite und Redundanz relevant sein.
-
-**Darstellung:**
-- **RAW:** semikolon-getrennte IP-Adressen, z. B. `10.1.2.3;10.1.2.4`
-- **HU:** Anzahl, z. B. `2`
+| Feld | RAW | HU | Interpretation |
+|---|---|---|---|
+| `Hostname` | voller Hostname | voller Hostname | Gerät, auf dem der Logger läuft |
+| `Timestamp` | ISO 8601 mit Zeitzone | `YYYY-MM-DD HH:MM:SS` | Zeitpunkt der Messung |
+| `TotalsSince` | ISO 8601 oder leer | lesbarer Zeitpunkt oder leer | Startzeit der aktuellen Cache-Zähler-Epoche |
+| `Peers` | Peer-IP-Liste, `;`-getrennt | Anzahl Peers | andere Caches im Netz |
+| `ClientsCnt` | `aktiv/gesamt` oder `aktiv` | Prozentwert oder aktiv | aktive Cache-Clients im letzten Zeitfenster |
+| `iOSUpdates` | Versionsliste | sichtbares Updatefenster oder leer/`n/a` | aktuell relevante iOS-/iPadOS-Versionen |
+| `iOSBytes` | Bytes | KB/MB/GB/TB | iOS-Softwareanteil im Cache |
+| `TotReturned` | Bytes kumulativ | KB/MB/GB/TB | seit `TotalsSince` an Clients geliefert |
+| `TotOrigin` | Bytes kumulativ | KB/MB/GB/TB | seit `TotalsSince` vom Origin geladen |
+| `ServedDelta` | Bytes | KB/MB/GB/TB | im Intervall an Clients geliefert |
+| `OriginDelta` | Bytes | KB/MB/GB/TB | im Intervall vom Origin geladen |
+| `CacheUsed` | Bytes | KB/MB/GB/TB | aktuell belegter Cache |
+| `CachePr` | 0–100 oder leer | 0–100, Default 0 | Cache Pressure der letzten Stunde |
+| `EN0` | `down`, `noip` oder IP | `down`, `noip` oder `up` | Zustand Ethernet |
+| `EN1` | `down`, `noip` oder IP | `down`, `noip` oder `up` | Zustand WLAN |
+| `GatewayIP` | IP oder leer | `yes`/`no` | Default Gateway vorhanden |
+| `DefaultIf` | Interface | Interface | Default Route Interface |
+| `DNSRes` | 0 / 1 | `yes`/`no` | DNS-Auflösung für `swcdn.apple.com` |
+| `AppleReach` | 0 / 1 | `yes`/`no` | Apple-CDN per HTTPS erreichbar |
+| `AppleTTFB` | ms | `n/a` oder `123ms` | Antwortzeit Apple-CDN |
+| `WiFiSNR` | dB oder leer | `n/a` oder `XdB` | Signalqualität bei WLAN |
+| `WifiNoise` | dBm oder leer | `n/a` oder `XdBm` | Rauschpegel bei WLAN |
+| `WifiCCA` | Prozent oder leer | `n/a` oder `X%` | Channel-Auslastung bei WLAN |
 
 ---
 
-### ClientsCnt
+## Interpretation wichtiger Felder
 
-**Bedeutung:**  
-Relation zwischen aktuell aktiven Clients und der für den Standort hinterlegten Gesamtzahl relevanter Geräte.
+### `ClientsCnt`
 
-**Nutzen:**  
-Dieses Feld verbindet technische Aktivität mit dem organisatorischen Standortkontext. Es soll nicht nur zeigen, dass etwas passiert, sondern ob die beobachtete Aktivität grob zur Größe des Standorts passt.
+`ClientsCnt` ist ein Aktivitätsfenster, keine Compliance-Quote.
 
-**Sonderfall:**  
-Wenn ein Hostname keiner bekannten Schule zugeordnet ist, wird nur die erkennbare aktive Client-Zahl protokolliert, ohne Prozentbezug.
+Beispiel:
 
-**Hinweis:**
-Dies ist eine Momentaktivität aus Logs, nicht identisch mit Updateerfolg; hohe ServedDelta bei niedriger ClientsCnt kann durchaus plausibel sein.
+```text
+5/171
+```
 
-**Darstellung:**
-- **RAW:** `aktiv/gesamt` (z. B. `4/122`) oder nur `aktiv`, wenn Standort unbekannt
-- **HU:** Prozentsatz (z. B. `3.3%`) oder nur `aktiv`, wenn Standort unbekannt
+bedeutet: Im betrachteten Zeitfenster wurden fünf unterschiedliche interne Client-IP-Adressen im Cache-Log erkannt, bei einem bekannten relevanten Standortbestand von 171 SuS-iPads.
 
-**Quelle:**  
-Aktive Clients der letzten ca. 16 Minuten aus dem Systemlog, bezogen auf den bekannten Gerätebestand des Standorts aus `schulen.conf`.
+Niedrige Werte können bedeuten:
 
----
+- wenige Geräte waren im WLAN aktiv
+- Geräte waren ausgeschaltet oder leer
+- Updatezeitpunkt passte nicht zur Nutzung
+- der Standort nutzt Geräte organisatorisch anders
+- Log-Fenster war schlicht ruhig
 
-### iOSUpdates
+Niedrige Werte bedeuten nicht automatisch, dass der Cache defekt ist.
 
-**Bedeutung:**  
-Kurzinformation zu den aktuell relevanten iOS-/iPadOS-Versionen laut Apple GDMF API.
+### `ServedDelta` und `OriginDelta`
 
-**Nutzen:**  
-Dieses Feld macht sichtbar, ob gerade ein relevantes Update-Ereignis im Raum steht. Es verknüpft technische Aktivität mit dem äußeren Anlass.
+Diese beiden Werte sind die wichtigsten Aktivitätsindikatoren.
 
-**Besonderheit:**  
-Änderungen der Versionsliste lösen CSV-Archivierung aus.
+- `ServedDelta`: Daten, die der Cache im Intervall an Clients ausgeliefert hat
+- `OriginDelta`: Daten, die der Cache im Intervall vom Apple Origin/CDN nachgeladen hat
 
-**Darstellung:**
-- **RAW:** Versionsliste, z. B. `18.4;18.3.2`
-- **HU:** grundsätzlich wie RAW, aber wird nur für 20 Zeilen nach einer Änderung angezeigt, danach leer – reduziert Rauschen im Normalfall
+Typische Lesart:
 
----
+- hoher `ServedDelta`, niedriger `OriginDelta`: Cache wirkt gut
+- hoher `OriginDelta`: Cache lädt gerade nach oder hat Inhalte noch nicht lokal
+- beide niedrig: wenig Aktivität oder keine Update-/Nutzungswelle
 
-### iOSBytes
+### `DNSRes`, `AppleReach`, `AppleTTFB`
 
-**Bedeutung:**  
-Im Cache gehaltene Datenmenge für iOS-/iPadOS-Software.
+Diese Werte zeigen, ob der Standort Apple grundsätzlich erreichen kann.
 
-**Nutzen:**  
-Hilft, allgemeine Cache-Nutzung von update-bezogener Nutzung zu unterscheiden.
+- `DNSRes=1` bzw. `yes`: Name wird aufgelöst
+- `AppleReach=1` bzw. `yes`: HTTPS-Verbindung zu Apple funktioniert
+- `AppleTTFB`: grobe Antwortzeit bis zum ersten Byte
 
-**Darstellung:**
-- **RAW:** Bytes (Integer)
-- **HU:** z. B. `74.2 GB`
+Richtwerte für `AppleTTFB`:
 
----
+- unter 150 ms: sehr gut
+- 150–500 ms: unauffällig bis brauchbar
+- über 500 ms: beobachten
+- leer oder `n/a`: keine valide Messung
 
-### TotReturned
+Einzelwerte sind weniger wichtig als Muster über mehrere Intervalle.
 
-**Bedeutung:**  
-Gesamtmenge aller Daten, die der Cache seit `TotalsSince` an Clients ausgeliefert hat.
+### `CachePr`
 
-**Nutzen:**  
-Das ist einer der zentralen Aktivitätsindikatoren des gesamten Systems. Er zeigt, ob der Cache tatsächlich als lokaler Verteiler arbeitet.
+`CachePr` steht für `MaxCachePressureLast1Hour`.
 
-**Darstellung:**
-- **RAW:** Bytes (Integer)
-- **HU:** z. B. `142.3 GB`
+Interpretation:
 
----
+- dauerhaft niedrig: Cache hat ausreichend Platz
+- steigend oder hoch: Cache könnte unter Druck stehen
+- leer in RAW / `0` in HU: Wert wurde nicht geliefert oder nicht erkannt
 
-### TotOrigin
+Ein leerer oder niedriger Wert ist nicht automatisch ein Problem.
 
-**Bedeutung:**  
-Gesamtmenge aller Daten, die der Cache seit `TotalsSince` von Apple-Servern bezogen und lokal gespeichert hat.
+### `Peers`
 
-**Nutzen:**  
-Zeigt, wie viel Material der Cache „von außen” holen musste, um es später lokal weiterzugeben.
+Peers sind andere Apple Content Caches im selben relevanten Netz.
 
-**Interpretation:**  
-Im Zusammenspiel mit `TotReturned` erkennt man grob das Verhältnis zwischen Einspeicherung und Auslieferung.
+Viele oder wechselnde Peers können die Interpretation erschweren, weil Last und Requests zwischen Caches verteilt werden. In CO wird deshalb nur die Anzahl der Peers ausgegeben, nicht die IP-Liste.
 
-**Darstellung:**
-- **RAW:** Bytes (Integer)
-- **HU:** z. B. `18.7 GB`
+### WLAN-Werte
 
----
+WLAN-Werte sind vor allem relevant, wenn der Mac mini nicht per LAN angebunden ist.
 
-### ServedDelta
+`WiFiSNR`:
 
-**Bedeutung:**  
-Datenmenge, die seit der letzten verwertbaren Messung zusätzlich an Clients ausgeliefert wurde.
+- ab 30 dB: sehr gut
+- 20–29 dB: brauchbar
+- 10–19 dB: kritisch beobachten
+- unter 10 dB: häufig problematisch
 
-**Nutzen:**  
-Das ist die eigentliche Aktivität im Intervall. Während `TotReturned` die Historie zeigt, sagt `ServedDelta`, was seit der letzten Zeile passiert ist.
+`WifiNoise`:
 
-**Interpretation:**
-- `0 B`: Im letzten Intervall keine erkennbare Auslieferung
-- kleiner Wert: leichte Aktivität
-- großer Wert: aktive Nutzung, oft Update- oder Installationsphase
+- etwa -90 bis -100 dBm: gut
+- um -85 dBm: beobachten
+- -80 dBm oder höher: häufig auffällig
 
-**Darstellung:**
-- **RAW:** Bytes (Integer)
-- **HU:** z. B. `1.2 GB`
+`WifiCCA` zeigt die Kanalbelegung. Hohe Werte können auf ein stark ausgelastetes Funkumfeld hinweisen.
 
 ---
 
-### OriginDelta
+## Schnelle Betriebsprüfung
 
-**Bedeutung:**  
-Datenmenge, die der Cache seit der letzten verwertbaren Messung neu von Apple-Servern bezogen hat.
+### LaunchDaemon prüfen
 
-**Nutzen:**  
-Ergänzt `ServedDelta`. Während `ServedDelta` die Ausgabe an Clients beschreibt, zeigt `OriginDelta`, ob der Cache im gleichen Zeitraum auch neue Inhalte von Apple nachgeladen hat.
+```zsh
+sudo launchctl print system/de.kommunalbit.assetcachelogger | head -80
+```
 
-**Interpretation:**
-- **ServedDelta hoch, OriginDelta niedrig:** viel wurde aus lokal vorhandenem Cache bedient
-- **ServedDelta hoch, OriginDelta ebenfalls hoch:** Aktivität läuft, aber der Cache muss zugleich viel neu beschaffen
-- **OriginDelta hoch, ServedDelta niedrig:** der Cache füllt sich, aber es wurde noch wenig lokal weiterverteilt
+Wichtig:
 
-**Darstellung:**
-- **RAW:** Bytes (Integer)
-- **HU:** z. B. `240 MB`
+- `path` zeigt auf `/Library/LaunchDaemons/de.kommunalbit.assetcachelogger.plist`
+- `program` zeigt auf `/usr/local/bin/assetcache_logger.sh`
+- `run interval = 900 seconds`
+- `last exit code = 0` ist ideal
+- `state = not running` ist bei einem Intervall-Job nicht automatisch falsch
 
----
+Der Logger läuft kurz, schreibt seine Zeile und beendet sich wieder. Er muss nicht dauerhaft als Prozess laufen.
 
-### CacheUsed
+### Syntax prüfen
 
-**Bedeutung:**  
-Aktuell belegter Speicherplatz des Content Cache.
+```zsh
+sudo zsh -n /usr/local/bin/assetcache_logger.sh
+```
 
-**Nutzen:**  
-Zeigt, wie viel Platz der Cache derzeit insgesamt nutzt.
+Erwartung: keine Ausgabe.
 
-**Einordnung:**  
-Allein betrachtet ist dieser Wert nur begrenzt aussagekräftig. Spannend wird er vor allem zusammen mit SSD-Größe, `CachePr` und realem Aktivitätsniveau.
+### Speicherorte prüfen
 
-**Darstellung:**
-- **RAW:** Bytes (Integer)
-- **HU:** z. B. `85.4 GB`
+```zsh
+sudo find "/Library/Application Support/KommunalBIT/AssetCacheLogger" -maxdepth 3 -print
+sudo find /Library/Logs/KommunalBIT -maxdepth 2 -print
+```
 
----
+Erwartung:
 
-### CachePr
+- Application Support enthält `journal`, `state`, `boot`, `archive`
+- `/Library/Logs/KommunalBIT` enthält aktuelle HU-/CO-Dateien
+- kein `/Library/Logs/KommunalBIT/Archiv` im Normalbetrieb
 
-**Bedeutung:**  
-`MaxCachePressureLast1Hour`, also ein Verdichtungs- bzw. Druckindikator des Cache innerhalb der letzten Stunde.
+### Zeilenzahlen prüfen
 
-**Nutzen:**  
-Einer der wichtigsten Gesundheitswerte des Systems. Er gibt Hinweise darauf, ob der Cache unter Platzdruck steht und Inhalte aggressiv verdrängen muss.
+Beispiel für Standort `TEN`:
 
-**Grobe Einordnung:**
-- **0–30 %**: unkritisch
-- **30–70 %**: beobachten
-- **70–100 %**: deutlicher Druck, mögliche Effizienzverluste
+```zsh
+sudo wc -l "/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/TEN_AssetCacheRaw_schema1.csv"
+sudo wc -l /Library/Logs/KommunalBIT/TEN_AssetCache_Hu_v1.9.1.csv
+sudo wc -l /Library/Logs/KommunalBIT/TEN_AssetCache_Co_v1.9.1.csv
+```
 
-**Hinweis:**  
-Ein leerer oder fehlender Wert bedeutet nicht automatisch einen Fehler; in der HU-CSV wird ein fehlendes `0` bewusst menschenfreundlich als `0` dargestellt.
+Wenn kein `visible_epoch` gesetzt ist und kein Rebuild/Schreibvorgang gerade läuft, sollten die Zeilenzahlen übereinstimmen.
 
-**Darstellung:**
-- **RAW:** Integer (0–100)
-- **HU:** z. B. `42%`
+Nach automatischer iOS-Wechsel-Archivierung kann das sichtbare HU/CO nur den Abschnitt seit `visible_epoch` zeigen; das RAW-Journal bleibt länger.
 
----
+### Statuslog prüfen
 
-### EN0
+```zsh
+sudo tail -80 "/Library/Application Support/KommunalBIT/AssetCacheLogger/status.log"
+```
 
-**Bedeutung:**  
-Status des Netzwerkinterfaces `en0` (in der Regel LAN).
+Typische gute Einträge:
 
-**Nutzen:**  
-Sehr kompakte, aber diagnostisch starke Sicht auf die tatsächliche Netzsituation.
-
-**Darstellung:**
-- **RAW:** konkrete IPv4-Adresse des Interfaces, oder `down` bzw. `noip`
-- **HU:** `down`, `noip` oder `up` (konkrete IP-Adresse wird zu `up` normalisiert)
-
-HU enthält bewusst keine konkreten IP-Adressen. Für externe oder außerhäusige Auswertungen soll bevorzugt die HU-Version verwendet werden.
+```text
+INFO start v1.9.1 schema=schema1 host=TEN-Mac-Mini-Caching-Server prefix=TEN
+INFO RAW-Zeile ins Journal geschrieben ts=...
+INFO HU aus RAW-Journal wiederhergestellt (... Datenzeilen)
+INFO CO aus RAW-Journal wiederhergestellt (... Datenzeilen)
+```
 
 ---
 
-### EN1
+## Test: sichtbaren Logordnerverlust simulieren
 
-**Bedeutung:**  
-Status des Netzwerkinterfaces `en1` (in der Regel WLAN).
+Dieser Test prüft den zentralen v1.9.1-Schutzmechanismus.
 
-**Nutzen:**  
-Ergänzt `EN0` und hilft, die tatsächlich aktive Netzlage des Systems zu verstehen.
+```zsh
+sudo mv /Library/Logs/KommunalBIT "/Library/Logs/KommunalBIT_TESTWEG_$(date +%Y%m%d_%H%M%S)"
+sudo /usr/local/bin/assetcache_logger.sh
 
-**Darstellung:**
-- **RAW:** konkrete IPv4-Adresse des Interfaces, oder `down` bzw. `noip`
-- **HU:** `down`, `noip` oder `up` (konkrete IP-Adresse wird zu `up` normalisiert)
+sudo wc -l "/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/TEN_AssetCacheRaw_schema1.csv"
+sudo wc -l /Library/Logs/KommunalBIT/TEN_AssetCache_Hu_v1.9.1.csv
+sudo wc -l /Library/Logs/KommunalBIT/TEN_AssetCache_Co_v1.9.1.csv
+sudo tail -40 "/Library/Application Support/KommunalBIT/AssetCacheLogger/status.log"
+```
 
-Gleiche Normalisierungslogik wie `EN0`.
+Erwartung:
 
----
+- `/Library/Logs/KommunalBIT` wird neu angelegt.
+- HU und CO werden aus dem RAW-Journal rekonstruiert.
+- Der Logger schreibt anschließend eine neue RAW-Zeile.
+- Am Ende sind Journal und sichtbare Dateien konsistent.
 
-### GatewayIP
-
-**Bedeutung:**  
-IP-Adresse des aktuell genutzten Default-Gateways.
-
-**Nutzen:**  
-Hilft, Netzkontext und Routinglage sichtbar zu machen.
-
-**Darstellung:**
-- **RAW:** konkrete IPv4-Adresse des Default-Gateways, oder leer wenn kein Gateway ermittelt wurde
-- **HU:** `yes` wenn ein Gateway vorhanden ist, `no` wenn keines ermittelt wurde
-
-Auch hier enthält HU bewusst keine konkrete IP-Adresse.
+Der verschobene `TESTWEG`-Ordner ist nur Testmaterial und kann nach Abschluss entfernt werden.
 
 ---
 
-### DefaultIf
+## Typischer Betriebsablauf bei Versionswechsel
 
-**Bedeutung:**  
-Die Netzwerkschnittstelle, über die die Standardroute läuft.
+1. Archivierungsskript über Relution ausführen.
+2. Visuell prüfen: HU/CO sind aus `/Library/Logs/KommunalBIT` verschwunden und liegen unter Application Support/archive.
+3. Deploy-Skript über Relution ausführen.
+4. Prüfen: LaunchDaemon ist geladen, Logger läuft erfolgreich.
+5. Nach erstem Lauf prüfen: HU/CO werden unter `/Library/Logs/KommunalBIT` neu erzeugt.
+6. Optional: Rebuild-Test nur auf Pilotstandort durchführen.
 
-**Nutzen:**  
-Hilft zusammen mit `EN0`, `EN1` und `GatewayIP`, das tatsächlich genutzte Netz zu erkennen.
-
-**Darstellung:**
-- **RAW:** Interface-Name, z. B. `en0`
-- **HU:** identisch zu RAW
-
----
-
-### DNSRes
-
-**Bedeutung:**  
-Ergebnis eines DNS-Resolve-Checks für `swcdn.apple.com`.
-
-**Nutzen:**  
-Schneller Nachweis, ob die Namensauflösung für relevante Apple-Ziele grundsätzlich funktioniert.
-
-**Darstellung:**
-- **RAW:** `1` (erfolgreich) / `0` (fehlgeschlagen)
-- **HU:** `yes` / `no`
+Das Archivierungsskript startet den Daemon bewusst nicht neu. Das Deploy-Skript übernimmt die Wiederaktivierung.
 
 ---
 
-### AppleReach
+## Datenschutz und Datenminimierung
 
-**Bedeutung:**  
-Ergebnis eines einfachen Erreichbarkeitstests zum Apple CDN (Content Delivery Network).
+Das Projekt verarbeitet technische Betriebsdaten zur standortbezogenen Einordnung der iOS-/iPadOS-Updatefähigkeit. Ziel ist nicht Kontrolle einzelner Personen oder einzelner Geräte, sondern bessere Updatefähigkeit, Resilienz und Risikoreduktion.
 
-**Nutzen:**  
-Ergänzt den DNS-Check um die Frage, ob das Ziel nicht nur auflösbar, sondern auch erreichbar ist.
+Wichtige Grundsätze:
 
-**Interpretation:**  
-HTTP 2xx bis 4xx gilt als erreichbar.
-
-**Darstellung:**
-- **RAW:** `1` / `0`
-- **HU:** `yes` / `no`
+- CO enthält keine IP-Adressen.
+- CO enthält keinen vollen Hostnamen.
+- CO ist das bevorzugte Format für externe oder KI-gestützte Auswertung.
+- RAW bleibt intern und enthält technische Details.
+- Relution-Exporte müssen vor Auswertung datensparsam bereinigt werden.
+- LDG-Auswertungen sind eine eigene, sensiblere Ebene und dürfen nicht unreflektiert mit SuS-Flottenstatistik vermischt werden.
 
 ---
 
-### AppleTTFB
+## Umgang mit Standorten ohne Caching-Server
 
-**Bedeutung:**  
-Time To First Byte gegen das Apple CDN.
+Standorte mit weniger als 32 iPads haben normalerweise keinen Caching-Server. Für solche Standorte gibt es folglich keine AssetCache-Monitoringdaten. Das ist keine Monitoring-Anomalie.
 
-**Nutzen:**  
-Ein pragmatischer Indikator für Netz- und Serverantwortverhalten aus Sicht des Standorts.
+Diese Standorte müssen in der Auswertung anders behandelt werden:
 
-**Grobe Einordnung:**
-- unter ca. 150 ms: sehr gut
-- 150–500 ms: okay bis unauffällig
-- deutlich darüber: auffällig, beobachten
-
-**Darstellung:**
-- **RAW:** Millisekunden (Integer)
-- **HU:** z. B. `38ms`
-
-**Hinweis:**  
-Leer, wenn das Ziel nicht erreichbar ist.
+- kein Cachelog erwartet
+- keine `ClientsCnt`-Vergleichswerte aus AssetCache
+- Bewertung primär über Relution-/MDM-Daten und organisatorischen Kontext
 
 ---
 
-### WiFiSNR
+## Bekannte Grenzen
 
-**Bedeutung:**  
-Signal-Rausch-Abstand des WLANs in dB.
+Das Monitoring zeigt technische Indizien, keine vollständige Wahrheit.
 
-**Nutzen:**  
-Wertvoller Qualitätsindikator, falls der Mac Mini tatsächlich per WLAN arbeitet oder testweise dort positioniert ist.
+Beispiele:
 
-**Darstellung:**
-- **RAW:** Integer (dB)
-- **HU:** z. B. `42dB`
+- `ClientsCnt` zeigt aktive Cache-Clients im Logfenster, nicht alle eingeschalteten Geräte.
+- Ein ruhiges Zeitfenster kann organisatorisch normal sein.
+- Peers können Last verteilen und die Standortinterpretation erschweren.
+- Apple-CDN-Werte sind Momentaufnahmen.
+- WLAN-Werte sind nur relevant, wenn der Mac mini tatsächlich per WLAN arbeitet.
+- RAW-Journal und sichtbare HU/CO können nach einer bewussten iOS-Wechsel-Archivierung unterschiedliche historische Reichweiten haben.
 
----
-
-### WifiNoise
-
-**Bedeutung:**  
-Gemessener Rauschpegel des WLANs.
-
-**Nutzen:**  
-Ergänzt `WiFiSNR` und hilft bei der Einordnung gestörter Funkumgebungen.
-
-**Darstellung:**
-- **RAW:** Integer (dBm, negativ)
-- **HU:** z. B. `-92dBm`
+Die Daten müssen immer im Standortkontext interpretiert werden.
 
 ---
 
-### WifiCCA
+## Kurzfassung für Betrieb und Fehlersuche
 
-**Bedeutung:**  
-Clear Channel Assessment, vereinfacht: wie stark der Funkkanal belegt oder beschäftigt ist.
+Wenn etwas merkwürdig aussieht, zuerst diese Reihenfolge prüfen:
 
-**Nutzen:**  
-Hilft einzuschätzen, ob ein Standort auf WLAN-Ebene unter Konkurrenz oder Kanalstress leidet.
+1. Läuft der LaunchDaemon grundsätzlich?
 
-**Darstellung:**
-- **RAW:** Integer (0–100)
-- **HU:** z. B. `18%`
+   ```zsh
+   sudo launchctl print system/de.kommunalbit.assetcachelogger | head -80
+   ```
 
-> Wenn `wdutil` nicht verfügbar ist oder das WLAN-Interface nicht aktiv ist, bleiben die WLAN-Felder in RAW leer; in HU erscheinen sie als `n/a`.
+2. Ist das Skript syntaktisch gültig?
 
----
+   ```zsh
+   sudo zsh -n /usr/local/bin/assetcache_logger.sh
+   ```
 
-## Warum die Human-readable-CSV bewusst anders formatiert ist
+3. Gibt es ein dauerhaftes RAW-Journal?
 
-Die HU-Datei ist nicht bloß eine „schönere“ RAW-Datei. Sie verfolgt ein anderes Ziel:
+   ```zsh
+   sudo find "/Library/Application Support/KommunalBIT/AssetCacheLogger/journal" -maxdepth 1 -print
+   ```
 
-- Byte-Werte werden lesbar skaliert
-- Zeitstempel werden menschlich dargestellt
-- fehlende Werte werden als `n/a` oder `0` so dargestellt, dass man sie beim Lesen korrekt einordnet
-- Prozent- und Diagnosefelder sollen auf einen Blick erfassbar sein
+4. Gibt es sichtbare HU-/CO-Dateien?
 
-Sie ist damit das operative Sichtfenster für schnelle Beurteilung, während die RAW-Datei die analytische Grundlage für spätere systematische Auswertung bleibt.
+   ```zsh
+   sudo find /Library/Logs/KommunalBIT -maxdepth 1 -name "*AssetCache*.csv" -print
+   ```
 
----
+5. Was sagt das Statuslog?
 
-## Wichtige Felder für die schnelle Lagebeurteilung
+   ```zsh
+   sudo tail -80 "/Library/Application Support/KommunalBIT/AssetCacheLogger/status.log"
+   ```
 
-Wenn man eine HU-CSV rasch überfliegt, sind diese Felder meist zuerst interessant:
+6. Falls `/Library/Logs/KommunalBIT` fehlt: Rebuild testen.
 
-- `ServedDelta`
-- `OriginDelta`
-- `ClientsCnt`
-- `iOSUpdates`
-- `iOSBytes`
-- `CachePr`
-- `AppleTTFB`
-- `EN0`, `EN1`, `DefaultIf`, `GatewayIP`
+   ```zsh
+   sudo /usr/local/bin/assetcache_logger.sh
+   ```
 
-Diese Kombination beantwortet oft die Kernfrage:
+Die zentrale Denkregel ab v1.9.1 lautet:
 
-**Ist der Standort gerade aktiv, plausibel versorgt und technisch unauffällig?**
-
----
-
-## Einordnung der CSV insgesamt
-
-Die CSV ist kein Selbstzweck. Sie dient dazu, für die Schulen datenbasiert zu unterscheiden zwischen:
-
-- wenig Aktivität, weil gerade schlicht nichts los ist
-- wenig Aktivität trotz relevantem Update-Anlass
-- technischer Unauffälligkeit bei organisatorischem Rückstand
-- technischer Auffälligkeit mit möglichem Infrastrukturbezug
-
-Noch wertvoller wird eine Monitoring-CSV-Datei in Kombination
-
-- mit den Werten der anderen Caching-Server
-- mit einer geeigneten Auswertung aller SuS-iPads in Relution – Felder: Organisation | OS Version | OS Update Status | Letzte Verbindung | Batteriestand
-- mit dieser Dokumentation als fachlichem Kontext
-
-**Empfehlung für KI-gestützte Auswertung:** Bevorzugt die **CO-CSV** (`<PREFIX>_AssetCache_Co_v<VERSION>.csv`) verwenden. Sie ist speziell für diesen Zweck entworfen: kein voller Hostname, keine IP-Adressen, nur die fachlich notwendigen Felder. In Kombination mit einem datensparsam vorbereiteten Relution-Export (Spalte Gerätename möglichst weglassen oder nachträglich entfernen) ergibt sich ein geeignetes Eingabeformat für Copilot oder vergleichbare KI-Assistenten.
-
-Der Gerätename wird für diese Auswertung bewusst nicht benötigt und sollte aus Gründen der Datenminimierung nicht Teil des Standardexports sein. Die Analyse erfolgt auf aggregierter Standortebene, nicht auf Ebene einzelner Geräte (Anmerkung: in der aktuellen Version von Relution 26.1.1 ist es leider nicht möglich, die Gerätenamen beim Export wegzulassen - man kann aber natürlich die Spalte nachträglich entfernen).
-
-Verknüpft man diese Daten ein, zwei Wochen nach einem iOS-Update, kann daraus im Kontext dieser Dokumentation eine belastbare Auswertung mit klaren Handlungsvorschlägen pro Standort entstehen.
-
----
-
-## Standortkonfiguration (`schulen.conf`)
-
-Das Skript liest die Zuordnung von Schulkürzeln zu iPad-Anzahl lokal aus:
-
-`/etc/kommunalbit/schulen.conf`
-
-Diese Datei ist bewusst nicht Teil des öffentlichen Repositories. Sie enthält die produktive standortbezogene Konfiguration für `ClientsCnt` und wird im internen Deployment-Kontext über Relution mitgegeben.
-
-Die Trennung zwischen öffentlichem Projektkern und produktiver Standorttabelle ist Absicht: Die veröffentlichbare Monitoring-Logik bleibt dadurch von intern zu pflegenden Standortdaten getrennt.
-
-Wie diese Tabelle erzeugt, gepflegt und in das Deploy-Skript übernommen wird, ist im Abschnitt zu `scripts/deploy_assetcache_logger.sh` beschrieben.
+**Application Support ist die dauerhafte Wahrheit. `/Library/Logs/KommunalBIT` ist sichtbare Ausgabe.**
