@@ -8,13 +8,13 @@ if [[ "$(/usr/bin/id -u)" -ne 0 ]]; then
 fi
 
 # Asset Cache Monitoring / Logging
-# Version 1.9.0 (KommunalBIT)
+# Version 1.9.1 (KommunalBIT)
 # SPDX-License-Identifier: EUPL-1.2
 # Licensed under the EUPL, Version 1.2
 # https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
 # Copyright (C) 2026 Jens Luithle@KommunalBIT AöR
 #
-# v1.9.0 Architektur:
+# v1.9.1 Architektur:
 #   RAW  – dauerhaftes Journal unter /Library/Application Support/KommunalBIT/AssetCacheLogger/journal/
 #          (kanonische Wahrheit; überlebt macOS-Update-Neustarts)
 #   HU   – menschenlesbare View, sichtbar unter /Library/Logs/KommunalBIT/
@@ -29,12 +29,12 @@ fi
 # - Statefiles von /var/tmp nach Application Support/state/ verlagert (mit Migrations-Logik)
 # - Boot-Erkennung via kern.boottime; nach Neustart Rebuild sichtbarer HU-/CO-Dateien
 # - Rebuild von HU und CO aus RAW-Journal (deterministisch, ohne Live-Statefiles)
-# - Archivierung via cp statt mv (sichtbare Dateien); RAW-Journal wird nie verschoben
+# - Automatische iOS-Wechsel-Archivierung sichert HU/CO unter Application Support/archive/; RAW-Journal bleibt unverändert
 # - Statuslog unter Application Support (dauerhaft)
 # - EXPORT_VISIBLE_RAW=0: kein sichtbares RAW per Default
 # - RAW_SCHEMA_VER entkoppelt das Journal von SCRIPT_VER (kein Neubeginn bei Patch/Minor)
 
-SCRIPT_VER="1.9.0"
+SCRIPT_VER="1.9.1"
 RAW_SCHEMA_VER="schema1"
 
 # Auf 1 setzen, um zusätzlich eine sichtbare RAW-Datei unter /Library/Logs/KommunalBIT zu schreiben
@@ -45,8 +45,6 @@ EXPORT_VISIBLE_RAW=0
 # =============================================================================
 
 VISIBLE_DIR="/Library/Logs/KommunalBIT"
-VISIBLE_ARCHIVDIR="${VISIBLE_DIR}/Archiv"
-
 APP_SUPPORT_BASE="/Library/Application Support/KommunalBIT/AssetCacheLogger"
 JOURNAL_DIR="${APP_SUPPORT_BASE}/journal"
 STATE_DIR="${APP_SUPPORT_BASE}/state"
@@ -171,13 +169,11 @@ ensure_app_support_dirs() {
       fi
     fi
   done
-  for dir in "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR"; do
-    if [[ ! -d "$dir" ]]; then
-      /bin/mkdir -p "$dir" 2>/dev/null || true
-      /bin/chown root:wheel "$dir" 2>/dev/null || true
-      /bin/chmod 755 "$dir" 2>/dev/null || true
-    fi
-  done
+  if [[ ! -d "$VISIBLE_DIR" ]]; then
+    /bin/mkdir -p "$VISIBLE_DIR" 2>/dev/null || true
+    /bin/chown root:wheel "$VISIBLE_DIR" 2>/dev/null || true
+    /bin/chmod 755 "$VISIBLE_DIR" 2>/dev/null || true
+  fi
   [[ "$created_any" -eq 1 ]] && status_log "INFO Application-Support-Verzeichnisse angelegt"
 }
 
@@ -760,6 +756,7 @@ totalssince_hu_value() {
 # Setzt visible_epoch_<PREFIX>.tsv damit Rebuild nur den neuen Abschnitt aufbaut.
 archive_csv_on_update() {
   local current_ver="${1:-}"
+  local epoch_src_ts="${2:-}"
   [[ -z "${current_ver:-}" ]] && return
 
   local last_archived=""
@@ -777,27 +774,26 @@ archive_csv_on_update() {
   local ts_arch
   ts_arch="$(date +%Y%m%d_%H%M%S)"
 
-  # Durables Archivverzeichnis unter Application Support
+  # Durables Archivverzeichnis unter Application Support.
+  # Wichtig: Wenn das Archivverzeichnis nicht angelegt werden kann, darf der
+  # Archive-State NICHT auf die neue Version gesetzt werden. Sonst würde der
+  # Logger beim nächsten Lauf glauben, diese iOS-Version sei bereits sauber
+  # archiviert worden.
   local arch_dir="${ARCHIVE_BASE_DIR}/${ts_arch}_${PREFIX}"
   if ! /bin/mkdir -p "$arch_dir" 2>/dev/null; then
     status_log "ERROR Archiv-Verzeichnis konnte nicht angelegt werden: $arch_dir"
-    printf "%s\n" "$current_ver" > "$ARCHIVE_STATEFILE" 2>/dev/null || true
     return
   fi
   /bin/chown root:wheel "$arch_dir" 2>/dev/null || true
   /bin/chmod 700 "$arch_dir" 2>/dev/null || true
 
-  # Letzten Journal-Timestamp für visible_epoch ermitteln
-  local last_journal_ts=""
-  if [[ -f "$RAW_JOURNAL" ]]; then
-    last_journal_ts="$(/usr/bin/tail -n 1 "$RAW_JOURNAL" 2>/dev/null \
-      | /usr/bin/perl -e '
-        my $line = <STDIN>; chomp $line;
-        if ($line =~ /^"[^"]*","([^"]*)"/) { print $1; }
-      ' 2>/dev/null)"
-  fi
+  # visible_epoch = letzter Journal-Zeitstempel VOR dem aktuellen Append.
+  # Dieser Wert wird vom Aufrufer vor dem aktuellen Journal-Append ermittelt.
+  # Damit bleibt die auslösende iOS-Update-Zeile im neuen sichtbaren Abschnitt
+  # erhalten und wird beim Rebuild nicht versehentlich übersprungen.
+  local last_journal_ts="${epoch_src_ts:-}"
 
-  # HU: durable Kopie, Komfortkopie, zurücksetzen
+  # HU: durable Kopie unter Application Support, sichtbare Datei zurücksetzen
   local hu_lines=0
   if [[ -f "$OUT_HU" ]]; then
     local dst_hu="${arch_dir}/$(basename "$OUT_HU")"
@@ -805,16 +801,15 @@ archive_csv_on_update() {
       hu_lines="$(/usr/bin/wc -l < "$OUT_HU" 2>/dev/null | tr -d ' ')"
       /bin/chown root:wheel "$dst_hu" 2>/dev/null || true
       /bin/chmod 640 "$dst_hu" 2>/dev/null || true
-      /bin/cp "$dst_hu" \
-        "${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Hu_v${SCRIPT_VER}_${ts_arch}.csv" \
-        2>/dev/null || true
       : > "$OUT_HU"
       emit_csv_line "$OUT_HU" "${CSV_HEADER_FIELDS[@]}"
       /bin/chmod 644 "$OUT_HU" 2>/dev/null || true
+    else
+      status_log "WARN HU-Datei konnte nicht ins Archiv kopiert werden: $OUT_HU"
     fi
   fi
 
-  # CO: durable Kopie, Komfortkopie, zurücksetzen
+  # CO: durable Kopie unter Application Support, sichtbare Datei zurücksetzen
   local co_lines=0
   if [[ -f "$OUT_CO" ]]; then
     local dst_co="${arch_dir}/$(basename "$OUT_CO")"
@@ -822,27 +817,27 @@ archive_csv_on_update() {
       co_lines="$(/usr/bin/wc -l < "$OUT_CO" 2>/dev/null | tr -d ' ')"
       /bin/chown root:wheel "$dst_co" 2>/dev/null || true
       /bin/chmod 640 "$dst_co" 2>/dev/null || true
-      /bin/cp "$dst_co" \
-        "${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCache_Co_v${SCRIPT_VER}_${ts_arch}.csv" \
-        2>/dev/null || true
       : > "$OUT_CO"
       emit_csv_line "$OUT_CO" "${CSV_HEADER_FIELDS_CO[@]}"
       /bin/chmod 644 "$OUT_CO" 2>/dev/null || true
+    else
+      status_log "WARN CO-Datei konnte nicht ins Archiv kopiert werden: $OUT_CO"
     fi
   fi
 
-  # Optionale sichtbare RAW-Datei
+  # Optionale sichtbare RAW-Datei. Das kanonische RAW-Journal bleibt immer
+  # unangetastet; nur eine eventuell zusätzlich sichtbare RAW-Datei wird wie
+  # HU/CO als sichtbare Arbeitsdatei behandelt.
   if [[ "${EXPORT_VISIBLE_RAW}" -eq 1 && -n "${OUT_RAW:-}" && -f "$OUT_RAW" ]]; then
     local dst_raw="${arch_dir}/$(basename "$OUT_RAW")"
     if /bin/cp "$OUT_RAW" "$dst_raw" 2>/dev/null; then
       /bin/chown root:wheel "$dst_raw" 2>/dev/null || true
       /bin/chmod 640 "$dst_raw" 2>/dev/null || true
-      /bin/cp "$dst_raw" \
-        "${VISIBLE_ARCHIVDIR}/${PREFIX}_AssetCacheRaw_v${SCRIPT_VER}_${ts_arch}.csv" \
-        2>/dev/null || true
       : > "$OUT_RAW"
       emit_csv_line "$OUT_RAW" "${CSV_HEADER_FIELDS[@]}"
       /bin/chmod 644 "$OUT_RAW" 2>/dev/null || true
+    else
+      status_log "WARN sichtbare RAW-Datei konnte nicht ins Archiv kopiert werden: $OUT_RAW"
     fi
   fi
 
@@ -861,7 +856,7 @@ archive_csv_on_update() {
       printf "visible_epoch:  %s\n" "$last_journal_ts"
   } > "${arch_dir}/manifest.txt" 2>/dev/null || true
 
-  # visible_epoch setzen: Rebuild zeigt künftig nur Zeilen nach diesem Zeitpunkt
+  # visible_epoch setzen: Rebuild zeigt künftig nur Zeilen nach diesem Zeitpunkt.
   if [[ -n "${last_journal_ts:-}" ]]; then
     printf "%s\n" "$last_journal_ts" > "$VISIBLE_EPOCH_FILE" 2>/dev/null || true
     status_log "INFO visible_epoch gesetzt: ${last_journal_ts}"
@@ -917,6 +912,7 @@ rebuild_visible_from_journal() {
   data_rows="$(/usr/bin/perl - "$RAW_JOURNAL" "$tmp_hu" "$tmp_co" "$PREFIX" "$VISIBLE_EPOCH_FILE" "$IOSUPD_BLOCK_LEN" "$TOTALSSINCE_BLOCK_LEN" <<'PERL_REBUILD'
 use strict;
 use warnings;
+use Time::Local qw(timegm);
 
 my ($journal, $tmp_hu, $tmp_co, $prefix, $epoch_file, $ios_block, $tot_block) = @ARGV;
 $ios_block = 19 if !defined($ios_block) || $ios_block !~ /^\d+$/;
@@ -976,6 +972,22 @@ sub iso_to_hu_ts {
   $s =~ s/T/ /;
   $s =~ s/[+-]\d{2}:?\d{2}$//;
   return $s;
+}
+
+# ISO-8601 mit Offset -> UTC-Epoch-Sekunden. Das vermeidet Fehler beim
+# Vergleich rund um Sommer-/Winterzeit. Wenn das Format nicht passt, gibt die
+# Funktion undef zurück; der Aufrufer fällt dann auf Stringvergleich zurück.
+sub iso_to_epoch {
+  my ($s) = @_;
+  return undef if !defined($s) || $s eq "";
+  if ($s =~ /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([+-])(\d{2}):?(\d{2})$/) {
+    my ($Y,$Mo,$D,$H,$Mi,$Se,$sign,$oh,$om) = ($1,$2,$3,$4,$5,$6,$7,$8,$9);
+    my $t = eval { timegm($Se+0,$Mi+0,$H+0,$D+0,$Mo-1,$Y+0) };
+    return undef if !defined $t;
+    my $off = ($oh * 3600 + $om * 60) * ($sign eq '-' ? -1 : 1);
+    return $t - $off;
+  }
+  return undef;
 }
 
 sub bytes_human {
@@ -1058,6 +1070,7 @@ if (defined($epoch_file) && $epoch_file ne "" && -f $epoch_file) {
     close $efh;
   }
 }
+my $epoch_sec = iso_to_epoch($epoch);
 
 open my $in,  '<', $journal or die "cannot open journal: $journal\n";
 open my $hu,  '>', $tmp_hu  or die "cannot write HU tmp: $tmp_hu\n";
@@ -1084,14 +1097,26 @@ while (my $line = <$in>) {
       $en0, $en1, $gatewayip, $defaultif, $dnsres, $applereach, $applettfb,
       $wifisnr, $wifinoise, $wificca) = @f;
 
-  next if $epoch ne "" && defined($ts) && $ts le $epoch;
+  # Bereits archivierten sichtbaren Abschnitt überspringen.
+  # Bevorzugt UTC-Epoch-Vergleich; Fallback lexikografisch.
+  if ($epoch ne "") {
+    my $ts_sec = iso_to_epoch($ts);
+    if (defined($ts_sec) && defined($epoch_sec)) {
+      next if $ts_sec <= $epoch_sec;
+    } else {
+      next if defined($ts) && $ts le $epoch;
+    }
+  }
 
   my $hu_ts = iso_to_hu_ts($ts);
   $hu_ts = $ts if $hu_ts eq "";
 
+  # TotalsSince: leer -> leer, ohne den Sichtblock neu zu starten.
   my $tot_hu_cur = iso_to_hu_ts($totals_since);
   my $hu_totals_since = "";
-  if ($last_tot_hu eq "" || $tot_hu_cur ne $last_tot_hu) {
+  if ($tot_hu_cur eq "") {
+    $hu_totals_since = "";
+  } elsif ($last_tot_hu eq "" || $tot_hu_cur ne $last_tot_hu) {
     $last_tot_hu = $tot_hu_cur;
     $tot_count = $tot_block;
     $hu_totals_since = $tot_hu_cur;
@@ -1103,8 +1128,11 @@ while (my $line = <$in>) {
   my $hu_peers = peer_count($peers);
   my $hu_clientscnt = format_clientscnt_hu($clientscnt);
 
+  # iOSUpdates: leer -> n/a, ohne den Sichtblock neu zu starten.
   my $hu_ios = "";
-  if ($last_ios eq "" || $iosupdates ne $last_ios) {
+  if (!defined($iosupdates) || $iosupdates eq "") {
+    $hu_ios = "n/a";
+  } elsif ($last_ios eq "" || $iosupdates ne $last_ios) {
     $last_ios = $iosupdates;
     $ios_count = $ios_block;
     $hu_ios = $iosupdates;
@@ -1113,13 +1141,13 @@ while (my $line = <$in>) {
     $hu_ios = $iosupdates;
   }
 
-  my $hu_cachepr = ($cachepr ne "") ? $cachepr : "0";
-  my $hu_dns = ($dnsres eq "1") ? "yes" : "no";
-  my $hu_reach = ($applereach eq "1") ? "yes" : "no";
-  my $hu_ttfb = ($applereach eq "1" && $applettfb ne "") ? $applettfb . "ms" : "n/a";
-  my $hu_snr = ($wifisnr ne "") ? $wifisnr . "dB" : "n/a";
-  my $hu_noise = ($wifinoise ne "") ? $wifinoise . "dBm" : "n/a";
-  my $hu_cca = ($wificca ne "") ? $wificca . "%" : "n/a";
+  my $hu_cachepr = (defined($cachepr) && $cachepr ne "") ? $cachepr : "0";
+  my $hu_dns = (defined($dnsres) && $dnsres eq "1") ? "yes" : "no";
+  my $hu_reach = (defined($applereach) && $applereach eq "1") ? "yes" : "no";
+  my $hu_ttfb = (defined($applereach) && $applereach eq "1" && defined($applettfb) && $applettfb ne "") ? $applettfb . "ms" : "n/a";
+  my $hu_snr = (defined($wifisnr) && $wifisnr ne "") ? $wifisnr . "dB" : "n/a";
+  my $hu_noise = (defined($wifinoise) && $wifinoise ne "") ? $wifinoise . "dBm" : "n/a";
+  my $hu_cca = (defined($wificca) && $wificca ne "") ? $wificca . "%" : "n/a";
 
   print {$hu} csv_line(
     $host, $hu_ts, $hu_totals_since, $hu_peers, $hu_clientscnt, $hu_ios,
@@ -1192,9 +1220,9 @@ check_and_rebuild_visible_files() {
 
   # Sichtbarer Log-Ordner vorhanden?
   if [[ ! -d "$VISIBLE_DIR" ]]; then
-    /bin/mkdir -p "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
-    /bin/chown root:wheel "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
-    /bin/chmod 755 "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
+    /bin/mkdir -p "$VISIBLE_DIR" 2>/dev/null || true
+    /bin/chown root:wheel "$VISIBLE_DIR" 2>/dev/null || true
+    /bin/chmod 755 "$VISIBLE_DIR" 2>/dev/null || true
     status_log "WARN sichtbarer Log-Ordner fehlte; neu angelegt"
     needs_rebuild=1
   fi
@@ -1404,6 +1432,19 @@ fi
 # =============================================================================
 # Das Journal ist die kanonische Datenquelle. Wird geschrieben bevor HU/CO entstehen.
 
+# Epoch-Quelle: letzten Journal-Zeitstempel VOR dem Append dieser Zeile erfassen.
+# Bei einem iOS-Wechsel wird dieser Wert als visible_epoch genutzt, damit
+# Live-Schreiben und Rebuild denselben neuen sichtbaren Abschnitt erzeugen.
+_epoch_src_ts=""
+if [[ -f "$RAW_JOURNAL" && -s "$RAW_JOURNAL" ]]; then
+  _epoch_src_ts="$(/usr/bin/tail -n 1 "$RAW_JOURNAL" 2>/dev/null \
+    | /usr/bin/perl -e '
+      my $line = <STDIN>; chomp $line;
+      if ($line =~ /^"[^"]*","([^"]*)"/) { print $1; }
+    ' 2>/dev/null)"
+  echo "${_epoch_src_ts:-}" | /usr/bin/grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' || _epoch_src_ts=""
+fi
+
 # Journal anlegen (Header) wenn nicht vorhanden oder leer
 if [[ ! -f "$RAW_JOURNAL" || ! -s "$RAW_JOURNAL" ]]; then
   : > "$RAW_JOURNAL" 2>/dev/null || {
@@ -1518,14 +1559,14 @@ iOSUpdates_Co="$(normalize_iosupdates_list_2digit "${iOSUpdates_Raw:-}")"
 # 7. Archivierung bei iOS-Update-Wechsel
 # =============================================================================
 
-archive_csv_on_update "${iOSUpdates_Raw:-}"
+archive_csv_on_update "${iOSUpdates_Raw:-}" "${_epoch_src_ts:-}"
 
 # =============================================================================
 # 8. Sichtbare Dateien schreiben (HU, CO; RAW optional)
 # =============================================================================
 
 # Verzeichnis noch einmal sicherstellen (kann nach Rebuild fehlen)
-[[ ! -d "$VISIBLE_DIR" ]] && /bin/mkdir -p "$VISIBLE_DIR" "$VISIBLE_ARCHIVDIR" 2>/dev/null || true
+[[ ! -d "$VISIBLE_DIR" ]] && /bin/mkdir -p "$VISIBLE_DIR" 2>/dev/null || true
 
 # HU
 if [[ ! -f "$OUT_HU" || ! -s "$OUT_HU" ]]; then
