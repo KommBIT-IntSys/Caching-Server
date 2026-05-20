@@ -17,30 +17,30 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.9.1] - 2026-05-20
 
-### Added
-- Durable RAW journal under `/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/`.
-- Rebuild mechanism for visible HU/CO CSV files from the RAW journal.
-- Secure archive location under `/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/`.
-- Admin ACL handling in the Relution deploy script for local inspection/copying.
+### Hinzugefügt
+- Dauerhaftes RAW-Journal unter `/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/`.
+- Rebuild-Mechanismus für sichtbare HU-/CO-CSV-Dateien aus dem RAW-Journal.
+- Geschützter Archivspeicherort unter `/Library/Application Support/KommunalBIT/AssetCacheLogger/archive/`.
+- Admin-ACL-Handhabung im Relution-Deploy-Skript für lokales Einsehen/Kopieren.
 
-### Changed
-- `/Library/Logs/KommunalBIT` is now only the visible working/output directory for HU and CO files.
-- RAW is no longer written visibly by default; the canonical RAW data lives in the Application Support journal.
-- The manual archive script moves only visible HU/CO files to the Application Support archive and stops the daemon without restarting it.
-- The deploy script explicitly re-enables, bootstraps and starts the LaunchDaemon after deployment.
+### Geändert
+- `/Library/Logs/KommunalBIT` ist nur noch das sichtbare Arbeits-/Ausgabe-Verzeichnis für HU- und CO-Dateien.
+- RAW wird standardmäßig nicht mehr sichtbar geschrieben; die kanonischen RAW-Daten liegen im Application-Support-Journal.
+- Das manuelle Archivierungsskript verschiebt nur sichtbare HU-/CO-Dateien in das Application-Support-Archiv und stoppt den Daemon, ohne ihn neu zu starten.
+- Das Deploy-Skript aktiviert, bootstrapt und startet den LaunchDaemon nach dem Deployment explizit.
 
-### Fixed
-- Prevented data loss when `/Library/Logs/KommunalBIT` disappears during macOS update/reboot.
-- Removed use of `/Library/Logs/KommunalBIT/Archiv` as authoritative archive location.
-- Fixed zsh glob handling in archive/logger scripts with `NULL_GLOB`.
-- Fixed Relution dot-mangling issues for `.sh`, `.plist`, `.out`, `.err`, and `.conf`.
-- Fixed rebuild handling of empty CSV fields and visible epoch handling around iOS update changes.
+### Behoben
+- Datenverlust verhindert, wenn `/Library/Logs/KommunalBIT` während eines macOS-Updates oder Neustarts verschwindet.
+- Verwendung von `/Library/Logs/KommunalBIT/Archiv` als maßgeblichem Archivspeicherort entfernt.
+- zsh-Glob-Handhabung in Archiv-/Logger-Skripten mit `NULL_GLOB` korrigiert.
+- Relution-Punkt-Mangling-Probleme für `.sh`, `.plist`, `.out`, `.err` und `.conf` behoben.
+- Rebuild-Behandlung leerer CSV-Felder und sichtbare Epochen-Behandlung rund um iOS-Update-Wechsel korrigiert.
 
 ---
 
 ## [1.9.0] - 2026-05
 
-### Added
+### Hinzugefügt
 - `assetcache_logger.sh`: dauerhaftes RAW-Journal unter
   `/Library/Application Support/KommunalBIT/AssetCacheLogger/journal/`
   (überlebt macOS-Update-Neustarts; an `RAW_SCHEMA_VER` gebunden, nicht an `SCRIPT_VER`)
@@ -55,7 +55,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - `assetcache_logger.sh`: `iso_to_hu_ts()` – ISO-8601 → HU-lesbarer Zeitstempel
   (für Rebuild ohne Live-Statefiles)
 
-### Changed
+### Geändert
 - `assetcache_logger.sh`: `/Library/Logs/KommunalBIT` ist nur noch sichtbarer
   Ausgabeort; RAW-Journal liegt dauerhaft unter Application Support
 - `assetcache_logger.sh`: Statefiles von `/var/tmp` nach
@@ -66,7 +66,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
   Application Support (nicht mehr `/var/tmp`)
 - `SCRIPT_VER` → `1.9.0`
 
-### Notes
+### Hinweise
 - Keine Änderung an CSV-Schemata, Feldnamen oder Feldreihenfolge.
 - Erster Lauf nach Update von v1.8.x: Statefiles werden automatisch migriert;
   neue HU-/CO-Dateien starten mit v1.9.0-Namen; altes RAW (v1.8.x) bleibt
@@ -78,7 +78,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.8.2] - 2026-05
 
-### Changed
+### Geändert
 - `assetcache_logger.sh`: iOS-/iPadOS-Versionsnotation in der CO-Ausgabe
   normalisiert (zweistellige Segmente): `18.7.7` → `18.07.07`,
   `26.5` → `26.05`. RAW und HU bleiben Apple-nah unverändert.
@@ -90,7 +90,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
   (SC2206, SC2296, SC2178, SC2128) zu den Excludes ergänzt; Konfiguration
   auf `SHELLCHECK_OPTS` als Umgebungsvariable umgestellt.
 
-### Notes
+### Hinweise
 - Keine Änderung an CSV-Schemata, Feldnamen, Feldreihenfolge oder Messlogik.
 - Die Versionsnormalisierung gilt ausschließlich für CO-Ausgaben;
   leere Versionen werden leer gelassen, nicht durch Nullwerte ersetzt.
@@ -139,7 +139,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.8.1] - 2026-05-05
 
-### Added
+### Hinzugefügt
 - `scripts/Merge_Co_CSV.ps1` – CO-CSV-Dateien aller Standorte unter
   Windows zusammenführen (Header einmalig, Daten akkumuliert)
 - `scripts/Relution-Export-Cleaner_Co_Batch.ps1` – Relution-Export unter
@@ -149,7 +149,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - `scripts/relution_cleaner_co.sh` – Relution-Export unter macOS
   datenschutzkonform bereinigen
 
-### Changed
+### Geändert
 - Projekt erweitert um einen reproduzierbaren, Copilot-gestützten Analyse-Workflow zur standortbasierten Bewertung des iOS-/iPadOS-Updatestands
 - `COPILOT.md` umbenannt in `HOW TO COPILOT.md` – Zielrichtung
   gewechselt: von interner KI-Instruktion zu menschenlesbarer
@@ -165,7 +165,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
   direkt zu `HOW TO COPILOT.md`, Abschnitt „Warum MSCopilot?"
   mit sachlichem Hinweis auf behördliche Einschränkung ergänzt
 
-### Notes
+### Hinweise
 - Keine Änderung an Hauptskript, Messlogik, CSV-Schemata oder
   Felddefinitionen
 - Skripte in `scripts/` ergänzen den bestehenden Ordner;
@@ -177,19 +177,19 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.8.0] - 2026-04-28
 
-### Changed
+### Geändert
 - Hauptskript architektonisch als RAW-first Pipeline strukturiert.
 - Klare Lesereihenfolge im Skript: Collect → RAW → HU → CO → Write.
 - HU- und CO-Ausgaben sind ausdrücklich als Ableitungen aus der RAW-Datenbasis kommentiert.
 - Schreibreihenfolge der CSV-Dateien klar auf RAW → HU → CO festgelegt.
 - `SCRIPT_VER` auf `1.8.0` gesetzt.
 
-### Docs
+### Dokumentation
 - Abschnitt „Interne Datenverarbeitung (RAW-first-Prinzip)" in `docs/AssetCache_Monitoring.md` ergänzt.
 - Veraltete Formulierungen „zwei CSV-Dateien" und „RAW- und HU-CSV" korrigiert.
 - `CLAUDE.md`: Architekturhinweis zur RAW-first-Pipeline ergänzt.
 
-### Notes
+### Hinweise
 - Diese Version führt erstmals eine durchgängige Auswertungskette ein:
   AssetCache CO-Daten + bereinigter Relution-Export → strukturierte Analyse → priorisierte Standortbewertung
 - Der Fokus verschiebt sich damit von reinem Monitoring hin zu datenbasierter Entscheidungsunterstützung
@@ -201,13 +201,13 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.7.1] - 2026-04-27
 
-### Changed
+### Geändert
 - CO-Ausgabe wird künftig als `<PREFIX>_AssetCache_Co_v<VERSION>.csv` geschrieben
 - RAW bleibt weiterhin `<PREFIX>_AssetCacheRaw_v<VERSION>.csv`
 - HU bleibt weiterhin `<PREFIX>_AssetCache_Hu_v<VERSION>.csv`
 - `SCRIPT_VER` auf `1.7.1` gesetzt
 
-### Notes
+### Hinweise
 - Der Unterstrich vor `Co` ist bewusst: Die datensparsame CO-Datei steht dadurch in alphabetischen Dateilisten vor der HU-Datei
 - Das unterstützt die sichere Standardauswahl bei manueller Weitergabe oder KI-gestützter Analyse
 - Keine Änderung an Feldanzahl, Feldreihenfolge, Messlogik oder Datenschutzmodell
@@ -216,14 +216,14 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.7.0] - 2026-04-23
 
-### Added
+### Hinzugefügt
 - Neue CO-CSV-Ausgabe (`<PREFIX>_AssetCacheCo_v<VERSION>.csv`) pro Host
 - CO folgt dem Prinzip der Datensparsamkeit: speziell für KI-gestützte oder externe Auswertung konzipiert, insbesondere zur Kombination mit einem datensparsam vorbereiteten Relution-/MDM-Export
 - CO enthält 14 Felder: `SiteCode`, `Timestamp`, `PeerCnt`, `ClientsCnt`, `iOSUpdates`, `iOSBytes`, `ServedDelta`, `OriginDelta`, `CacheUsed`, `CachePr`, `DNSRes`, `AppleReach`, `AppleTTFB`, `WiFiSNR`
 - Archivierung bei iOS-Versionsänderung schließt nun auch die CO-Datei ein
 - `SCRIPT_VER` auf `1.7.0` gesetzt
 
-### Notes
+### Hinweise
 - `SiteCode` in CO entspricht dem Hostnamen-Präfix (z. B. `ASGS` statt `ASGS-Mac-Mini-Caching-Server-0`)
 - CO enthält bewusst keine IP-Adressen (EN0/EN1, GatewayIP), keinen vollen Hostnamen, keine kumulativen Totals (TotReturned, TotOrigin), kein TotalsSince und keine reinen Troubleshooting-Felder (DefaultIf, WifiNoise, WifiCCA)
 - RAW und HU bleiben vollständig erhalten; CO kommt als drittes Format hinzu
@@ -234,17 +234,17 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.6.3] - 2026-04-15
 
-### Changed
+### Geändert
 - HU-Ausgabe: `EN0` und `EN1` geben keine konkreten IPv4-Adressen mehr aus; stattdessen `down`, `noip` oder `up`
 - HU-Ausgabe: `GatewayIP` gibt keine konkrete IPv4-Adresse mehr aus; stattdessen `yes` (Gateway vorhanden) oder `no`
 - RAW-Ausgabe: `EN0`, `EN1`, `GatewayIP` vollständig unverändert
 - `SCRIPT_VER` auf `1.6.3` gesetzt
 
-### Docs
+### Dokumentation
 - `docs/AssetCache_Monitoring.md`: `EN0`, `EN1`, `GatewayIP` mit klarer RAW/HU-Unterscheidung dokumentiert; Hinweis ergänzt, dass HU für externe Auswertungen bevorzugt werden soll
 - `docs/AssetCache_Monitoring.md`: Datenminimierungsprinzip für Relution-Standardexport an zwei Stellen explizit dokumentiert – Gerätename ist für die standortbezogene Auswertung bewusst nicht erforderlich
 
-### Notes
+### Hinweise
 - Neue Hilfsfunktionen `hu_iface_state()` und `hu_gateway_state()` im Hauptskript
 - CSV-Struktur (Feldanzahl, Reihenfolge, Spaltennamen, Quoting) bleibt identisch
 - Bewusste fachliche Änderung des HU-Formats aus Gründen der Datenminimierung
@@ -253,13 +253,13 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.6.2] - 2026-04-05
 
-### Changed
+### Geändert
 - `TotalsSince` in der HU-Ansicht erhält ein 20-Zeilen-Sichtbarkeitsfenster analog zu `iOSUpdates`:
   nach einer Änderung wird der Wert für 20 Zeilen angezeigt, danach leer
   – reduziert Rauschen in der HU-Datei im Normalfall (gleichbleibende Zählerbasis)
 - `SCRIPT_VER` auf `1.6.2` gesetzt
 
-### Notes
+### Hinweise
 - RAW-Ausgabe von `TotalsSince` unverändert; nur HU betroffen
 - neue State-Datei: `/var/tmp/assetcache_totalssince_hu_state.tsv`
 - Uninstaller bereinigt neue State-Datei mit
@@ -268,7 +268,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.6.1] - 2026-04-02
 
-### Added
+### Hinzugefügt
 - Repository in produktnähere Struktur überführt:
   - `scripts/`
   - `launchd/`
@@ -280,7 +280,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - `config/schulen.conf.example` als veröffentlichbare Beispielkonfiguration ergänzt
 - `docs/Befehle_zum_Installieren.txt` als rohe Referenz für manuelle Installation ergänzt
 
-### Changed
+### Geändert
 - Hauptskript im Repository auf stabilen Dateinamen `assetcache_logger.sh` umgestellt
 - Hauptskript von standortspezifischer Konfiguration getrennt
 - produktive Schultabelle aus dem veröffentlichten Skript entfernt und in externe Konfiguration überführt
@@ -288,11 +288,11 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - LaunchDaemon in `launchd/` abgelegt
 - README auf neue Repository-Struktur und Projektbeschreibung angepasst
 
-### Fixed
+### Behoben
 - öffentlicher Projektkern klarer von produktiven Standortdaten getrennt
 - frühere flache Root-Struktur des Repositories aufgeräumt
 
-### Notes
+### Hinweise
 - Diese Version markiert die veröffentlichbare Hauptlinie des Projekts.
 - Frühere `1.6.4`-Artefakte dienten primär der Umgehung eines Relution-Deploy-Bugs und sind nicht als fachlich führender Stand des Monitorings zu verstehen.
 - Fachlicher Kern und Messlogik des Hauptskripts entsprechen weiterhin dem `1.6.0`-Stand; `1.6.1` fokussiert auf Veröffentlichbarkeit, Strukturtrennung und Dokumentation.
@@ -301,24 +301,24 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.6.0] - 2026-03-11
 
-### Added
+### Hinzugefügt
 - `ClientsCnt` als standortbezogene Einordnung der Aktivität anhand bekannter Gerätebasis
 - standortbezogene SuS-Basis über integrierte Standorttabelle
 - robustere Rollout-/Cleanup-Logik für breite Verteilung
 - konsolidierte Installer-/Cleanup-Versionierung
 
-### Changed
+### Geändert
 - Projekt auf produktionsnähere Verteilung über Relution ausgerichtet
 - CSV-Ausgabe vollständig CSV-sicher gequotet, inklusive Header
 - Standorttabelle im Skript bewusst weit oben platziert, um Pflege und Aktualisierung zu erleichtern
 - Schema stabilisiert, ohne zusätzliche Spalten einzuführen
 
-### Fixed
+### Behoben
 - Header-/Datenzeilen-Konsistenz in CSV-Logik
 - Umgang mit Hostnames, die nicht in der Schultabelle auftauchen
 - Bereinigung historischer Sonderbehandlungen wie `EPS_neu`
 
-### Notes
+### Hinweise
 - Diese Version konsolidiert die fachlichen und formatbezogenen Korrekturen der `1.5`-Phase.
 - `ClientsCnt` wird in RAW als `active/total` und in HU als Prozentwert dargestellt; bei unbekanntem Standort nur als Aktivwert.
 
@@ -326,7 +326,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.5.x] - 2026-03
 
-### Added
+### Hinzugefügt
 - standortbezogene Client-Kapazitätslogik über harte Schultabelle
 - Darstellung der aktuellen Aktivität relativ zur bekannten Geräteanzahl
 - `ClientsCnt` auf Basis aktiver Client-IP-Adressen aus Unified Logs
@@ -334,7 +334,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - Auto-Archivierung der CSV-Dateien bei `iOSUpdates`-Änderungen
 - Timeout-Schutz für langsame oder hängende Systemkommandos
 
-### Changed
+### Geändert
 - Ausgabeformat für `ClientsCnt`:
   - RAW: Verhältnis `N/Total`
   - HU: Prozentwert
@@ -343,7 +343,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - erstes Delta nach Neuinstallation / Epochenwechsel korrekt als `0`
 - HU-Peer-Darstellung als Anzahl statt Rohwert
 
-### Notes
+### Hinweise
 - Diese Phase diente vor allem der Einordnung der Cache-Aktivität im Verhältnis zur bekannten iPad-Basis eines Standorts.
 - `1.5.x` war weniger eine einzelne Freigabe als eine operative und fachliche Reifephase vor der Konsolidierung in `1.6.0`.
 
@@ -351,51 +351,51 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.4] - 2026-02-27
 
-### Added
+### Hinzugefügt
 - `iOSUpdates`-Feld auf Basis von Apple GDMF
 - Sichtbarkeitsfenster für iOS-/iPadOS-Release-Ereignisse
 - stärkere Trennung zwischen RAW- und HU-Logik
 
-### Changed
+### Geändert
 - `iOSUpdates` in die CSV-Struktur integriert
 - Human-readable-Ausgabe weiter geschärft
 - fehlende Werte in HU als `n/a`, in RAW als leer geführt
 - methodische Verknüpfung von Cache-Monitoring und konkreten iOS-/iPadOS-Release-Ereignissen
 
-### Removed
+### Entfernt
 - weniger nützliche oder redundant gewordene Detailausgaben wie `AppleTotal`
 
-### Notes
+### Hinweise
 - Schwerpunkt war die Verbindung von Cache-Monitoring und konkreten iOS-/iPadOS-Release-Ereignissen.
 
 ---
 
 ## [1.3] - 2026-02-26
 
-### Added
+### Hinzugefügt
 - Aufteilung in zwei CSV-Dateien:
   - RAW
   - HU
 - Version in Dateinamen der erzeugten CSV-Ausgaben
 - klarere Definition von Maschinenlesbarkeit vs. Sichtprüfung
 
-### Changed
+### Geändert
 - RAW als primäre fachliche Quelle definiert
 - HU ausdrücklich als abgeleitete, menschenlesbare Sicht positioniert
 - Netzwerk- und Reachability-Metriken weiter verfeinert
 
-### Fixed
+### Behoben
 - Fallback-Verhalten bei fehlendem `MaxCachePressureLast1Hour`
 - verschiedene Formatierungs- und Feldkonsistenzprobleme
 
-### Notes
+### Hinweise
 - Diese Version war der eigentliche methodische Reifeschritt des Projekts.
 
 ---
 
 ## [1.2] - 2026-02-20
 
-### Added
+### Hinzugefügt
 - erstes feldtaugliches Viertelstunden-Logging zentraler Apple Content-Caching-Metriken
 - LaunchDaemon-basierter Betrieb
 - State-Datei für Intervall-/Delta-Berechnung
@@ -404,7 +404,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 - erste WLAN-Metriken mit `WifiRSSI`, `WifiNoise` und `WifiCCA`
 - manueller Installationspfad über Shell-Skript und LaunchDaemon
 
-### Notes
+### Hinweise
 - Erste ernsthaft nutzbare Version des Monitorings im Feldbetrieb.
 - Noch keine Trennung zwischen RAW und HU.
 - Ausgangspunkt für die spätere methodische Aufteilung und Feldbereinigung.
@@ -413,7 +413,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## [1.0 - 1.1]
 
-### Notes
+### Hinweise
 - frühe Projekt- und Erkundungsphase
 - Fokus auf:
   - Verstehen der Apple-Content-Caching-Metriken
@@ -425,7 +425,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ## Historische Nebenlinie: Relution-Deployment-Artefakte (`1.6.3` / `1.6.4`)
 
-### Notes
+### Hinweise
 - temporäre operative Deploy-/Cleanup-Artefakte für Relution-Rollout
 - dienten primär der robusten Verteilung und Fehlerumgehung im MDM-Kontext
 - nicht als eigene fachliche Evolutionsstufe des Datenmodells zu lesen
