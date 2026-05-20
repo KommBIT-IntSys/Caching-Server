@@ -913,190 +913,264 @@ rebuild_visible_from_journal() {
     return 1
   fi
 
-  : > "$tmp_hu"
-  : > "$tmp_co"
-  emit_csv_line "$tmp_hu" "${CSV_HEADER_FIELDS[@]}"
-  emit_csv_line "$tmp_co" "${CSV_HEADER_FIELDS_CO[@]}"
+  local data_rows perl_exit
+  data_rows="$(/usr/bin/perl - "$RAW_JOURNAL" "$tmp_hu" "$tmp_co" "$PREFIX" "$VISIBLE_EPOCH_FILE" "$IOSUPD_BLOCK_LEN" "$TOTALSSINCE_BLOCK_LEN" <<'PERL_REBUILD'
+use strict;
+use warnings;
 
-  # Zustandsverfolgung für Block-Sichtbarkeit (deterministisch aus RAW)
-  local last_iosupdates="" iosupdates_count=0
-  local last_totalssince_hu="" totalssince_count=0
+my ($journal, $tmp_hu, $tmp_co, $prefix, $epoch_file, $ios_block, $tot_block) = @ARGV;
+$ios_block = 19 if !defined($ios_block) || $ios_block !~ /^\d+$/;
+$tot_block = 19 if !defined($tot_block) || $tot_block !~ /^\d+$/;
 
-  # visible_epoch lesen – wenn gesetzt, nur Zeilen nach diesem Zeitpunkt rebuilden.
-  # Kein Marker = komplette Journal-Historie verwenden.
-  local rebuild_epoch=""
-  if [[ -f "$VISIBLE_EPOCH_FILE" ]]; then
-    rebuild_epoch="$(/bin/cat "$VISIBLE_EPOCH_FILE" 2>/dev/null | tr -d '\r\n')"
-    [[ -n "${rebuild_epoch:-}" ]] && \
-      status_log "INFO Rebuild: visible_epoch=${rebuild_epoch} – ältere Zeilen übersprungen"
+my @raw_header = qw(
+  Hostname Timestamp TotalsSince Peers ClientsCnt iOSUpdates iOSBytes
+  TotReturned TotOrigin ServedDelta OriginDelta CacheUsed CachePr
+  EN0 EN1 GatewayIP DefaultIf DNSRes AppleReach AppleTTFB
+  WiFiSNR WifiNoise WifiCCA
+);
+
+my @co_header = qw(
+  SiteCode Timestamp PeerCnt ClientsCnt iOSUpdates iOSBytes
+  ServedDelta OriginDelta CacheUsed CachePr DNSRes AppleReach AppleTTFB WiFiSNR
+);
+
+sub csv_escape {
+  my ($s) = @_;
+  $s = "" if !defined $s;
+  $s =~ s/"/""/g;
+  return '"' . $s . '"';
+}
+
+sub csv_line {
+  return join(',', map { csv_escape($_) } @_) . "\n";
+}
+
+sub parse_csv_line {
+  my ($line) = @_;
+  chomp $line;
+  $line =~ s/\r$//;
+  my @out;
+
+  while (length($line) > 0) {
+    if ($line =~ s/^"((?:[^"]|"")*)"(?:,|$)//) {
+      my $v = $1;
+      $v =~ s/""/"/g;
+      push @out, $v;
+      next;
+    }
+    if ($line =~ s/^([^,]*)(?:,|$)//) {
+      push @out, $1;
+      next;
+    }
+    last;
+  }
+
+  push @out, "" while @out < 23;
+  @out = @out[0..22] if @out > 23;
+  return @out;
+}
+
+sub iso_to_hu_ts {
+  my ($s) = @_;
+  return "" if !defined($s) || $s eq "";
+  $s =~ s/T/ /;
+  $s =~ s/[+-]\d{2}:?\d{2}$//;
+  return $s;
+}
+
+sub bytes_human {
+  my ($b) = @_;
+  return "" if !defined($b) || $b eq "";
+  return $b if $b !~ /^\d+$/;
+  return "0" if $b == 0;
+  my $v = $b + 0;
+  my $unit = "B";
+  if    ($v >= 1000000000000) { $v /= 1000000000000; $unit = "TB"; }
+  elsif ($v >= 1000000000)    { $v /= 1000000000;    $unit = "GB"; }
+  elsif ($v >= 1000000)       { $v /= 1000000;       $unit = "MB"; }
+  elsif ($v >= 1000)          { $v /= 1000;          $unit = "KB"; }
+  return sprintf("%.2f%s", $v, $unit);
+}
+
+sub iface_state {
+  my ($raw) = @_;
+  $raw = "" if !defined $raw;
+  return $raw if $raw eq "down" || $raw eq "noip";
+  return $raw eq "" ? "" : "up";
+}
+
+sub gateway_state {
+  my ($raw) = @_;
+  $raw = "" if !defined $raw;
+  return $raw ne "" ? "yes" : "no";
+}
+
+sub format_clientscnt_hu {
+  my ($raw) = @_;
+  $raw = "" if !defined $raw;
+  return "" if $raw eq "";
+
+  my ($active, $total);
+  if ($raw =~ m{^(\d+)/(\d+)$}) {
+    ($active, $total) = ($1, $2);
+  } elsif ($raw =~ /^(\d+)$/) {
+    $active = $1;
+    $total = "";
+  } else {
+    return "";
+  }
+
+  return $active if !defined($total) || $total eq "" || $total == 0;
+  return sprintf("%.1f%%", ($active / $total) * 100.0);
+}
+
+sub peer_count {
+  my ($peers) = @_;
+  $peers = "" if !defined $peers;
+  return "" if $peers eq "";
+  my @p = split(/;/, $peers, -1);
+  return scalar(@p);
+}
+
+sub normalize_ios_version_2digit {
+  my ($v) = @_;
+  $v = "" if !defined $v;
+  return "" if $v eq "";
+  return $v if $v !~ /^\d+(?:\.\d+){1,2}$/;
+  my @p = split(/\./, $v);
+  @p = map { /^\d$/ ? "0$_" : $_ } @p;
+  return join('.', @p);
+}
+
+sub normalize_iosupdates_list_2digit {
+  my ($s) = @_;
+  $s = "" if !defined $s;
+  return "" if $s eq "";
+  return join('|', map { normalize_ios_version_2digit($_) } split(/\|/, $s, -1));
+}
+
+my $epoch = "";
+if (defined($epoch_file) && $epoch_file ne "" && -f $epoch_file) {
+  if (open my $efh, '<', $epoch_file) {
+    $epoch = <$efh> // "";
+    chomp $epoch;
+    $epoch =~ s/\r//g;
+    close $efh;
+  }
+}
+
+open my $in,  '<', $journal or die "cannot open journal: $journal\n";
+open my $hu,  '>', $tmp_hu  or die "cannot write HU tmp: $tmp_hu\n";
+open my $co,  '>', $tmp_co  or die "cannot write CO tmp: $tmp_co\n";
+
+print {$hu} csv_line(@raw_header);
+print {$co} csv_line(@co_header);
+
+my $lineno = 0;
+my $rows = 0;
+my $last_ios = "";
+my $ios_count = 0;
+my $last_tot_hu = "";
+my $tot_count = 0;
+
+while (my $line = <$in>) {
+  $lineno++;
+  next if $lineno == 1;
+  next if $line =~ /^\s*$/;
+
+  my @f = parse_csv_line($line);
+  my ($host, $ts, $totals_since, $peers, $clientscnt, $iosupdates, $iosbytes,
+      $totret, $totorg, $serveddelta, $origindelta, $cacheused, $cachepr,
+      $en0, $en1, $gatewayip, $defaultif, $dnsres, $applereach, $applettfb,
+      $wifisnr, $wifinoise, $wificca) = @f;
+
+  next if $epoch ne "" && defined($ts) && $ts le $epoch;
+
+  my $hu_ts = iso_to_hu_ts($ts);
+  $hu_ts = $ts if $hu_ts eq "";
+
+  my $tot_hu_cur = iso_to_hu_ts($totals_since);
+  my $hu_totals_since = "";
+  if ($last_tot_hu eq "" || $tot_hu_cur ne $last_tot_hu) {
+    $last_tot_hu = $tot_hu_cur;
+    $tot_count = $tot_block;
+    $hu_totals_since = $tot_hu_cur;
+  } elsif ($tot_count > 0) {
+    $tot_count--;
+    $hu_totals_since = $tot_hu_cur;
+  }
+
+  my $hu_peers = peer_count($peers);
+  my $hu_clientscnt = format_clientscnt_hu($clientscnt);
+
+  my $hu_ios = "";
+  if ($last_ios eq "" || $iosupdates ne $last_ios) {
+    $last_ios = $iosupdates;
+    $ios_count = $ios_block;
+    $hu_ios = $iosupdates;
+  } elsif ($ios_count > 0) {
+    $ios_count--;
+    $hu_ios = $iosupdates;
+  }
+
+  my $hu_cachepr = ($cachepr ne "") ? $cachepr : "0";
+  my $hu_dns = ($dnsres eq "1") ? "yes" : "no";
+  my $hu_reach = ($applereach eq "1") ? "yes" : "no";
+  my $hu_ttfb = ($applereach eq "1" && $applettfb ne "") ? $applettfb . "ms" : "n/a";
+  my $hu_snr = ($wifisnr ne "") ? $wifisnr . "dB" : "n/a";
+  my $hu_noise = ($wifinoise ne "") ? $wifinoise . "dBm" : "n/a";
+  my $hu_cca = ($wificca ne "") ? $wificca . "%" : "n/a";
+
+  print {$hu} csv_line(
+    $host, $hu_ts, $hu_totals_since, $hu_peers, $hu_clientscnt, $hu_ios,
+    (bytes_human($iosbytes) || "n/a"),
+    (bytes_human($totret) || "n/a"),
+    (bytes_human($totorg) || "n/a"),
+    (bytes_human($serveddelta) || "n/a"),
+    (bytes_human($origindelta) || "n/a"),
+    (bytes_human($cacheused) || "n/a"),
+    $hu_cachepr, iface_state($en0), iface_state($en1), gateway_state($gatewayip),
+    $defaultif, $hu_dns, $hu_reach, $hu_ttfb, $hu_snr, $hu_noise, $hu_cca
+  );
+
+  print {$co} csv_line(
+    $prefix, $ts, $hu_peers, $clientscnt, normalize_iosupdates_list_2digit($iosupdates),
+    $iosbytes, $serveddelta, $origindelta, $cacheused, $cachepr,
+    $dnsres, $applereach, $applettfb, $wifisnr
+  );
+
+  $rows++;
+}
+
+close $in;
+close $hu;
+close $co;
+print $rows;
+PERL_REBUILD
+)"
+  perl_exit=$?
+
+  if [[ "$perl_exit" -ne 0 ]]; then
+    status_log "ERROR Rebuild: Perl-Konvertierung fehlgeschlagen exit=${perl_exit}"
+    /bin/rm -f "$tmp_hu" "$tmp_co" 2>/dev/null || true
+    return 1
   fi
 
-  local lineno=0
-  local data_rows=0
+  [[ -z "${data_rows:-}" ]] && data_rows=0
 
-  while IFS= read -r raw_line; do
-    lineno=$((lineno + 1))
-    [[ "$lineno" -eq 1 ]] && continue  # Header überspringen
-    [[ -z "${raw_line:-}" ]] && continue
-
-    # Gequotetes CSV via perl parsen → Tab-separiert, exakt 23 Felder + Sentinel
-    # Sentinel verhindert, dass zsh trailing-leere Felder beim Split verwirft.
-    local fields_str
-    fields_str="$(echo "$raw_line" | /usr/bin/perl -e '
-      use strict;
-      my $line = <STDIN>; chomp $line;
-      my @out;
-      while (length($line) > 0) {
-        if ($line =~ s/^"((?:[^"]|"")*)"(?:,|$)//) {
-          my $v = $1; $v =~ s/""/"/g; push @out, $v;
-        } elsif ($line =~ s/^([^,]*)(?:,|$)//) {
-          push @out, $1;
-        } else { last; }
-      }
-      push @out, "" while @out < 23;
-      @out = @out[0..22];
-      push @out, "__END__";
-      print join("\t", @out) . "\n";
-    ' 2>/dev/null)"
-
-    [[ -z "${fields_str:-}" ]] && continue
-
-    # In zsh-Array aufteilen (1-basiert); Sentinel als f[24] sichert leere Trailing-Felder
-    local -a f
-    f=("${(s:\t:)${fields_str%%$'\n'}}")
-
-    [[ "${#f}" -lt 24 ]] && continue  # 23 Datenfelder + Sentinel erwartet
-
-    local r_host="${f[1]:-}"  r_ts="${f[2]:-}"       r_totalssince="${f[3]:-}"
-
-    # Zeilen vor/bei visible_epoch überspringen (archivierter Abschnitt)
-    if [[ -n "${rebuild_epoch:-}" && "${r_ts:-}" <= "${rebuild_epoch:-}" ]]; then
-      continue
-    fi
-    local r_peers="${f[4]:-}" r_clientscnt="${f[5]:-}" r_iosupdates="${f[6]:-}"
-    local r_iosbytes="${f[7]:-}"    r_totret="${f[8]:-}"      r_totorg="${f[9]:-}"
-    local r_serveddelta="${f[10]:-}" r_origindelta="${f[11]:-}" r_cacheused="${f[12]:-}"
-    local r_cachepr="${f[13]:-}"  r_en0="${f[14]:-}"        r_en1="${f[15]:-}"
-    local r_gatewayip="${f[16]:-}" r_defaultif="${f[17]:-}"   r_dnsres="${f[18]:-}"
-    local r_applereach="${f[19]:-}" r_applettfb="${f[20]:-}"  r_wifisnr="${f[21]:-}"
-    local r_wifinoise="${f[22]:-}"  r_wificca="${f[23]:-}"
-
-    # ----------------------------------------------------------------
-    # HU-Felder ableiten
-    # ----------------------------------------------------------------
-
-    # Timestamp
-    local hu_ts
-    hu_ts="$(iso_to_hu_ts "$r_ts")"
-    [[ -z "${hu_ts:-}" ]] && hu_ts="$r_ts"
-
-    # TotalsSince – Block-Sichtbarkeit
-    local hu_totalssince_cur
-    hu_totalssince_cur="$(iso_to_hu_ts "$r_totalssince")"
-    local hu_totalssince=""
-    if [[ -z "${last_totalssince_hu:-}" || "$hu_totalssince_cur" != "$last_totalssince_hu" ]]; then
-      last_totalssince_hu="$hu_totalssince_cur"
-      totalssince_count=$TOTALSSINCE_BLOCK_LEN
-      hu_totalssince="$hu_totalssince_cur"
-    elif [[ "$totalssince_count" -gt 0 ]]; then
-      totalssince_count=$((totalssince_count - 1))
-      hu_totalssince="$hu_totalssince_cur"
-    fi
-
-    # Peers – Anzahl
-    local hu_peers=""
-    if [[ -n "$r_peers" ]]; then
-      hu_peers="$(echo "$r_peers" | awk -F';' '{print NF}')"
-    fi
-
-    # ClientsCnt
-    local cc_active="" cc_total=""
-    if [[ "$r_clientscnt" == */* ]]; then
-      cc_active="${r_clientscnt%%/*}"
-      cc_total="${r_clientscnt##*/}"
-    elif [[ -n "$r_clientscnt" ]]; then
-      cc_active="$r_clientscnt"
-    fi
-    local hu_clientscnt
-    hu_clientscnt="$(format_clientscnt_hu "${cc_active:-}" "${cc_total:-}")"
-
-    # iOSUpdates – Block-Sichtbarkeit
-    local hu_iosupdates=""
-    if [[ -z "${last_iosupdates:-}" || "$r_iosupdates" != "$last_iosupdates" ]]; then
-      last_iosupdates="$r_iosupdates"
-      iosupdates_count=$IOSUPD_BLOCK_LEN
-      hu_iosupdates="$r_iosupdates"
-    elif [[ "$iosupdates_count" -gt 0 ]]; then
-      iosupdates_count=$((iosupdates_count - 1))
-      hu_iosupdates="$r_iosupdates"
-    fi
-
-    # Byte-Felder
-    local hu_iosbytes hu_totret hu_totorg hu_serveddelta hu_origindelta hu_cacheused
-    hu_iosbytes="$(bytes_human "${r_iosbytes:-}")"
-    hu_totret="$(bytes_human "${r_totret:-}")"
-    hu_totorg="$(bytes_human "${r_totorg:-}")"
-    hu_serveddelta="$(bytes_human "${r_serveddelta:-}")"
-    hu_origindelta="$(bytes_human "${r_origindelta:-}")"
-    hu_cacheused="$(bytes_human "${r_cacheused:-}")"
-
-    # CachePr
-    local hu_cachepr="0"
-    [[ -n "${r_cachepr:-}" ]] && hu_cachepr="$r_cachepr"
-
-    # Netzwerk
-    local hu_en0 hu_en1 hu_gateway
-    hu_en0="$(hu_iface_state "$r_en0")"
-    hu_en1="$(hu_iface_state "$r_en1")"
-    hu_gateway="$(hu_gateway_state "$r_gatewayip")"
-
-    # DNS + Apple
-    local hu_dnsres="no" hu_applereach="no" hu_applettfb="n/a"
-    [[ "$r_dnsres" == "1" ]] && hu_dnsres="yes"
-    if [[ "$r_applereach" == "1" ]]; then
-      hu_applereach="yes"
-      [[ -n "${r_applettfb:-}" ]] && hu_applettfb="${r_applettfb}ms" || hu_applettfb="n/a"
-    fi
-
-    # WiFi
-    local hu_wifisnr="n/a" hu_wifinoise="n/a" hu_wificca="n/a"
-    [[ -n "${r_wifisnr:-}" ]] && hu_wifisnr="${r_wifisnr}dB"
-    [[ -n "${r_wifinoise:-}" ]] && hu_wifinoise="${r_wifinoise}dBm"
-    [[ -n "${r_wificca:-}" ]] && hu_wificca="${r_wificca}%"
-
-    emit_csv_line "$tmp_hu" \
-      "$r_host" "$hu_ts" "$hu_totalssince" "$hu_peers" "$hu_clientscnt" \
-      "$hu_iosupdates" "${hu_iosbytes:-n/a}" "${hu_totret:-n/a}" "${hu_totorg:-n/a}" \
-      "${hu_serveddelta:-n/a}" "${hu_origindelta:-n/a}" "${hu_cacheused:-n/a}" \
-      "$hu_cachepr" "$hu_en0" "$hu_en1" "$hu_gateway" "$r_defaultif" \
-      "$hu_dnsres" "$hu_applereach" "$hu_applettfb" "$hu_wifisnr" "$hu_wifinoise" "$hu_wificca"
-
-    # ----------------------------------------------------------------
-    # CO-Felder ableiten
-    # ----------------------------------------------------------------
-    local co_iosupdates
-    co_iosupdates="$(normalize_iosupdates_list_2digit "${r_iosupdates:-}")"
-
-    emit_csv_line "$tmp_co" \
-      "$PREFIX" "$r_ts" "$hu_peers" "$r_clientscnt" "$co_iosupdates" \
-      "${r_iosbytes:-}" "${r_serveddelta:-}" "${r_origindelta:-}" "${r_cacheused:-}" \
-      "$r_cachepr" "$r_dnsres" "$r_applereach" "${r_applettfb:-}" "${r_wifisnr:-}"
-
-    data_rows=$((data_rows + 1))
-  done < "$RAW_JOURNAL"
-
-  # Atomar auf Zieldateien setzen
-  local rebuild_ok=0
+  local rebuild_ok=1
   if /bin/mv "$tmp_hu" "$OUT_HU" 2>/dev/null; then
+    /bin/chown root:wheel "$OUT_HU" 2>/dev/null || true
     /bin/chmod 644 "$OUT_HU" 2>/dev/null || true
     status_log "INFO HU aus RAW-Journal wiederhergestellt (${data_rows} Datenzeilen)"
-    rebuild_ok=1
   else
     status_log "ERROR Rebuild HU: mv fehlgeschlagen → $OUT_HU"
     /bin/rm -f "$tmp_hu" 2>/dev/null || true
+    rebuild_ok=0
   fi
 
   if /bin/mv "$tmp_co" "$OUT_CO" 2>/dev/null; then
+    /bin/chown root:wheel "$OUT_CO" 2>/dev/null || true
     /bin/chmod 644 "$OUT_CO" 2>/dev/null || true
     status_log "INFO CO aus RAW-Journal wiederhergestellt (${data_rows} Datenzeilen)"
   else
@@ -1105,7 +1179,8 @@ rebuild_visible_from_journal() {
     rebuild_ok=0
   fi
 
-  return $((1 - rebuild_ok))
+  [[ "$rebuild_ok" -eq 1 ]] && return 0
+  return 1
 }
 
 # =============================================================================
