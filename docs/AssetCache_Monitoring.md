@@ -1,6 +1,6 @@
 # Asset Cache Monitoring – KommunalBIT
 
-Monitoring und Logging des Apple Content Caching auf Mac Minis in Schulen.  
+Monitoring und Logging des Apple Content Caching auf geeigneten macOS-Devices an Standorten.  
 **Aktuelle Version: 1.9.1**
 
 ---
@@ -34,7 +34,7 @@ Diese beiden Perspektiven dürfen nicht vermischt werden. Ein Standort kann stat
 
 ## Kurzüberblick
 
-Das Hauptskript `scripts/assetcache_logger.sh` läuft auf einem Mac mini mit aktiviertem Apple Content Caching. Es wird über einen LaunchDaemon alle 15 Minuten gestartet.
+Das Hauptskript `scripts/assetcache_logger.sh` läuft auf einem macOS-Device mit aktiviertem Apple Content Caching. Es wird über einen LaunchDaemon alle 15 Minuten gestartet.
 
 Der Logger sammelt in einem Durchlauf:
 
@@ -45,7 +45,7 @@ Der Logger sammelt in einem Durchlauf:
 - aktuelle iOS-/iPadOS-Versionen aus Apple GDMF
 - Netzwerkstatus, Default Gateway und DNS
 - Apple-CDN-Erreichbarkeit und TTFB
-- WLAN-Metriken, falls der Mac mini per WLAN betrieben wird
+- WLAN-Metriken, falls das macOS-Device per WLAN betrieben wird
 
 Ab Version 1.9.1 trennt das System strikt zwischen dauerhaftem Speicher und sichtbarer Ausgabe.
 
@@ -497,7 +497,7 @@ Viele oder wechselnde Peers können die Interpretation erschweren, weil Last und
 
 ### WLAN-Werte
 
-WLAN-Werte sind vor allem relevant, wenn der Mac mini nicht per LAN angebunden ist.
+WLAN-Werte sind vor allem relevant, wenn das macOS-Device nicht per LAN angebunden ist.
 
 `WiFiSNR`:
 
@@ -661,7 +661,7 @@ Beispiele:
 - Ein ruhiges Zeitfenster kann organisatorisch normal sein.
 - Peers können Last verteilen und die Standortinterpretation erschweren.
 - Apple-CDN-Werte sind Momentaufnahmen.
-- WLAN-Werte sind nur relevant, wenn der Mac mini tatsächlich per WLAN arbeitet.
+- WLAN-Werte sind nur relevant, wenn das macOS-Device tatsächlich per WLAN arbeitet.
 - RAW-Journal und sichtbare HU/CO können nach einer bewussten iOS-Wechsel-Archivierung unterschiedliche historische Reichweiten haben.
 
 Die Daten müssen immer im Standortkontext interpretiert werden.
