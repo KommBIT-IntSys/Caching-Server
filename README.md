@@ -46,7 +46,7 @@ Dieses Repository enthält keine personenbezogenen Daten.
 Die DSGVO‑konforme Nutzung im Betrieb obliegt der verantwortlichen Stelle.
 Haftungsausschluss: [`DISCLAIMER`](DISCLAIMER)
 
-**Aktuelle Version: [19.1](CHANGELOG.md)**
+**Aktuelle Version: [1.9.1](CHANGELOG.md)**
 
 ---
 
