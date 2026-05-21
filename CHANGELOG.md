@@ -76,7 +76,7 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
-## [1.8.3] - 2026-05-19
+## [1.8.3] - 2026-05-18
 
 ### Hinzugefügt
 - `scripts/LSI-Apple-Auswertung-v5.2.sh` als vollwertige macOS-/zsh-Implementierung der LSI-/Apple-Sicherheitsauswertung ergänzt.
