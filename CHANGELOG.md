@@ -76,6 +76,35 @@ Versionen folgen keiner starren SemVer-Interpretation, sondern einer praxisorien
 
 ---
 
+## [1.8.3] - 2026-05-19
+
+### Hinzugefügt
+- `scripts/LSI-Apple-Auswertung-v5.2.sh` als vollwertige macOS-/zsh-Implementierung der LSI-/Apple-Sicherheitsauswertung ergänzt.
+- Damit steht die LSI-/Apple-Auswertung neben der PowerShell-Version auch auf macOS zur Verfügung.
+- Das Skript bildet die komplexe Auswertungslogik der PowerShell-Version eigenständig nach, insbesondere:
+  - Abfrage und Verarbeitung der WID-/LSI-Datenbasis
+  - Auswertung relevanter Apple-Advisories
+  - CVE-, Exploit- und NoPatch-Erkennung
+  - Ermittlung und Bewertung von MinFix-Versionen je iOS-/iPadOS-Zweig
+  - Ausgabe eines Managementreports
+  - Ausgabe einer vollständigen Detail-/Gesamtauswertung als CSV
+  - inkrementelles Betriebsmodell mit vorhandenen Ergebnisdateien
+  - Bereinigung nicht mehr relevanter iOS-/iPadOS-Versionen anhand gepflegter `RELEVANT_VERSIONS`
+- Die LSI-/Apple-Auswertung ist damit nicht mehr an einen Windows-Arbeitsplatz gebunden.
+
+### Geändert
+- Die operative Auswertungskette des Projekts ist ab diesem Stand praktisch wieder multiplattformfähig:
+  - Windows 11: PowerShell-Skripte für Relution-Export-Bereinigung, CO-Merge und LSI-/Apple-Auswertung.
+  - macOS: Shell-/zsh-Skripte für Relution-Export-Bereinigung, CO-Merge und LSI-/Apple-Auswertung.
+- Die macOS-Skripte sind nicht nur Hilfswerkzeuge, sondern bilden die für den Betrieb relevanten Auswertungsschritte vollständig genug ab, um auch auf einem Mac-Administrationsarbeitsplatz belastbare Ergebnisse zu erzeugen.
+
+### Einordnung
+- Der AssetCache-Logger selbst bleibt macOS-/Mac-mini-spezifisch und läuft weiterhin auf den Caching-Servern.
+- Die vorbereitenden und auswertenden Arbeitsschritte können ab diesem Stand jedoch sowohl unter Windows 11 als auch unter macOS durchgeführt werden.
+- Diese Version markiert damit einen eigenständigen Projektmeilenstein: Die Sicherheitsauswertung und die CO-/Relution-Auswertung sind nicht mehr Windows-zentriert, sondern plattformübergreifend nutzbar.
+
+---
+
 ## [1.8.2] - 2026-05
 
 ### Geändert
