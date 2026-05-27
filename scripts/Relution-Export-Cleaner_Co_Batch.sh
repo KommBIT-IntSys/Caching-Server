@@ -1,422 +1,523 @@
-#!/bin/bash
-# relution_cleaner_co.sh
-# Bereinigt Relution-Exporte im Skriptordner:
-# - verarbeitet mehrere Dateien nach Geraete_Global_202*.csv und Geräte_Global_202*.csv
-# - erzeugt pro Quelldatei eine datensparsame CO-Datei Geraete_Global_Co_<Zeitstempel>.csv
-# - entfernt Gerätenamen/personenbezogene Spalten durch feste CO-Ausgabespalten
-# - reduziert Organisation/organizationName auf Standortkürzel
-# - normalisiert iOS-/iPadOS-Versionen zweistellig für KI-/Copilot-Auswertungen
-# - warnt bei LDG und unerwarteten Namensmustern in der entfernten name-Spalte
-# - warnt bei lastIpAddress und übernimmt diese datenschutzsensible Spalte nicht
-# - schreibt UTF-8-CSV mit Semikolon als Trennzeichen
+#!/bin/zsh
+# Relution-Export-Cleaner_Co_Batch.sh
+# Bereinigt Relution-Exporte unter macOS:
+# - verarbeitet alle Dateien im Skriptordner, die mit Geraete_Global_20 oder Geräte_Global_20 beginnen
+# - ignoriert bereits erzeugte _Co_-Dateien
+# - entfernt personenbezogene Spalten durch feste CO-Ausgabespalten
+# - extrahiert Standortkuerzel aus organizationName (Inhalt der ersten Klammer)
+# - bringt Spalten in definierte Reihenfolge
+# - sortiert Zeilen alphabetisch nach Standort
+# - uebernimmt den Zeitstempel der Quelldatei in den Ausgabedateinamen
+# - toleriert abweichende Spaltennamen und zusaetzliche Spalten
+# - normalisiert iOS-/iPadOS-Versionen auf drei zweistellige Segmente:
+#     26.5      -> 26.05.00
+#     26.05     -> 26.05.00
+#     18.7.8    -> 18.07.08
+#     18.07.08  -> 18.07.08
+# - normalisiert batteryLevel auf ganze Prozent:
+#     54.000004 -> 54
+#     52.999996 -> 53
+# - bricht pro Datei bei fehlenden harten Pflichtspalten ab, verarbeitet aber weitere passende Dateien weiter
+# - warnt bei fehlenden optionalen / weichen Pflichtspalten und laeuft weiter
+# - prueft die Quellspalte name vor dem Entfernen auf LDG und unerwartete Namensmuster
+# - entfernt lastIpAddress vor der Ausgabe, falls vorhanden
+# - schreibt die CO-Datei explizit mit Semikolon als Trennzeichen
+#
+# Nutzung:
+#   chmod +x scripts/Relution-Export-Cleaner_Co_Batch.sh
+#   ./scripts/Relution-Export-Cleaner_Co_Batch.sh
+#
+# Erwartung:
+#   Die zu bereinigenden Relution-CSV-Dateien liegen im selben Ordner wie dieses Skript.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR" || {
-    echo "FEHLER: Skriptordner konnte nicht betreten werden: $SCRIPT_DIR" >&2
+set -u
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+PYTHON_BIN=""
+
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="$(command -v python3)"
+elif [[ -x /usr/bin/python3 ]]; then
+    PYTHON_BIN="/usr/bin/python3"
+else
+    echo ""
+    echo "FEHLER: python3 wurde nicht gefunden."
+    echo "Dieses Skript nutzt Python 3 fuer robuste CSV-Verarbeitung."
+    echo "Auf macOS ist python3 normalerweise ueber Command Line Tools verfuegbar."
+    echo ""
     exit 1
+fi
+
+"$PYTHON_BIN" - "$SCRIPT_DIR" <<'PYCODE'
+import csv
+import datetime
+import glob
+import math
+import os
+import re
+import sys
+from collections import OrderedDict
+
+script_dir = sys.argv[1]
+
+input_patterns = [
+    "Geraete_Global_20*.csv",
+    "Geräte_Global_20*.csv",
+]
+
+critical_columns = [
+    "Standort",
+    "model",
+    "osVersion",
+    "batteryLevel",
+]
+
+optional_warn_columns = [
+    "lastConnectionDate",
+    "applePendingVersion",
+    "deviceConnectionState",
+    "status",
+]
+
+expected_name_markers = [
+    "SuS",
+    "Sport",
+    "Koga",
+    "Lehrer",
+]
+
+column_map = {
+    "Standort": [
+        "organizationName",
+        "Organisation",
+        "Standort",
+        "SiteCode",
+        "Org",
+    ],
+    "model": [
+        "model",
+        "Modell",
+        "Device Model",
+        "Geraetemodell",
+    ],
+    "lastConnectionDate": [
+        "lastConnectionDate",
+        "Letzte Verbindung",
+        "Last Connection",
+        "Zuletzt verbunden",
+    ],
+    "osVersion": [
+        "osVersion",
+        "OS Version",
+        "Betriebssystemversion",
+        "iOS Version",
+        "iPadOS Version",
+    ],
+    "applePendingVersion": [
+        "applePendingVersion",
+        "OS Update Status",
+        "Ausstehendes Update",
+        "Pending Version",
+    ],
+    "deviceConnectionState": [
+        "deviceConnectionState",
+        "Connection State",
+        "Verbindungsstatus",
+    ],
+    "status": [
+        "status",
+        "Status",
+        "Compliance",
+        "complianceStatus",
+        "MDM Status",
+    ],
+    "batteryLevel": [
+        "batteryLevel",
+        "Batteriestand",
+        "Battery Level",
+        "Akku",
+    ],
 }
 
-shopt -s nullglob
-SOURCES=()
-for candidate in Geraete_Global_202*.csv Geräte_Global_202*.csv; do
-    [ -f "$candidate" ] || continue
-    base="$(basename "$candidate")"
-    case "$base" in
-        *_Co_*) continue ;;
-    esac
-    SOURCES+=("$candidate")
-done
+output_columns = [
+    "Standort",
+    "model",
+    "lastConnectionDate",
+    "osVersion",
+    "applePendingVersion",
+    "deviceConnectionState",
+    "status",
+    "batteryLevel",
+]
 
-/usr/bin/perl - "$SCRIPT_DIR" "${SOURCES[@]}" <<'PERL'
-use strict;
-use warnings;
-use utf8;
-use Encode qw(decode);
-use File::Basename qw(basename);
-use POSIX qw(strftime);
-use Unicode::Normalize qw(NFC);
 
-binmode(STDOUT, ':encoding(UTF-8)');
-binmode(STDERR, ':encoding(UTF-8)');
+def warn(message):
+    print(f"WARNUNG: {message}")
 
-my $script_dir = shift @ARGV;
-my @source_paths = @ARGV;
 
-my @output_columns = (
-    'Standort',
-    'model',
-    'lastConnectionDate',
-    'osVersion',
-    'applePendingVersion',
-    'deviceConnectionState',
-    'status',
-    'batteryLevel',
-);
+def get_site_code(org_name):
+    if org_name is None:
+        return ""
 
-my %column_map = (
-    Standort              => [ 'organizationName', 'Organisation', 'Standort', 'SiteCode', 'Org' ],
-    model                 => [ 'model', 'Modell', 'Device Model', 'Geraetemodell' ],
-    lastConnectionDate    => [ 'lastConnectionDate', 'Letzte Verbindung', 'Last Connection', 'Zuletzt verbunden' ],
-    osVersion             => [ 'osVersion', 'OS Version', 'Betriebssystemversion', 'iOS Version', 'iPadOS Version' ],
-    applePendingVersion   => [ 'applePendingVersion', 'OS Update Status', 'Ausstehendes Update', 'Pending Version' ],
-    deviceConnectionState => [ 'deviceConnectionState', 'Connection State', 'Verbindungsstatus' ],
-    status                => [ 'status', 'Status', 'Compliance', 'complianceStatus', 'MDM Status' ],
-    batteryLevel          => [ 'batteryLevel', 'Batteriestand', 'Battery Level', 'Akku' ],
-);
+    value = str(org_name).strip()
 
-my @critical_columns = ( 'Standort', 'model', 'osVersion', 'batteryLevel' );
-my @optional_warn_columns = ( 'lastConnectionDate', 'applePendingVersion', 'deviceConnectionState', 'status' );
-my @expected_name_markers = ( 'SuS', 'Sport', 'Koga', 'Lehrer' );
+    if not value:
+        return ""
 
-sub warn_msg {
-    my ($message) = @_;
-    print "WARNUNG: $message\n";
-}
+    match = re.search(r"\(([^)]+)\)", value)
 
-sub display_name {
-    my ($name) = @_;
-    my $decoded = eval { decode('UTF-8', $name, 1) };
-    $decoded = $name if $@ || !defined $decoded;
-    return NFC($decoded);
-}
+    if match:
+        return match.group(1).strip()
 
-sub normalize_header {
-    my ($header) = @_;
-    $header = '' unless defined $header;
-    $header =~ s/^\x{FEFF}//;
-    $header =~ s/^\s+|\s+$//g;
-    return lc $header;
-}
+    return value
 
-sub csv_records {
-    my ($text) = @_;
-    my @records;
-    my @row;
-    my $field = '';
-    my $in_quotes = 0;
-    my $field_started = 0;
-    my $len = length($text);
 
-    for (my $i = 0; $i < $len; $i++) {
-        my $ch = substr($text, $i, 1);
+def normalize_ios_version_text(text):
+    if text is None:
+        return ""
 
-        if ($in_quotes) {
-            if ($ch eq '"') {
-                my $next = ($i + 1 < $len) ? substr($text, $i + 1, 1) : '';
-                if ($next eq '"') {
-                    $field .= '"';
-                    $i++;
-                } else {
-                    $in_quotes = 0;
-                }
-            } else {
-                $field .= $ch;
-            }
-            next;
-        }
+    value = str(text).strip()
 
-        if ($ch eq '"') {
-            if (!$field_started || $field eq '') {
-                $in_quotes = 1;
-                $field_started = 1;
-            } else {
-                $field .= $ch;
-            }
-        } elsif ($ch eq ',') {
-            push @row, $field;
-            $field = '';
-            $field_started = 0;
-        } elsif ($ch eq "\r" || $ch eq "\n") {
-            if ($ch eq "\r" && $i + 1 < $len && substr($text, $i + 1, 1) eq "\n") {
-                $i++;
-            }
-            push @row, $field;
-            push @records, [ @row ] unless @row == 1 && $row[0] eq '' && $field_started == 0;
-            @row = ();
-            $field = '';
-            $field_started = 0;
-        } else {
-            $field .= $ch;
-            $field_started = 1 unless $ch =~ /\s/ && $field eq '';
-        }
-    }
+    if not value:
+        return ""
 
-    die "CSV endet innerhalb eines gequoteten Feldes\n" if $in_quotes;
+    value = value.replace(",", ".")
 
-    if (@row || $field ne '' || $field_started) {
-        push @row, $field;
-        push @records, [ @row ];
-    }
+    def repl(match):
+        major = int(match.group(1))
+        minor = int(match.group(2))
+        patch = int(match.group(3)) if match.group(3) is not None else 0
+        return f"{major:02d}.{minor:02d}.{patch:02d}"
 
-    return @records;
-}
+    # Greift auch in einfachem Text:
+    # "iPadOS < 18.7.8" -> "iPadOS < 18.07.08"
+    return re.sub(r"(?<!\d)(\d+)\.(\d+)(?:\.(\d+))?(?!\d)", repl, value)
 
-sub csv_quote {
-    my ($value) = @_;
-    $value = '' unless defined $value;
-    $value =~ s/\r\n/\n/g;
-    $value =~ s/\r/\n/g;
-    $value =~ s/"/""/g;
-    return '"' . $value . '"';
-}
 
-sub write_csv {
-    my ($path, $rows) = @_;
-    open my $out, '>:encoding(UTF-8)', $path or die "Ausgabedatei konnte nicht geschrieben werden: $!\n";
-    print {$out} join(';', map { csv_quote($_) } @output_columns), "\n";
-    for my $row (@{$rows}) {
-        print {$out} join(';', map { csv_quote($row->{$_}) } @output_columns), "\n";
-    }
-    close $out or die "Ausgabedatei konnte nicht geschlossen werden: $!\n";
-}
+def normalize_battery_level(value):
+    if value is None:
+        return ""
 
-sub get_site_code {
-    my ($value) = @_;
-    return '' unless defined $value && $value ne '';
-    return $1 if $value =~ /\(([^)]*)\)/;
-    return $value;
-}
+    raw = str(value).strip()
 
-sub normalize_version_text {
-    my ($value) = @_;
-    return $value unless defined $value && $value ne '';
-    $value =~ s{(?<!\d)(\d+)\.(\d+)(?:\.(\d+))?(?!\d)}{
-        defined $3
-            ? sprintf('%s.%02d.%02d', $1, $2, $3)
-            : sprintf('%s.%02d', $1, $2)
-    }gex;
-    return $value;
-}
+    if not raw:
+        return ""
 
-sub normalize_battery_level {
-    my ($value) = @_;
-    return '' unless defined $value;
-    $value =~ s/^\s+|\s+$//g;
-    return $value if $value eq '';
-    if ($value =~ /\A-?\d+(?:[,.]\d+)?\z/) {
-        $value =~ tr/,/./;
-        return sprintf('%.0f', $value);
-    }
-    return $value;
-}
+    raw = raw.replace(",", ".")
 
-sub timestamp_from_name {
-    my ($file_name) = @_;
-    return $1 if $file_name =~ /(\d{4}-\d{2}-\d{2}_\d{4})\.csv\z/;
-    return $1 if $file_name =~ /(\d{4}-\d{2}-\d{2})\.csv\z/;
-    return strftime('%Y-%m-%d_%H%M', localtime);
-}
+    number = None
 
-sub resolve_columns {
-    my ($headers) = @_;
-    my %available;
-    for my $idx (0 .. $#{$headers}) {
-        my $normalized = normalize_header($headers->[$idx]);
-        $available{$normalized} = $idx unless exists $available{$normalized};
-    }
+    try:
+        number = float(raw)
+    except ValueError:
+        # Schutz gegen bereits durch Excel/Import verhunzte Werte wie 54.000.004.
+        # In diesem Spezialfall wird der erste Block als Prozentwert interpretiert.
+        # Das ist absichtlich konservativ und greift nur bei rein numerischen Punktgruppen.
+        if re.fullmatch(r"\d+(?:\.\d+){2,}", raw):
+            first_part = raw.split(".", 1)[0]
+            try:
+                number = float(first_part)
+            except ValueError:
+                return ""
+        else:
+            return ""
 
-    my %resolved;
-    for my $target (keys %column_map) {
-        $resolved{$target} = undef;
-        for my $candidate (@{ $column_map{$target} }) {
-            my $normalized = normalize_header($candidate);
-            if (exists $available{$normalized}) {
-                $resolved{$target} = $available{$normalized};
-                last;
-            }
-        }
-    }
+    if number is None or math.isnan(number) or math.isinf(number):
+        return ""
 
-    my $name_idx = exists $available{name} ? $available{name} : undef;
-    my $last_ip_idx = exists $available{lastipaddress} ? $available{lastipaddress} : undef;
+    rounded = int(math.floor(number + 0.5))
 
-    return (\%resolved, $name_idx, $last_ip_idx);
-}
+    if rounded < 0 or rounded > 100:
+        return ""
 
-sub row_value {
-    my ($row, $idx) = @_;
-    return '' unless defined $idx;
-    return defined $row->[$idx] ? $row->[$idx] : '';
-}
+    return str(rounded)
 
-sub process_file {
-    my ($source_path, $source_name) = @_;
 
-    print "\nVerarbeite: $source_name\n";
+def get_relution_timestamp_from_name(filename):
+    basename = os.path.basename(filename)
 
-    my $timestamp = timestamp_from_name($source_name);
-    my $output_path = "Geraete_Global_Co_$timestamp.csv";
-    my $output_name = basename($output_path);
+    match = re.search(r"(\d{4}-\d{2}-\d{2}_\d{4})\.csv$", basename)
 
-    my $text;
-    eval {
-        open my $in, '<:encoding(UTF-8)', $source_path or die "$!\n";
-        local $/;
-        $text = <$in>;
-        close $in;
-    };
-    if ($@) {
-        print "FEHLER: Datei konnte nicht gelesen werden: $source_name\n$@";
-        return 0;
-    }
+    if match:
+        return match.group(1)
 
-    if (!defined $text || $text eq '') {
-        print "FEHLER: Die Datei ist leer: $source_name\n";
-        return 0;
-    }
+    match = re.search(r"(\d{4}-\d{2}-\d{2})\.csv$", basename)
 
-    my @records;
-    eval { @records = csv_records($text); 1 } or do {
-        my $err = $@ || 'unbekannter CSV-Fehler';
-        print "FEHLER: CSV konnte nicht geparst werden: $source_name\n$err";
-        return 0;
-    };
+    if match:
+        return match.group(1)
 
-    if (!@records) {
-        print "FEHLER: Die Datei enthaelt keinen Header: $source_name\n";
-        return 0;
-    }
+    return datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
 
-    my $headers = shift @records;
-    if (!@records) {
-        print "FEHLER: Die Datei enthaelt keine Daten: $source_name\n";
-        return 0;
-    }
 
-    my ($resolved, $name_idx, $last_ip_idx) = resolve_columns($headers);
+def detect_delimiter(path):
+    with open(path, "r", encoding="utf-8-sig", newline="") as handle:
+        first_line = handle.readline()
 
-    my @missing_critical = grep { !defined $resolved->{$_} } @critical_columns;
-    if (@missing_critical) {
-        print "FEHLER: Folgende wichtige Pflichtspalten wurden im Relution-Export nicht gefunden:\n";
-        print "  " . join(', ', @missing_critical) . "\n";
-        print "Diese Datei wird uebersprungen, weil die erzeugte Auswertung sonst fachlich unzuverlaessig waere.\n";
-        return 0;
-    }
+    semicolon_count = first_line.count(";")
+    comma_count = first_line.count(",")
 
-    my @missing_optional = grep { !defined $resolved->{$_} } @optional_warn_columns;
-    if (@missing_optional) {
-        print "\n";
-        warn_msg("Folgende optionale Statusspalten wurden nicht gefunden: " . join(', ', @missing_optional));
-        print "Die Datei wird trotzdem erzeugt; die fehlenden Felder werden leer ausgegeben.\n";
-    }
+    if semicolon_count > comma_count:
+        return ";"
 
-    if (defined $last_ip_idx) {
-        print "\n";
-        warn_msg("Die Eingabedatei enthaelt die Spalte 'lastIpAddress'.");
-        print "Diese Spalte ist datenschutzsensibel und wird vor der CO-Ausgabe entfernt.\n";
-    }
+    return ","
 
-    if (defined $name_idx) {
-        my $ldg_count = 0;
-        my $unexpected_count = 0;
-        my @examples;
 
-        for my $row (@records) {
-            my $device_name = row_value($row, $name_idx);
-            $ldg_count++ if $device_name =~ /LDG/i;
+def read_csv_smart(path):
+    delimiter = detect_delimiter(path)
 
-            my $expected = 0;
-            for my $marker (@expected_name_markers) {
-                if ($device_name =~ /\Q$marker\E/i) {
-                    $expected = 1;
-                    last;
-                }
-            }
-            if (!$expected) {
-                $unexpected_count++;
-                push @examples, $device_name if $device_name =~ /\S/ && @examples < 5;
-            }
-        }
+    with open(path, "r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter=delimiter)
+        rows = list(reader)
+        fieldnames = reader.fieldnames or []
 
-        if ($ldg_count > 0) {
-            print "\n";
-            warn_msg("In der Quellspalte 'name' taucht das Kuerzel 'LDG' auf ($ldg_count Zeile(n)).");
-            print "Lehrerdienstgeraete sind eine eigene, datenschutzsensiblere Auswertungsebene und sollten nicht unbemerkt in SuS-/Fachgeraete-CO-Dateien geraten.\n";
-        }
+    return rows, fieldnames, delimiter
 
-        if ($unexpected_count > 0) {
-            print "\n";
-            warn_msg("In der Quellspalte 'name' fehlen bei $unexpected_count Zeile(n) die erwarteten Kuerzel: " . join(', ', @expected_name_markers) . ".");
-            print "Die Datei wird trotzdem erzeugt. Bitte pruefen, ob der Relution-Export korrekt gefiltert wurde oder ob neue Namensmuster dokumentiert werden muessen.\n";
-            if (@examples) {
-                print "Beispiele:\n";
-                print "  - $_\n" for @examples;
-            }
-        }
-    } else {
-        print "\n";
-        warn_msg("Die Quellspalte 'name' wurde nicht gefunden. LDG- und Namensmuster-Pruefung kann nicht durchgefuehrt werden.");
-        print "Die Datei wird trotzdem erzeugt; personenbezogene Namen werden weiterhin nicht in die CO-Ausgabe uebernommen.\n";
-    }
 
-    my @cleaned;
-    for my $row (@records) {
-        my %out;
-        for my $target (@output_columns) {
-            my $value = row_value($row, $resolved->{$target});
-            $value = get_site_code($value) if $target eq 'Standort';
-            $value = normalize_version_text($value) if $target eq 'osVersion' || $target eq 'applePendingVersion';
-            $value = normalize_battery_level($value) if $target eq 'batteryLevel';
-            $out{$target} = $value;
-        }
-        push @cleaned, \%out;
-    }
+def resolve_column_map(fieldnames):
+    resolved = {}
 
-    @cleaned = sort {
-        lc($a->{Standort} // '') cmp lc($b->{Standort} // '')
-            || ($a->{model} // '') cmp ($b->{model} // '')
-    } @cleaned;
+    fieldname_lookup = {name.lower(): name for name in fieldnames}
 
-    eval { write_csv($output_path, \@cleaned); 1 } or do {
-        my $err = $@ || 'unbekannter Schreibfehler';
-        print "FEHLER: Ausgabedatei konnte nicht geschrieben werden: $output_name\n$err";
-        return 0;
-    };
+    for target_column, candidates in column_map.items():
+        source_column = None
 
-    print "Fertig: $output_name\n";
-    print "  Eingabe:  " . scalar(@records) . " Geraete\n";
-    print "  Ausgabe:  " . scalar(@cleaned) . " Geraete, alphabetisch nach Standort\n";
-    print "  Hinweis:  Fehlende optionale Statusfelder: " . join(', ', @missing_optional) . "\n" if @missing_optional;
-    print "  Hinweis:  lastIpAddress wurde nicht in die CO-Ausgabe uebernommen\n" if defined $last_ip_idx;
+        for candidate in candidates:
+            if candidate.lower() in fieldname_lookup:
+                source_column = fieldname_lookup[candidate.lower()]
+                break
 
-    return 1;
-}
+        resolved[target_column] = source_column
 
-my @sources = sort { $a->{display} cmp $b->{display} } map {
-    {
-        path    => $_,
-        display => display_name(basename($_)),
-    }
-} @source_paths;
+    return resolved
 
-if (!@sources) {
-    print "FEHLER: Keine passende Eingabedatei gefunden.\n";
-    print "Erwartet werden Dateien im Skriptordner nach dem Muster:\n";
-    print "  Geraete_Global_202*.csv\n";
-    print "  Geräte_Global_202*.csv\n";
-    print "\nBatch abgeschlossen.\n";
-    print "  Gefunden: 0\n";
-    print "  Erfolgreich: 0\n";
-    print "  Uebersprungen/Fehler: 0\n";
-    exit 1;
-}
 
-print "\nGefundene Eingabedateien: " . scalar(@sources) . "\n";
+def find_field_case_insensitive(fieldnames, name):
+    needle = name.lower()
 
-my $ok = 0;
-my $failed = 0;
-for my $source (@sources) {
-    if (process_file($source->{path}, $source->{display})) {
-        $ok++;
-    } else {
-        $failed++;
-    }
-}
+    for field in fieldnames:
+        if field.lower() == needle:
+            return field
 
-print "\nBatch abgeschlossen.\n";
-print "  Gefunden: " . scalar(@sources) . "\n";
-print "  Erfolgreich: $ok\n";
-print "  Uebersprungen/Fehler: $failed\n";
+    return None
 
-exit($ok > 0 ? 0 : 1);
-PERL
+
+def convert_relution_export_file(source_path):
+    source_name = os.path.basename(source_path)
+
+    print("")
+    print(f"Verarbeite: {source_name}")
+
+    timestamp = get_relution_timestamp_from_name(source_name)
+    output_file = os.path.join(os.path.dirname(source_path), f"Geraete_Global_Co_{timestamp}.csv")
+
+    try:
+        rows, fieldnames, detected_delimiter = read_csv_smart(source_path)
+    except Exception as exc:
+        print(f"FEHLER: Datei konnte nicht gelesen werden: {source_path}")
+        print(str(exc))
+        return False
+
+    if not rows:
+        print(f"FEHLER: Die Datei enthaelt keine Daten: {source_name}")
+        return False
+
+    resolved = resolve_column_map(fieldnames)
+
+    missing_critical = [
+        column for column in critical_columns
+        if not resolved.get(column)
+    ]
+
+    if missing_critical:
+        print("FEHLER: Folgende wichtige Pflichtspalten wurden im Relution-Export nicht gefunden:")
+        print("  " + ", ".join(missing_critical))
+        print("Diese Datei wird uebersprungen, weil die erzeugte Auswertung sonst fachlich unzuverlaessig waere.")
+        return False
+
+    missing_optional = [
+        column for column in optional_warn_columns
+        if not resolved.get(column)
+    ]
+
+    if missing_optional:
+        print("")
+        warn("Folgende optionale Statusspalten wurden nicht gefunden: " + ", ".join(missing_optional))
+        print("Die Datei wird trotzdem erzeugt; die fehlenden Felder werden leer ausgegeben.")
+
+    last_ip_column = find_field_case_insensitive(fieldnames, "lastIpAddress")
+
+    if last_ip_column:
+        print("")
+        warn("Die Eingabedatei enthaelt die Spalte 'lastIpAddress'.")
+        print("Diese Spalte ist datenschutzsensibel und wird vor der CO-Ausgabe entfernt.")
+
+    name_column = find_field_case_insensitive(fieldnames, "name")
+
+    if name_column:
+        ldg_rows = [
+            row for row in rows
+            if re.search(r"LDG", str(row.get(name_column, "")), re.IGNORECASE)
+        ]
+
+        if ldg_rows:
+            print("")
+            warn(f"In der Quellspalte 'name' taucht das Kuerzel 'LDG' auf ({len(ldg_rows)} Zeile(n)).")
+            print("Lehrerdienstgeraete sind eine eigene, datenschutzsensiblere Auswertungsebene und sollten nicht unbemerkt in SuS-/Fachgeraete-CO-Dateien geraten.")
+
+        unexpected_name_rows = []
+
+        for row in rows:
+            device_name = str(row.get(name_column, "") or "")
+
+            if not device_name.strip():
+                unexpected_name_rows.append(row)
+                continue
+
+            has_expected_marker = any(marker in device_name for marker in expected_name_markers)
+
+            if not has_expected_marker:
+                unexpected_name_rows.append(row)
+
+        if unexpected_name_rows:
+            print("")
+            warn(
+                "In der Quellspalte 'name' fehlen bei "
+                f"{len(unexpected_name_rows)} Zeile(n) die erwarteten Kuerzel: "
+                + ", ".join(expected_name_markers)
+                + "."
+            )
+            print("Die Datei wird trotzdem erzeugt. Bitte pruefen, ob der Relution-Export korrekt gefiltert wurde oder ob neue Namensmuster dokumentiert werden muessen.")
+
+            examples = []
+
+            for row in unexpected_name_rows:
+                value = str(row.get(name_column, "") or "").strip()
+
+                if value:
+                    examples.append(value)
+
+                if len(examples) >= 5:
+                    break
+
+            if examples:
+                print("Beispiele:")
+
+                for example in examples:
+                    print(f"  - {example}")
+
+    else:
+        print("")
+        warn("Die Quellspalte 'name' wurde nicht gefunden. LDG- und Namensmuster-Pruefung kann nicht durchgefuehrt werden.")
+        print("Die Datei wird trotzdem erzeugt; personenbezogene Namen werden weiterhin nicht in die CO-Ausgabe uebernommen.")
+
+    cleaned = []
+
+    for row in rows:
+        output_row = OrderedDict()
+
+        for target_column in output_columns:
+            source_column = resolved.get(target_column)
+
+            if source_column:
+                value = row.get(source_column, "")
+
+                if target_column == "Standort":
+                    value = get_site_code(value)
+                elif target_column in ("osVersion", "applePendingVersion"):
+                    value = normalize_ios_version_text(value)
+                elif target_column == "batteryLevel":
+                    value = normalize_battery_level(value)
+                else:
+                    value = str(value).strip() if value is not None else ""
+
+                output_row[target_column] = value
+            else:
+                output_row[target_column] = ""
+
+        cleaned.append(output_row)
+
+    cleaned.sort(
+        key=lambda item: (
+            item.get("Standort", ""),
+            item.get("model", ""),
+            item.get("osVersion", ""),
+        )
+    )
+
+    try:
+        with open(output_file, "w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=output_columns,
+                delimiter=";",
+                quotechar='"',
+                quoting=csv.QUOTE_MINIMAL,
+                lineterminator="\n",
+            )
+            writer.writeheader()
+            writer.writerows(cleaned)
+    except Exception as exc:
+        print(f"FEHLER: Ausgabedatei konnte nicht geschrieben werden: {output_file}")
+        print(str(exc))
+        return False
+
+    print(f"Fertig: {os.path.basename(output_file)}")
+    print(f"  Eingabe:  {len(rows)} Geraete")
+    print(f"  Ausgabe:  {len(cleaned)} Geraete, alphabetisch nach Standort")
+    print("  Format:   Semikolon-CSV, UTF-8")
+    print("  Version:  osVersion/applePendingVersion dreistellig normalisiert, batteryLevel gerundet")
+
+    if missing_optional:
+        print("  Hinweis:  Fehlende optionale Statusfelder: " + ", ".join(missing_optional))
+
+    if last_ip_column:
+        print("  Hinweis:  lastIpAddress wurde nicht in die CO-Ausgabe uebernommen")
+
+    return True
+
+
+sources = []
+
+for pattern in input_patterns:
+    sources.extend(glob.glob(os.path.join(script_dir, pattern)))
+
+sources = [
+    path for path in sources
+    if "_Co_" not in os.path.basename(path)
+    and os.path.isfile(path)
+]
+
+sources = sorted(set(sources), key=lambda path: os.path.basename(path))
+
+if not sources:
+    print("")
+    print("FEHLER: Keine passende Eingabedatei gefunden.")
+    print("Erwartet werden Dateien im Skriptordner nach dem Muster:")
+    print("  Geraete_Global_20*.csv")
+    print("  Geräte_Global_20*.csv")
+    print("")
+    sys.exit(1)
+
+print("")
+print(f"Gefundene Eingabedateien: {len(sources)}")
+
+ok = 0
+failed = 0
+
+for source in sources:
+    if convert_relution_export_file(source):
+        ok += 1
+    else:
+        failed += 1
+
+print("")
+print("Batch abgeschlossen.")
+print(f"  Erfolgreich: {ok}")
+print(f"  Uebersprungen/Fehler: {failed}")
+
+if failed > 0:
+    sys.exit(1)
+
+sys.exit(0)
+PYCODE
