@@ -198,8 +198,7 @@ if [[ ! -f "${SCHULEN_CONF}" ]]; then
 # Format: KÜRZEL<TAB>ANZAHL  (eine Zeile pro Schule)
 # Beispiel:
 # ABC	123
-# DEF	45
-
+# DEF	456
 SCHULEN_EOF
 
   chown root:wheel "${SCHULEN_CONF}" 2>/dev/null || true
